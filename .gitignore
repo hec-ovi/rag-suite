@@ -11,6 +11,8 @@ dist/
 # Local test artifacts
 data/
 .data/
+qdrant/storage/*
+!qdrant/storage/.gitkeep
 
 # OS
 .DS_Store

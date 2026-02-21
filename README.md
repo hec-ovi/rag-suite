@@ -51,6 +51,7 @@ cp .env.template .env
 
 2. Update absolute host paths in `.env` (`OLLAMA_MODELS_DIR`, `QDRANT_STORAGE_DIR`, `BACKEND_DATA_DIR`).
    Use your persistent Ollama model cache path so models are reused between runs.
+   The `.env.template` paths are placeholders by design; run compose with your real `.env`.
 
 3. Start stack:
 
