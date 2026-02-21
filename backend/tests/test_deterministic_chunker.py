@@ -31,3 +31,15 @@ def test_deterministic_chunker_merges_tiny_tail_chunks() -> None:
 
     assert len(chunks) >= 1
     assert "tail" in chunks[-1].text
+
+
+def test_deterministic_chunker_avoids_orphan_heading_chunk() -> None:
+    chunker = DeterministicChunker()
+
+    body = " ".join(["sentence"] * 180)
+    text = "Introduction" + "\n\n" + body
+    chunks = chunker.chunk(text=text, max_chunk_chars=550, min_chunk_chars=180, overlap_chars=0)
+
+    assert len(chunks) >= 1
+    assert "Introduction" in chunks[0].text
+    assert len(chunks[0].text) > 100

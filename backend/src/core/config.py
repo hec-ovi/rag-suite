@@ -19,8 +19,8 @@ class Settings(BaseSettings):
     qdrant_collection_prefix: str = Field(default="rag_suite_project")
 
     ollama_url: str = Field(default="http://ollama:11434")
-    ollama_chat_model: str = Field(default="qwen3:8b")
-    ollama_embedding_model: str = Field(default="nomic-embed-text:latest")
+    ollama_chat_model: str = Field(default="gpt-oss:20b")
+    ollama_embedding_model: str = Field(default="bge-m3:latest")
     ollama_timeout_seconds: float = Field(default=90.0)
 
     normalization_version: str = Field(default="v1")

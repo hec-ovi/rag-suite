@@ -8,6 +8,10 @@ agent/
 node_modules/
 dist/
 
+# Local test artifacts
+data/
+.data/
+
 # OS
 .DS_Store
 Thumbs.db

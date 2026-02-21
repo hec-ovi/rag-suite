@@ -36,6 +36,7 @@ FAISS is kept as a future benchmark/tuning path, not as the primary persistence 
 backend/            FastAPI ingestion API + SQLite control plane + Qdrant/Ollama adapters
 frontend/           React ingestion UI shell
 ollama/             ROCm Ollama startup scripts
+qdrant/             Local persistent Qdrant storage mount point (`qdrant/storage`)
 docker-compose.yml  Local stack orchestration (frontend, backend, qdrant, ollama)
 .env.template       Environment and host-path template
 ```
@@ -49,6 +50,7 @@ cp .env.template .env
 ```
 
 2. Update absolute host paths in `.env` (`OLLAMA_MODELS_DIR`, `QDRANT_STORAGE_DIR`, `BACKEND_DATA_DIR`).
+   Use your persistent Ollama model cache path so models are reused between runs.
 
 3. Start stack:
 
@@ -61,6 +63,12 @@ docker compose --env-file .env up -d --build
 - Frontend: `http://localhost:5173`
 - Backend docs: `http://localhost:8000/docs`
 - Qdrant: `http://localhost:6333/dashboard`
+
+## Persistent Paths
+
+- `.env.template` now uses generic example paths only (no machine-specific path leakage).
+- Set `OLLAMA_MODELS_DIR` to your persistent local model store (for example your existing `/home/.../models/ollama` path in your real `.env`).
+- `qdrant/storage/` is included for persistent vector data mounts.
 
 ## Stage 0 Backend Endpoints
 
@@ -91,6 +99,36 @@ The ingestion UI in `frontend/` supports:
 - Deterministic or agentic chunk proposal review
 - Contextual header generation and manual edit
 - Manual ingest (approved chunks) or full automatic ingest
+
+## Audit Example (PDF-Derived TXT)
+
+Document used: `data/2512.10398v6.txt` (generated from a PDF extraction).
+
+Audit report: `docs/audits/2026-02-21-2512.10398v6-section-audit.md`
+
+Key results from the 2026-02-21 run:
+
+- Full-file normalization:
+  - `source_chars=92812`
+  - `normalized_chars=91393`
+  - `removed_repeated_line_count=142`
+  - `collapsed_whitespace_count=11224`
+- Repeated marker cleanup (`<SYSTEM>`, `Agent`, `<AI>`, `Output:`) dropped to `0` occurrences after normalization.
+- Deterministic chunking (section-level, `max=550`, `min=180`, `overlap=80`) produced `3` chunks: `[456, 219, 522]`.
+- Agentic chunking on the same section (`gpt-oss:20b`) produced `3` chunks: `[445, 576, 165]` with semantic rationales per boundary.
+- Audit finding: the agentic pass can violate size constraints (here `165 < min=180`), so manual review or post-validation remains required.
+
+Reproduce the deterministic audit:
+
+```bash
+UV_CACHE_DIR=/tmp/uv-cache uv run --directory backend python -m scripts.run_section_audit \
+  --input-file data/2512.10398v6.txt \
+  --section-anchor Introduction \
+  --section-length 1200 \
+  --max-chars 550 \
+  --min-chars 180 \
+  --overlap-chars 80
+```
 
 ## Backend Verification
 
