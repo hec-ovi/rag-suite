@@ -12,6 +12,7 @@ Current stage implements the data preparation control plane:
 - Embedding and vector indexing in Qdrant
 - SQLite metadata registry for projects, documents, and chunk audit records
 - OpenAPI backend for step-by-step and one-shot ingestion workflows
+- Automatic pipeline preview endpoint for human review before persistence
 
 ## Why Qdrant (and not FAISS-only)
 
@@ -60,6 +61,7 @@ docker compose --env-file .env up -d --build
 - `POST /v1/pipeline/normalize`
 - `POST /v1/pipeline/chunk`
 - `POST /v1/pipeline/contextualize`
+- `POST /v1/pipeline/preview-automatic`
 - `POST /v1/projects/{project_id}/documents/ingest`
 
 ## Backend Verification

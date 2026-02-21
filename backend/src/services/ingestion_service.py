@@ -8,6 +8,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.core.config import Settings
 from src.core.exceptions import ResourceNotFoundError, ValidationDomainError
 from src.models.api.pipeline import (
+    AutomaticPipelinePreviewRequest,
+    AutomaticPipelinePreviewResponse,
     ChunkProposal,
     ChunkTextRequest,
     ChunkTextResponse,
@@ -131,6 +133,73 @@ class IngestionService:
                     contextualized_text=item.contextualized_text,
                 )
                 for item in contextualized
+            ],
+        )
+
+    async def preview_automatic_pipeline(
+        self,
+        request: AutomaticPipelinePreviewRequest,
+    ) -> AutomaticPipelinePreviewResponse:
+        """Run normalize/chunk/contextualize without persistence or embeddings."""
+
+        normalized_text = request.raw_text
+        if request.automation.normalize_text:
+            normalized = self._normalizer.normalize(
+                text=request.raw_text,
+                max_blank_lines=1,
+                remove_repeated_short_lines=True,
+            )
+            normalized_text = normalized.normalized_text
+
+        if request.automation.agentic_chunking:
+            chunk_mode = "agentic"
+        else:
+            chunk_mode = request.chunk_options.mode
+
+        runtime_chunks = await self._chunk_runtime(
+            text=normalized_text,
+            mode=chunk_mode,
+            max_chunk_chars=request.chunk_options.max_chunk_chars,
+            min_chunk_chars=request.chunk_options.min_chunk_chars,
+            overlap_chars=request.chunk_options.overlap_chars,
+            llm_model=request.llm_model,
+        )
+
+        contextualized_chunks = await self._contextual_header_generator.contextualize(
+            document_name=request.document_name,
+            full_document_text=normalized_text,
+            chunks=runtime_chunks,
+            mode=request.contextualization_mode if request.automation.contextual_headers else "template",
+            model=request.llm_model or self._settings.ollama_chat_model,
+        )
+
+        return AutomaticPipelinePreviewResponse(
+            normalized_text=normalized_text,
+            chunking_mode=chunk_mode,
+            contextualization_mode=(
+                request.contextualization_mode if request.automation.contextual_headers else "disabled"
+            ),
+            chunks=[
+                ChunkProposal(
+                    chunk_index=item.chunk_index,
+                    start_char=item.start_char,
+                    end_char=item.end_char,
+                    text=item.text,
+                    rationale=item.rationale,
+                )
+                for item in runtime_chunks
+            ],
+            contextualized_chunks=[
+                ContextualizedChunk(
+                    chunk_index=item.chunk_index,
+                    start_char=item.start_char,
+                    end_char=item.end_char,
+                    rationale=item.rationale,
+                    chunk_text=item.chunk_text,
+                    context_header=item.context_header,
+                    contextualized_text=item.contextualized_text,
+                )
+                for item in contextualized_chunks
             ],
         )
 

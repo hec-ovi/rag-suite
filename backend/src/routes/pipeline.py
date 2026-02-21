@@ -8,6 +8,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.core.config import Settings
 from src.core.dependencies import get_db_session, get_settings
 from src.models.api.pipeline import (
+    AutomaticPipelinePreviewRequest,
+    AutomaticPipelinePreviewResponse,
     ChunkTextRequest,
     ChunkTextResponse,
     ContextualizeChunksRequest,
@@ -55,3 +57,14 @@ async def contextualize_chunks(
     service = build_ingestion_service(session=session, settings=settings)
     return await service.contextualize_chunks(data)
 
+
+@router.post("/preview-automatic")
+async def preview_automatic_pipeline(
+    data: AutomaticPipelinePreviewRequest,
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+    settings: Annotated[Settings, Depends(get_settings)],
+) -> AutomaticPipelinePreviewResponse:
+    """Preview normalize/chunk/contextualize before document ingestion."""
+
+    service = build_ingestion_service(session=session, settings=settings)
+    return await service.preview_automatic_pipeline(data)

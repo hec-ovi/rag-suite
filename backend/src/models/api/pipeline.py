@@ -91,6 +91,36 @@ class ContextualizeChunksResponse(BaseModel):
     chunks: Annotated[list[ContextualizedChunk], Field(description="Contextualized chunks")]
 
 
+class AutomaticPipelinePreviewRequest(BaseModel):
+    """Run full preprocessing pipeline without persistence or embedding."""
+
+    document_name: Annotated[str, Field(min_length=1, max_length=255, description="Document display name")]
+    raw_text: Annotated[str, Field(min_length=1, description="Raw extracted document text")]
+    automation: Annotated[
+        "PipelineAutomationFlags",
+        Field(default_factory=lambda: PipelineAutomationFlags(), description="Automation controls"),
+    ]
+    chunk_options: Annotated[
+        ChunkingOptions,
+        Field(default_factory=ChunkingOptions, description="Chunking options for preview"),
+    ]
+    contextualization_mode: Annotated[
+        Literal["llm", "template"],
+        Field(default="llm", description="Context mode used when contextual headers are enabled"),
+    ]
+    llm_model: Annotated[str | None, Field(default=None, description="Optional chat model override")]
+
+
+class AutomaticPipelinePreviewResponse(BaseModel):
+    """Pre-ingestion preview payload for review workflows."""
+
+    normalized_text: Annotated[str, Field(description="Normalized text output")]
+    chunking_mode: Annotated[str, Field(description="Chunking mode used during preview")]
+    contextualization_mode: Annotated[str, Field(description="Context mode used during preview")]
+    chunks: Annotated[list[ChunkProposal], Field(description="Chunk proposals before contextual headers")]
+    contextualized_chunks: Annotated[list[ContextualizedChunk], Field(description="Contextualized chunk payloads")]
+
+
 class PipelineAutomationFlags(BaseModel):
     """Flags controlling fully automated ingestion."""
 
