@@ -1,1 +1,62 @@
+@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap");
 @import "tailwindcss";
+
+:root {
+  --background: 45 40% 97%;
+  --foreground: 210 31% 14%;
+  --surface: 0 0% 100%;
+  --muted: 218 12% 40%;
+  --border: 210 16% 83%;
+  --primary: 202 82% 42%;
+  --primary-foreground: 0 0% 100%;
+  --danger: 2 71% 46%;
+}
+
+.dark {
+  --background: 219 30% 9%;
+  --foreground: 208 32% 94%;
+  --surface: 220 21% 16%;
+  --muted: 216 18% 65%;
+  --border: 219 16% 25%;
+  --primary: 191 89% 52%;
+  --primary-foreground: 210 31% 14%;
+  --danger: 4 89% 65%;
+}
+
+@theme inline {
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+  --color-surface: hsl(var(--surface));
+  --color-muted: hsl(var(--muted));
+  --color-border: hsl(var(--border));
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-danger: hsl(var(--danger));
+
+  --font-display: "Space Grotesk", sans-serif;
+  --font-mono: "IBM Plex Mono", monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
+  font-family: "Space Grotesk", sans-serif;
+}
+
+.bg-grid-gradient {
+  background-image:
+    radial-gradient(circle at 12% 16%, hsl(var(--primary) / 0.12), transparent 35%),
+    radial-gradient(circle at 88% 84%, hsl(var(--primary) / 0.08), transparent 36%),
+    linear-gradient(180deg, hsl(var(--background)) 0%, hsl(var(--background)) 100%);
+}

@@ -13,6 +13,7 @@ Current stage implements the data preparation control plane:
 - SQLite metadata registry for projects, documents, and chunk audit records
 - OpenAPI backend for step-by-step and one-shot ingestion workflows
 - Automatic pipeline preview endpoint for human review before persistence
+- Frontend ingestion shell with PDF/DOCX/TXT extraction, diff review, and manual or automatic execution controls
 
 ## Why Qdrant (and not FAISS-only)
 
@@ -63,6 +64,17 @@ docker compose --env-file .env up -d --build
 - `POST /v1/pipeline/contextualize`
 - `POST /v1/pipeline/preview-automatic`
 - `POST /v1/projects/{project_id}/documents/ingest`
+
+## Frontend Workflow
+
+The ingestion UI in `frontend/` supports:
+
+- Upload and browser-side extraction from `.pdf`, `.docx`, and `.txt`
+- Raw text review and editing
+- Deterministic normalization with diff visualization
+- Deterministic or agentic chunk proposal review
+- Contextual header generation and manual edit
+- Manual ingest (approved chunks) or full automatic ingest
 
 ## Backend Verification
 
