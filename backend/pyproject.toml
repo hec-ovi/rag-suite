@@ -5,7 +5,6 @@ description = "RAG Suite ingestion backend with normalization, contextual chunki
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "aiosqlite>=0.22.1",
     "fastapi[standard]>=0.129.2",
     "httpx>=0.28.1",
     "ollama>=0.6.1",

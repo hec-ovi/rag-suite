@@ -5,7 +5,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
-from sqlalchemy.ext.asyncio import AsyncEngine
+from sqlalchemy import Engine
 
 from src.core.config import load_settings
 from src.core.database import build_engine, build_session_factory, initialize_database
@@ -23,7 +23,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     engine = build_engine(settings.database_url)
     session_factory = build_session_factory(engine)
 
-    await initialize_database(engine)
+    initialize_database(engine)
 
     app.state.settings = settings
     app.state.engine = engine
@@ -31,8 +31,8 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
     yield
 
-    stored_engine: AsyncEngine = app.state.engine
-    await stored_engine.dispose()
+    stored_engine: Engine = app.state.engine
+    stored_engine.dispose()
 
 
 app = FastAPI(

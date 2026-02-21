@@ -3,7 +3,7 @@ from __future__ import annotations
 import uuid
 
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import Session
 
 from src.core.config import Settings
 from src.core.exceptions import ResourceNotFoundError, ValidationDomainError
@@ -38,7 +38,7 @@ class IngestionService:
 
     def __init__(
         self,
-        session: AsyncSession,
+        session: Session,
         settings: Settings,
         normalizer: DeterministicTextNormalizer,
         deterministic_chunker: DeterministicChunker,
@@ -206,7 +206,7 @@ class IngestionService:
     async def ingest_document(self, project_id: str, request: IngestDocumentRequest) -> IngestedDocumentResponse:
         """Persist document and index contextualized chunk vectors."""
 
-        project = await self._session.scalar(select(ProjectORM).where(ProjectORM.id == project_id))
+        project = self._session.scalar(select(ProjectORM).where(ProjectORM.id == project_id))
         if project is None:
             raise ResourceNotFoundError(f"Project '{project_id}' was not found")
 
@@ -284,7 +284,7 @@ class IngestionService:
         )
 
         self._session.add(document)
-        await self._session.flush()
+        self._session.flush()
 
         point_ids = [str(uuid.uuid4()) for _ in contextualized_chunks]
         payloads: list[dict[str, object]] = []
@@ -328,8 +328,8 @@ class IngestionService:
         )
 
         self._session.add_all(chunk_rows)
-        await self._session.commit()
-        await self._session.refresh(document)
+        self._session.commit()
+        self._session.refresh(document)
 
         return IngestedDocumentResponse(
             project_id=project.id,

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from sqlalchemy import func, select
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import Session
 
 from src.core.exceptions import ResourceNotFoundError, ValidationDomainError
 from src.models.api.project import ChunkSummaryResponse, CreateProjectRequest, DocumentSummaryResponse, ProjectResponse
@@ -13,14 +13,14 @@ from src.models.db.project import ProjectORM
 class ProjectService:
     """Service for project namespace management and inspection."""
 
-    def __init__(self, session: AsyncSession, collection_prefix: str) -> None:
+    def __init__(self, session: Session, collection_prefix: str) -> None:
         self._session = session
         self._collection_prefix = collection_prefix
 
     async def create_project(self, request: CreateProjectRequest) -> ProjectResponse:
         """Create a project and reserve its Qdrant collection name."""
 
-        existing_project = await self._session.scalar(select(ProjectORM).where(ProjectORM.name == request.name))
+        existing_project = self._session.scalar(select(ProjectORM).where(ProjectORM.name == request.name))
         if existing_project is not None:
             raise ValidationDomainError(f"Project '{request.name}' already exists")
 
@@ -32,8 +32,8 @@ class ProjectService:
         )
 
         self._session.add(project)
-        await self._session.commit()
-        await self._session.refresh(project)
+        self._session.commit()
+        self._session.refresh(project)
 
         return ProjectResponse(
             id=project.id,
@@ -46,7 +46,7 @@ class ProjectService:
     async def list_projects(self) -> list[ProjectResponse]:
         """List all projects."""
 
-        projects = await self._session.scalars(select(ProjectORM).order_by(ProjectORM.created_at.desc()))
+        projects = self._session.scalars(select(ProjectORM).order_by(ProjectORM.created_at.desc()))
         return [
             ProjectResponse(
                 id=project.id,
@@ -61,7 +61,7 @@ class ProjectService:
     async def list_project_documents(self, project_id: str) -> list[DocumentSummaryResponse]:
         """List documents belonging to a project."""
 
-        project = await self._session.get(ProjectORM, project_id)
+        project = self._session.get(ProjectORM, project_id)
         if project is None:
             raise ResourceNotFoundError(f"Project '{project_id}' was not found")
 
@@ -73,7 +73,7 @@ class ProjectService:
             .order_by(DocumentORM.created_at.desc())
         )
 
-        rows = await self._session.execute(statement)
+        rows = self._session.execute(statement)
         documents: list[DocumentSummaryResponse] = []
         for document, chunk_count in rows:
             documents.append(
@@ -91,11 +91,11 @@ class ProjectService:
     async def list_document_chunks(self, document_id: str) -> list[ChunkSummaryResponse]:
         """List chunks for a document."""
 
-        document = await self._session.get(DocumentORM, document_id)
+        document = self._session.get(DocumentORM, document_id)
         if document is None:
             raise ResourceNotFoundError(f"Document '{document_id}' was not found")
 
-        chunks = await self._session.scalars(
+        chunks = self._session.scalars(
             select(ChunkORM).where(ChunkORM.document_id == document_id).order_by(ChunkORM.chunk_index.asc())
         )
 

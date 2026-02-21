@@ -11,7 +11,7 @@ class Settings(BaseSettings):
     app_version: str = Field(default="0.1.0")
     api_prefix: str = Field(default="/v1")
 
-    database_url: str = Field(default="sqlite+aiosqlite:///./data/control_plane.db")
+    database_url: str = Field(default="sqlite:///./data/control_plane.db")
 
     qdrant_url: str = Field(default="http://qdrant:6333")
     qdrant_api_key: str | None = Field(default=None)

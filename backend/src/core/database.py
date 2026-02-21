@@ -2,7 +2,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy import Engine, create_engine
+from sqlalchemy.orm import Session, sessionmaker
 
 import src.models.db  # noqa: F401
 from src.models.db.base import Base
@@ -11,7 +12,7 @@ from src.models.db.base import Base
 def _resolve_database_url(database_url: str) -> str:
     """Resolve sqlite URLs to an absolute path under the backend folder."""
 
-    prefix = "sqlite+aiosqlite:///"
+    prefix = "sqlite:///"
     if not database_url.startswith(prefix):
         return database_url
 
@@ -25,20 +26,19 @@ def _resolve_database_url(database_url: str) -> str:
     return f"{prefix}{absolute_path}"
 
 
-def build_engine(database_url: str) -> AsyncEngine:
-    """Create the async SQLAlchemy engine."""
+def build_engine(database_url: str) -> Engine:
+    """Create the SQLAlchemy engine."""
 
-    return create_async_engine(_resolve_database_url(database_url), future=True)
-
-
-def build_session_factory(engine: AsyncEngine) -> async_sessionmaker[AsyncSession]:
-    """Create the async session factory."""
-
-    return async_sessionmaker(engine, expire_on_commit=False)
+    return create_engine(_resolve_database_url(database_url), future=True)
 
 
-async def initialize_database(engine: AsyncEngine) -> None:
+def build_session_factory(engine: Engine) -> sessionmaker[Session]:
+    """Create the SQLAlchemy session factory."""
+
+    return sessionmaker(engine, expire_on_commit=False)
+
+
+def initialize_database(engine: Engine) -> None:
     """Create all tables if missing."""
 
-    async with engine.begin() as connection:
-        await connection.run_sync(Base.metadata.create_all)
+    Base.metadata.create_all(bind=engine)

@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from collections.abc import AsyncIterator
+from collections.abc import Iterator
 
 from fastapi import Request
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+from sqlalchemy.orm import Session, sessionmaker
 
 from src.core.config import Settings
 
@@ -14,9 +14,9 @@ def get_settings(request: Request) -> Settings:
     return request.app.state.settings
 
 
-async def get_db_session(request: Request) -> AsyncIterator[AsyncSession]:
-    """Yield an async database session for the current request."""
+def get_db_session(request: Request) -> Iterator[Session]:
+    """Yield a database session for the current request."""
 
-    session_factory: async_sessionmaker[AsyncSession] = request.app.state.session_factory
-    async with session_factory() as session:
+    session_factory: sessionmaker[Session] = request.app.state.session_factory
+    with session_factory() as session:
         yield session

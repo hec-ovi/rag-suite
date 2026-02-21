@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import Session
 
 from src.core.config import Settings
 from src.services.ingestion_service import IngestionService
@@ -16,13 +16,13 @@ from src.tools.prompt_loader import PromptLoader
 from src.tools.qdrant_indexer import QdrantIndexer
 
 
-def build_project_service(session: AsyncSession, settings: Settings) -> ProjectService:
+def build_project_service(session: Session, settings: Settings) -> ProjectService:
     """Build project service instance."""
 
     return ProjectService(session=session, collection_prefix=settings.qdrant_collection_prefix)
 
 
-def build_ingestion_service(session: AsyncSession, settings: Settings) -> IngestionService:
+def build_ingestion_service(session: Session, settings: Settings) -> IngestionService:
     """Build ingestion service with concrete tool adapters."""
 
     prompt_loader = PromptLoader()

@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Annotated
 
 from fastapi import APIRouter, Depends
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import Session
 
 from src.core.config import Settings
 from src.core.dependencies import get_db_session, get_settings
@@ -25,7 +25,7 @@ router = APIRouter(prefix="/pipeline", tags=["Pipeline"])
 @router.post("/normalize")
 async def normalize_text(
     data: NormalizeTextRequest,
-    session: Annotated[AsyncSession, Depends(get_db_session)],
+    session: Annotated[Session, Depends(get_db_session)],
     settings: Annotated[Settings, Depends(get_settings)],
 ) -> NormalizeTextResponse:
     """Normalize raw text with deterministic preprocessing."""
@@ -37,7 +37,7 @@ async def normalize_text(
 @router.post("/chunk")
 async def chunk_text(
     data: ChunkTextRequest,
-    session: Annotated[AsyncSession, Depends(get_db_session)],
+    session: Annotated[Session, Depends(get_db_session)],
     settings: Annotated[Settings, Depends(get_settings)],
 ) -> ChunkTextResponse:
     """Propose chunk boundaries using deterministic or agentic mode."""
@@ -49,7 +49,7 @@ async def chunk_text(
 @router.post("/contextualize")
 async def contextualize_chunks(
     data: ContextualizeChunksRequest,
-    session: Annotated[AsyncSession, Depends(get_db_session)],
+    session: Annotated[Session, Depends(get_db_session)],
     settings: Annotated[Settings, Depends(get_settings)],
 ) -> ContextualizeChunksResponse:
     """Generate contextual headers for proposed chunks."""
@@ -61,7 +61,7 @@ async def contextualize_chunks(
 @router.post("/preview-automatic")
 async def preview_automatic_pipeline(
     data: AutomaticPipelinePreviewRequest,
-    session: Annotated[AsyncSession, Depends(get_db_session)],
+    session: Annotated[Session, Depends(get_db_session)],
     settings: Annotated[Settings, Depends(get_settings)],
 ) -> AutomaticPipelinePreviewResponse:
     """Preview normalize/chunk/contextualize before document ingestion."""

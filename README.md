@@ -21,6 +21,15 @@ FAISS is an excellent vector search library, but this project needs production d
 
 FAISS is kept as a future benchmark/tuning path, not as the primary persistence and API layer.
 
+## Architecture Rationale (Stage 0)
+
+- Keep `raw_text` immutable for auditability.
+- Apply deterministic normalization before chunking to avoid model-induced text drift.
+- Run chunk proposal as deterministic by default; keep agentic boundaries as optional experimental mode.
+- Generate contextual headers as an additive step before embedding.
+- Store control-plane metadata in SQLite and vectors in Qdrant.
+- Expose every stage via OpenAPI so manual and automatic modes share the same contracts.
+
 ## Repository Layout
 
 ```text
@@ -64,6 +73,13 @@ docker compose --env-file .env up -d --build
 - `POST /v1/pipeline/contextualize`
 - `POST /v1/pipeline/preview-automatic`
 - `POST /v1/projects/{project_id}/documents/ingest`
+
+## Incremental Roadmap
+
+1. Stage 0: data preparation and indexing control plane (current)
+2. Stage 1: retrieval and grounded answer endpoint with citations
+3. Stage 2: reranking and quality benchmark harness (Recall@k, MRR, nDCG)
+4. Stage 3: graph-augmented retrieval branch
 
 ## Frontend Workflow
 
