@@ -10,7 +10,7 @@ from src.models.db.base import Base
 
 
 def _resolve_database_url(database_url: str) -> str:
-    """Resolve sqlite URLs to an absolute path under the backend folder."""
+    """Resolve sqlite URLs to an absolute path under the service project root."""
 
     prefix = "sqlite:///"
     if not database_url.startswith(prefix):

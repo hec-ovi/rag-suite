@@ -47,6 +47,14 @@ class OllamaInferenceClient:
 
         content_raw = message.get("content")
         content = content_raw.strip() if isinstance(content_raw, str) else ""
+
+        # Some models return empty `content` and place text in `thinking`.
+        if not content:
+            thinking_raw = message.get("thinking")
+            thinking = thinking_raw.strip() if isinstance(thinking_raw, str) else ""
+            if thinking:
+                content = thinking
+
         if not content:
             raise ExternalServiceError("Ollama response contained empty completion text")
 

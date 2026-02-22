@@ -13,7 +13,7 @@ function resolveApiBaseUrl(): string {
 
   try {
     const parsed = new URL(configured)
-    const dockerServiceHosts = new Set(["backend", "backend-ingestion", "backend-rag", "backend-inference"])
+    const dockerServiceHosts = new Set(["backend-ingestion", "backend-rag", "backend-inference"])
     if (!dockerServiceHosts.has(parsed.hostname)) {
       return configured
     }

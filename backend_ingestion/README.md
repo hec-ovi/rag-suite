@@ -34,7 +34,7 @@ UV_CACHE_DIR=/tmp/uv-cache uv run --directory backend_ingestion uvicorn src.main
 ## Section Audit Script
 
 ```bash
-UV_CACHE_DIR=/tmp/uv-cache uv run --directory backend python -m scripts.run_section_audit \
+UV_CACHE_DIR=/tmp/uv-cache uv run --directory backend_ingestion python -m scripts.run_section_audit \
   --input-file data/2512.10398v6.txt \
   --section-anchor Introduction \
   --section-length 1200 \

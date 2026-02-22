@@ -12,7 +12,7 @@ class Settings(BaseSettings):
     api_prefix: str = Field(default="/v1")
 
     ollama_url: str = Field(default="http://ollama:11434")
-    ollama_timeout_seconds: float = Field(default=90.0)
+    ollama_timeout_seconds: float = Field(default=300.0)
 
     model_config = SettingsConfigDict(
         env_file=".env",

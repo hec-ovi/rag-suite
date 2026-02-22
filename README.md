@@ -90,7 +90,7 @@ cp .env.template .env
 
 2. Update host paths in `.env`.
    Keep `OLLAMA_MODELS_DIR` absolute (persistent model cache).
-   `QDRANT_STORAGE_DIR` and `BACKEND_DATA_DIR` can stay relative (defaults in template).
+   `QDRANT_STORAGE_DIR` and `DATA_DIR` can stay relative (defaults in template).
    The `.env.template` paths are placeholders by design; run compose with your real `.env`.
 
 3. Start stack:
@@ -110,7 +110,7 @@ docker compose --env-file .env up -d --build
 ## Persistent Paths
 
 - `.env.template` keeps `OLLAMA_MODELS_DIR` as an absolute placeholder.
-- `QDRANT_STORAGE_DIR=./qdrant/storage` and `BACKEND_DATA_DIR=./backend/data` work as repository-relative defaults.
+- `QDRANT_STORAGE_DIR=./qdrant/storage` and `DATA_DIR=./data` work as repository-relative defaults.
 - Set `OLLAMA_MODELS_DIR` to your persistent local model store (for example `/home/.../models/ollama` in your real `.env`).
 
 ## Backend Endpoints
@@ -221,9 +221,9 @@ UV_CACHE_DIR=/tmp/uv-cache uv run --directory backend_ingestion python -m script
 ## Backend Verification
 
 ```bash
-PYTHONPATH=backend_ingestion backend/.venv/bin/pytest -q backend_ingestion/tests
-PYTHONPATH=backend_inference backend/.venv/bin/pytest -q backend_inference/tests
-PYTHONPATH=backend_rag backend/.venv/bin/pytest -q backend_rag/tests
+UV_CACHE_DIR=/tmp/uv-cache uv run --directory backend_ingestion pytest -q tests
+UV_CACHE_DIR=/tmp/uv-cache uv run --directory backend_inference pytest -q tests
+UV_CACHE_DIR=/tmp/uv-cache uv run --directory backend_rag pytest -q tests
 ```
 
 ## ROCm Stability Notes
@@ -233,5 +233,6 @@ If Ollama logs include messages like `Memory access fault by GPU` or the desktop
 - Keep `OLLAMA_NUM_PARALLEL=1`.
 - Keep `OLLAMA_MAX_LOADED_MODELS=1`.
 - Keep `OLLAMA_CONTEXT_LENGTH=8192` (or lower for extra stability).
+- Keep `OLLAMA_TIMEOUT_SECONDS=300` and `INFERENCE_TIMEOUT_SECONDS=300` for long agentic operations.
 - Use `Interrupt` in chunk/context steps to stop in-flight LLM work.
 - If failures persist, test a smaller chat model for chunk/context operations.

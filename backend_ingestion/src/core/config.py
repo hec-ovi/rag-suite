@@ -21,7 +21,7 @@ class Settings(BaseSettings):
     inference_api_url: str = Field(default="http://backend-inference:8010/v1")
     ollama_chat_model: str = Field(default="gpt-oss:20b")
     ollama_embedding_model: str = Field(default="bge-m3:latest")
-    inference_timeout_seconds: float = Field(default=90.0)
+    inference_timeout_seconds: float = Field(default=300.0)
 
     normalization_version: str = Field(default="v1")
     chunking_version: str = Field(default="v1")
