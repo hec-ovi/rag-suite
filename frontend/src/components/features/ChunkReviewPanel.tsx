@@ -87,7 +87,16 @@ export function ChunkReviewPanel({
       >
         <section className="mb-3 border border-border bg-background p-3">
           <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">Chunking Mode (Required)</p>
-          <div className="grid gap-3 md:grid-cols-2">
+          <div className="grid gap-3 md:grid-cols-3">
+            <button
+              type="button"
+              onClick={() => onChunkModeChange("")}
+              className={`border p-3 text-left ${modeCardClass(chunkMode === "")}`}
+            >
+              <p className="mb-1 font-semibold text-foreground">Disabled (default)</p>
+              <p className="text-sm text-muted">No chunk mode selected yet.</p>
+            </button>
+
             <button
               type="button"
               onClick={() => onChunkModeChange("deterministic")}
