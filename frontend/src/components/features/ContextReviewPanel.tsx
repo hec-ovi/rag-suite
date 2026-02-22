@@ -64,7 +64,7 @@ export function ContextReviewPanel({
   disabled,
 }: ContextReviewPanelProps) {
   const [selectedChunkIndex, setSelectedChunkIndex] = useState(0)
-  const [viewingChunk, setViewingChunk] = useState<ContextualizedChunk | null>(null)
+  const [viewingChunkIndex, setViewingChunkIndex] = useState<number | null>(null)
 
   const modeMissing = contextMode === ""
   const hasChunkCandidates = chunks.length > 0
@@ -87,6 +87,21 @@ export function ContextReviewPanel({
     }
     return previewChunks[selectedChunkIndex] ?? previewChunks[0]
   }, [previewChunks, selectedChunkIndex])
+  const chunkTotal = previewChunks.length
+  const chunkDisplayNumber = selectedChunk !== null ? selectedChunk.chunk_index + 1 : 0
+  const chunkDisplayPosition = selectedChunk !== null ? selectedChunkIndex + 1 : 0
+  const canMovePrev = chunkTotal > 0 && selectedChunkIndex > 0
+  const canMoveNext = chunkTotal > 0 && selectedChunkIndex < chunkTotal - 1
+  const viewingChunk = useMemo(() => {
+    if (viewingChunkIndex === null) {
+      return null
+    }
+    return previewChunks[viewingChunkIndex] ?? null
+  }, [previewChunks, viewingChunkIndex])
+  const viewingIndex = viewingChunk !== null && viewingChunkIndex !== null ? viewingChunkIndex : 0
+  const viewingChunkPosition = viewingChunk !== null ? viewingIndex + 1 : 0
+  const canMoveViewingPrev = viewingChunk !== null && viewingIndex > 0
+  const canMoveViewingNext = viewingChunk !== null && viewingIndex < chunkTotal - 1
 
   const canGenerate = !disabled && hasChunkCandidates && contextMode !== "" && contextMode !== "disabled"
 
@@ -129,49 +144,51 @@ export function ContextReviewPanel({
         </section>
 
         <section className="border border-border bg-background p-3">
-          {previewChunks.length === 0 ? <p className="text-sm text-muted">No chunk preview available yet.</p> : null}
-          {selectedChunk !== null ? (
-            <div className="grid gap-3">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <p className="font-mono text-xs text-muted">Total chunks: {previewChunks.length}</p>
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setSelectedChunkIndex((index) => Math.max(0, index - 1))}
-                    disabled={selectedChunkIndex <= 0}
-                    className="border border-border bg-surface px-2 py-1 text-xs font-semibold text-foreground disabled:opacity-40"
-                  >
-                    Prev
-                  </button>
-                  <p className="font-mono text-xs text-muted">
-                    {selectedChunkIndex + 1}/{previewChunks.length}
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => setSelectedChunkIndex((index) => Math.min(previewChunks.length - 1, index + 1))}
-                    disabled={selectedChunkIndex >= previewChunks.length - 1}
-                    className="border border-border bg-surface px-2 py-1 text-xs font-semibold text-foreground disabled:opacity-40"
-                  >
-                    Next
-                  </button>
-                </div>
-              </div>
-
-              <div className="border border-border bg-surface p-3">
-                <p className="mb-2 font-mono text-xs uppercase tracking-wide text-muted">
-                  Chunk {selectedChunk.chunk_index + 1} ({selectedChunk.start_char}-{selectedChunk.end_char})
-                </p>
-                <p className="truncate text-sm text-foreground">{previewSentence(selectedChunk.contextualized_text)}</p>
-                <button
-                  type="button"
-                  onClick={() => setViewingChunk(selectedChunk)}
-                  className="mt-3 border border-border bg-background px-3 py-1.5 text-xs font-semibold text-foreground"
-                >
-                  View full chunk
-                </button>
-              </div>
+          <div className="grid gap-3">
+            <div className="flex flex-wrap items-center justify-between gap-2 border border-border bg-surface px-3 py-2">
+              <button
+                type="button"
+                onClick={() => setSelectedChunkIndex((index) => Math.max(0, index - 1))}
+                disabled={!canMovePrev}
+                className="border border-border bg-background px-2 py-1 text-xs font-semibold text-foreground disabled:opacity-40"
+              >
+                Prev
+              </button>
+              <p className="font-mono text-xs text-foreground">
+                Chunk {chunkDisplayNumber} ({chunkDisplayPosition}/{chunkTotal})
+              </p>
+              <button
+                type="button"
+                onClick={() => setSelectedChunkIndex((index) => Math.min(chunkTotal - 1, index + 1))}
+                disabled={!canMoveNext}
+                className="border border-border bg-background px-2 py-1 text-xs font-semibold text-foreground disabled:opacity-40"
+              >
+                Next
+              </button>
             </div>
-          ) : null}
+
+            <p className="font-mono text-xs text-muted">Total chunks: {chunkTotal}</p>
+
+            <div className="border border-border bg-surface p-3">
+              {selectedChunk === null ? (
+                <p className="text-sm text-muted">No chunk generated yet.</p>
+              ) : (
+                <>
+                  <p className="mb-2 font-mono text-xs uppercase tracking-wide text-muted">
+                    Chunk {selectedChunk.chunk_index + 1} ({selectedChunk.start_char}-{selectedChunk.end_char})
+                  </p>
+                  <p className="truncate text-sm text-foreground">{previewSentence(selectedChunk.contextualized_text)}</p>
+                  <button
+                    type="button"
+                    onClick={() => setViewingChunkIndex(selectedChunkIndex)}
+                    className="mt-3 border border-border bg-background px-3 py-1.5 text-xs font-semibold text-foreground"
+                  >
+                    View full chunk
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
         </section>
 
         <button
@@ -186,20 +203,38 @@ export function ContextReviewPanel({
 
       {viewingChunk !== null ? (
         <div className="fixed inset-0 z-[95] flex items-center justify-center bg-black/50 p-4">
-          <section className="w-full max-w-3xl border border-border bg-background shadow-2xl shadow-black/30">
+          <section className="flex max-h-[85vh] w-full max-w-3xl flex-col overflow-hidden border border-border bg-background shadow-2xl shadow-black/30">
             <header className="flex items-center justify-between border-b border-border bg-surface px-4 py-3">
-              <p className="font-display text-lg font-semibold text-foreground">
-                Chunk {viewingChunk.chunk_index + 1} ({viewingChunk.start_char}-{viewingChunk.end_char})
-              </p>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setViewingChunkIndex((index) => Math.max(0, (index ?? 0) - 1))}
+                  disabled={!canMoveViewingPrev}
+                  className="border border-border bg-background px-2 py-1 text-xs font-semibold text-foreground disabled:opacity-40"
+                >
+                  Prev
+                </button>
+                <p className="font-mono text-xs text-foreground">
+                  Chunk {viewingChunk.chunk_index + 1} ({viewingChunkPosition}/{chunkTotal})
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setViewingChunkIndex((index) => Math.min(chunkTotal - 1, (index ?? 0) + 1))}
+                  disabled={!canMoveViewingNext}
+                  className="border border-border bg-background px-2 py-1 text-xs font-semibold text-foreground disabled:opacity-40"
+                >
+                  Next
+                </button>
+              </div>
               <button
                 type="button"
-                onClick={() => setViewingChunk(null)}
+                onClick={() => setViewingChunkIndex(null)}
                 className="border border-border bg-background px-3 py-2 text-sm font-semibold text-foreground"
               >
                 Close
               </button>
             </header>
-            <div className="max-h-[70vh] overflow-auto p-4">
+            <div className="min-h-0 flex-1 overflow-y-auto p-4">
               <label className="mb-3 block text-xs font-semibold uppercase tracking-wide text-muted">
                 Header
                 <textarea
@@ -210,8 +245,6 @@ export function ContextReviewPanel({
                       contextualized_text: `${event.target.value}\n\n${viewingChunk.chunk_text}`,
                     })
                     onContextualizedChunksChange(updated)
-                    const refreshed = updated.find((chunk) => chunk.chunk_index === viewingChunk.chunk_index) ?? null
-                    setViewingChunk(refreshed)
                   }}
                   readOnly={contextMode === "disabled"}
                   className="mt-1 h-20 w-full border border-border bg-surface p-2 text-sm text-foreground"
@@ -226,8 +259,6 @@ export function ContextReviewPanel({
                       contextualized_text: event.target.value,
                     })
                     onContextualizedChunksChange(updated)
-                    const refreshed = updated.find((chunk) => chunk.chunk_index === viewingChunk.chunk_index) ?? null
-                    setViewingChunk(refreshed)
                   }}
                   readOnly={contextMode === "disabled"}
                   className="mt-1 h-64 w-full border border-border bg-surface p-3 font-mono text-xs text-foreground"

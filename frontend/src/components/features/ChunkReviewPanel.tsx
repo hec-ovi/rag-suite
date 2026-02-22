@@ -45,7 +45,7 @@ export function ChunkReviewPanel({
     chunkMode === "agentic" ? "Agentic chunker is analyzing boundaries..." : "Building deterministic chunks..."
   const modeMissing = chunkMode === ""
   const [selectedChunkIndex, setSelectedChunkIndex] = useState(0)
-  const [viewingChunk, setViewingChunk] = useState<ChunkProposal | null>(null)
+  const [viewingChunkIndex, setViewingChunkIndex] = useState<number | null>(null)
 
   useEffect(() => {
     if (chunks.length === 0) {
@@ -61,6 +61,21 @@ export function ChunkReviewPanel({
     }
     return chunks[selectedChunkIndex] ?? chunks[0]
   }, [chunks, selectedChunkIndex])
+  const chunkTotal = chunks.length
+  const chunkDisplayNumber = selectedChunk !== null ? selectedChunk.chunk_index + 1 : 0
+  const chunkDisplayPosition = selectedChunk !== null ? selectedChunkIndex + 1 : 0
+  const canMovePrev = chunkTotal > 0 && selectedChunkIndex > 0
+  const canMoveNext = chunkTotal > 0 && selectedChunkIndex < chunkTotal - 1
+  const viewingChunk = useMemo(() => {
+    if (viewingChunkIndex === null) {
+      return null
+    }
+    return chunks[viewingChunkIndex] ?? null
+  }, [chunks, viewingChunkIndex])
+  const viewingIndex = viewingChunk !== null && viewingChunkIndex !== null ? viewingChunkIndex : 0
+  const viewingChunkPosition = viewingChunk !== null ? viewingIndex + 1 : 0
+  const canMoveViewingPrev = viewingChunk !== null && viewingIndex > 0
+  const canMoveViewingNext = viewingChunk !== null && viewingIndex < chunkTotal - 1
 
   return (
     <>
@@ -164,50 +179,52 @@ export function ChunkReviewPanel({
             </div>
           ) : null}
 
-          {!isChunking && chunks.length === 0 ? <p className="text-sm text-muted">No chunks generated yet.</p> : null}
-          {selectedChunk !== null ? (
-            <div className="grid gap-3">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <p className="font-mono text-xs text-muted">Total chunks: {chunks.length}</p>
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setSelectedChunkIndex((index) => Math.max(0, index - 1))}
-                    disabled={selectedChunkIndex <= 0}
-                    className="border border-border bg-surface px-2 py-1 text-xs font-semibold text-foreground disabled:opacity-40"
-                  >
-                    Prev
-                  </button>
-                  <p className="font-mono text-xs text-muted">
-                    {selectedChunkIndex + 1}/{chunks.length}
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => setSelectedChunkIndex((index) => Math.min(chunks.length - 1, index + 1))}
-                    disabled={selectedChunkIndex >= chunks.length - 1}
-                    className="border border-border bg-surface px-2 py-1 text-xs font-semibold text-foreground disabled:opacity-40"
-                  >
-                    Next
-                  </button>
-                </div>
-              </div>
-
-              <div className="border border-border bg-surface p-3">
-                <p className="mb-2 font-mono text-xs uppercase tracking-wide text-muted">
-                  Chunk {selectedChunk.chunk_index + 1} ({selectedChunk.start_char}-{selectedChunk.end_char})
-                </p>
-                <p className="mb-2 text-xs text-muted">{selectedChunk.rationale ?? "No rationale provided."}</p>
-                <p className="truncate text-sm text-foreground">{previewSentence(selectedChunk.text)}</p>
-                <button
-                  type="button"
-                  onClick={() => setViewingChunk(selectedChunk)}
-                  className="mt-3 border border-border bg-background px-3 py-1.5 text-xs font-semibold text-foreground"
-                >
-                  View full chunk
-                </button>
-              </div>
+          <div className="grid gap-3">
+            <div className="flex flex-wrap items-center justify-between gap-2 border border-border bg-surface px-3 py-2">
+              <button
+                type="button"
+                onClick={() => setSelectedChunkIndex((index) => Math.max(0, index - 1))}
+                disabled={!canMovePrev}
+                className="border border-border bg-background px-2 py-1 text-xs font-semibold text-foreground disabled:opacity-40"
+              >
+                Prev
+              </button>
+              <p className="font-mono text-xs text-foreground">
+                Chunk {chunkDisplayNumber} ({chunkDisplayPosition}/{chunkTotal})
+              </p>
+              <button
+                type="button"
+                onClick={() => setSelectedChunkIndex((index) => Math.min(chunkTotal - 1, index + 1))}
+                disabled={!canMoveNext}
+                className="border border-border bg-background px-2 py-1 text-xs font-semibold text-foreground disabled:opacity-40"
+              >
+                Next
+              </button>
             </div>
-          ) : null}
+
+            <p className="font-mono text-xs text-muted">Total chunks: {chunkTotal}</p>
+
+            <div className="border border-border bg-surface p-3">
+              {selectedChunk === null ? (
+                <p className="text-sm text-muted">No chunk generated yet.</p>
+              ) : (
+                <>
+                  <p className="mb-2 font-mono text-xs uppercase tracking-wide text-muted">
+                    Chunk {selectedChunk.chunk_index + 1} ({selectedChunk.start_char}-{selectedChunk.end_char})
+                  </p>
+                  <p className="mb-2 text-xs text-muted">{selectedChunk.rationale ?? "No rationale provided."}</p>
+                  <p className="truncate text-sm text-foreground">{previewSentence(selectedChunk.text)}</p>
+                  <button
+                    type="button"
+                    onClick={() => setViewingChunkIndex(selectedChunkIndex)}
+                    className="mt-3 border border-border bg-background px-3 py-1.5 text-xs font-semibold text-foreground"
+                  >
+                    View full chunk
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
         </section>
 
         <button
@@ -222,20 +239,38 @@ export function ChunkReviewPanel({
 
       {viewingChunk !== null ? (
         <div className="fixed inset-0 z-[95] flex items-center justify-center bg-black/50 p-4">
-          <section className="w-full max-w-3xl border border-border bg-background shadow-2xl shadow-black/30">
+          <section className="flex max-h-[85vh] w-full max-w-3xl flex-col overflow-hidden border border-border bg-background shadow-2xl shadow-black/30">
             <header className="flex items-center justify-between border-b border-border bg-surface px-4 py-3">
-              <p className="font-display text-lg font-semibold text-foreground">
-                Chunk {viewingChunk.chunk_index + 1} ({viewingChunk.start_char}-{viewingChunk.end_char})
-              </p>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setViewingChunkIndex((index) => Math.max(0, (index ?? 0) - 1))}
+                  disabled={!canMoveViewingPrev}
+                  className="border border-border bg-background px-2 py-1 text-xs font-semibold text-foreground disabled:opacity-40"
+                >
+                  Prev
+                </button>
+                <p className="font-mono text-xs text-foreground">
+                  Chunk {viewingChunk.chunk_index + 1} ({viewingChunkPosition}/{chunkTotal})
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setViewingChunkIndex((index) => Math.min(chunkTotal - 1, (index ?? 0) + 1))}
+                  disabled={!canMoveViewingNext}
+                  className="border border-border bg-background px-2 py-1 text-xs font-semibold text-foreground disabled:opacity-40"
+                >
+                  Next
+                </button>
+              </div>
               <button
                 type="button"
-                onClick={() => setViewingChunk(null)}
+                onClick={() => setViewingChunkIndex(null)}
                 className="border border-border bg-background px-3 py-2 text-sm font-semibold text-foreground"
               >
                 Close
               </button>
             </header>
-            <div className="max-h-[70vh] overflow-auto p-4">
+            <div className="min-h-0 flex-1 overflow-y-auto p-4">
               <p className="mb-2 text-xs text-muted">{viewingChunk.rationale ?? "No rationale provided."}</p>
               <pre className="whitespace-pre-wrap break-words border border-border bg-surface p-3 text-sm text-foreground">
                 {viewingChunk.text}
