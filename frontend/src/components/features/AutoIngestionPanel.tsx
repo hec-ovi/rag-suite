@@ -161,15 +161,18 @@ export function AutoIngestionPanel({
               />
               Deterministic
             </label>
-            <label className="mt-2 flex items-center gap-2 text-sm text-foreground">
-              <input
-                type="radio"
-                name="auto-chunk-mode"
-                checked={chunkMode === "agentic"}
-                onChange={() => onChunkModeChange("agentic")}
-              />
-              Agentic
-            </label>
+            <div className="mt-2 border border-border bg-surface p-2">
+              <label className="flex items-center gap-2 text-sm text-foreground">
+                <input
+                  type="radio"
+                  name="auto-chunk-mode"
+                  checked={chunkMode === "agentic"}
+                  onChange={() => onChunkModeChange("agentic")}
+                />
+                Agentic
+              </label>
+              <p className="mt-1 text-xs text-muted">Drastically increases time on big data.</p>
+            </div>
           </fieldset>
 
           <fieldset className="border border-border bg-background p-3">
@@ -198,18 +201,21 @@ export function AutoIngestionPanel({
               />
               Template
             </label>
-            <label className="mt-2 flex items-center gap-2 text-sm text-foreground">
-              <input
-                type="radio"
-                name="auto-context-mode"
-                checked={contextMode === "llm"}
-                onChange={() => {
-                  onContextModeChange("llm")
-                  onAutomationFlagChange("contextual_headers", true)
-                }}
-              />
-              LLM
-            </label>
+            <div className="mt-2 border border-border bg-surface p-2">
+              <label className="flex items-center gap-2 text-sm text-foreground">
+                <input
+                  type="radio"
+                  name="auto-context-mode"
+                  checked={contextMode === "llm"}
+                  onChange={() => {
+                    onContextModeChange("llm")
+                    onAutomationFlagChange("contextual_headers", true)
+                  }}
+                />
+                LLM
+              </label>
+              <p className="mt-1 text-xs text-muted">Drastically increases time on big data.</p>
+            </div>
           </fieldset>
         </section>
 

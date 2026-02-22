@@ -49,9 +49,14 @@ export function Header({ currentView, onViewChange, themeMode, onThemeModeChange
   return (
     <header className="z-50 shrink-0 border-b border-border/80 bg-background/80 backdrop-blur">
       <nav className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4 px-4 py-3">
-        <div>
+        <button
+          type="button"
+          onClick={() => onViewChange("start")}
+          className="text-left"
+          aria-label="Go to Start Here"
+        >
           <p className="font-display text-xl font-semibold tracking-tight text-foreground">RAG Suite</p>
-        </div>
+        </button>
 
         <div ref={menuRef} className="relative">
           <button

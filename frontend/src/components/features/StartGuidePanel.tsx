@@ -42,34 +42,39 @@ export function StartGuidePanel() {
             <p className="mb-2 font-mono text-xs uppercase tracking-wide text-muted">HITL Steps</p>
             <div className="grid gap-2">
               <div className="border border-border bg-surface p-2">
-                <p className="font-mono text-xs text-foreground">STEP 01-02</p>
-                <p className="text-sm text-muted">Pick project scope, then load source text from file or paste.</p>
+                <p className="font-mono text-xs text-foreground">STEP 01</p>
+                <p className="text-sm text-muted">Select an existing project or create a new namespace for this corpus.</p>
               </div>
               <div className="border border-border bg-surface p-2">
-                <p className="font-mono text-xs text-foreground">STEP 03-04</p>
-                <p className="text-sm text-muted">Enable normalization if needed, choose chunk mode, and generate chunks.</p>
+                <p className="font-mono text-xs text-foreground">STEP 02</p>
+                <p className="text-sm text-muted">Upload a document or paste raw text that you want to ingest.</p>
               </div>
               <div className="border border-border bg-surface p-2">
-                <p className="font-mono text-xs text-foreground">STEP 05-06</p>
-                <p className="text-sm text-muted">Select context strategy, review results, then ingest to Qdrant.</p>
+                <p className="font-mono text-xs text-foreground">STEP 03</p>
+                <p className="text-sm text-muted">Toggle normalization ON/OFF to decide whether cleanup is applied.</p>
+              </div>
+              <div className="border border-border bg-surface p-2">
+                <p className="font-mono text-xs text-foreground">STEP 04</p>
+                <p className="text-sm text-muted">Choose deterministic or agentic chunking, then generate chunk candidates.</p>
+              </div>
+              <div className="border border-border bg-surface p-2">
+                <p className="font-mono text-xs text-foreground">STEP 05</p>
+                <p className="text-sm text-muted">Pick context mode (LLM, template, or disabled) and review chunk output.</p>
+              </div>
+              <div className="border border-border bg-surface p-2">
+                <p className="font-mono text-xs text-foreground">STEP 06</p>
+                <p className="text-sm text-muted">Confirm and ingest reviewed data into Qdrant.</p>
               </div>
             </div>
           </article>
           <article className="border border-border bg-background p-3">
-            <p className="mb-2 font-mono text-xs uppercase tracking-wide text-muted">AUTOMATED/CLASSIC Steps</p>
-            <div className="grid gap-2">
-              <div className="border border-border bg-surface p-2">
-                <p className="font-mono text-xs text-foreground">STEP 01-02</p>
-                <p className="text-sm text-muted">Choose project and provide source text.</p>
-              </div>
-              <div className="border border-border bg-surface p-2">
-                <p className="font-mono text-xs text-foreground">STEP 03</p>
-                <p className="text-sm text-muted">Set normalization, chunk mode, and context header mode.</p>
-              </div>
-              <div className="border border-border bg-surface p-2">
-                <p className="font-mono text-xs text-foreground">STEP 04</p>
-                <p className="text-sm text-muted">Run ingest directly with no intermediate previews.</p>
-              </div>
+            <p className="mb-2 font-mono text-xs uppercase tracking-wide text-muted">AUTOMATED/CLASSIC Form</p>
+            <div className="border border-border bg-surface p-3">
+              <p className="mb-2 text-sm text-foreground">
+                This mode is a single compact form: select/create project, upload or paste source text, choose
+                normalization + chunk mode + context mode, then ingest directly.
+              </p>
+              <p className="text-sm text-muted">No intermediate previews are shown before indexing.</p>
             </div>
           </article>
         </div>
