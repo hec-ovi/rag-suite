@@ -47,6 +47,7 @@ interface IngestionWorkbenchProps {
   onRawTextChange: (value: string) => void
   onFileSelect: (file: File) => Promise<void>
   onToggleNormalization: () => Promise<void>
+  onChunksChange: (chunks: ChunkProposal[]) => void
   onChunkOptionsChange: (options: { maxChunkChars: number; minChunkChars: number; overlapChars: number }) => void
   onRunChunking: (mode?: ChunkModeSelection) => Promise<void>
   onContextualizedChunksChange: (chunks: ContextualizedChunk[]) => void
@@ -112,6 +113,7 @@ export function IngestionWorkbench({
   onRawTextChange,
   onFileSelect,
   onToggleNormalization,
+  onChunksChange,
   onChunkOptionsChange,
   onRunChunking,
   onContextualizedChunksChange,
@@ -220,6 +222,7 @@ export function IngestionWorkbench({
           chunkMode={chunkMode}
           chunkOptions={chunkOptions}
           chunks={chunks}
+          onChunksChange={onChunksChange}
           onChunkOptionsChange={onChunkOptionsChange}
           onRunChunking={onRunChunking}
           disabled={isBusy}
@@ -232,6 +235,7 @@ export function IngestionWorkbench({
           contextMode={contextMode}
           chunks={chunks}
           contextualizedChunks={contextualizedChunks}
+          onChunksChange={onChunksChange}
           onContextualizedChunksChange={onContextualizedChunksChange}
           onRunContextualization={onRunContextualization}
           disabled={isBusy}

@@ -11,6 +11,7 @@ interface ChunkReviewPanelProps {
     overlapChars: number
   }
   chunks: ChunkProposal[]
+  onChunksChange: (chunks: ChunkProposal[]) => void
   onChunkOptionsChange: (options: { maxChunkChars: number; minChunkChars: number; overlapChars: number }) => void
   onRunChunking: (mode?: ChunkModeSelection) => Promise<void>
   disabled: boolean
@@ -32,10 +33,27 @@ function compactPreview(text: string, maxChars = 120): string {
   return `${normalized.slice(0, maxChars - 3)}...`
 }
 
+function updateChunk(
+  chunks: ChunkProposal[],
+  chunkIndex: number,
+  updates: Partial<ChunkProposal>,
+): ChunkProposal[] {
+  return chunks.map((chunk) => {
+    if (chunk.chunk_index !== chunkIndex) {
+      return chunk
+    }
+    return {
+      ...chunk,
+      ...updates,
+    }
+  })
+}
+
 export function ChunkReviewPanel({
   chunkMode,
   chunkOptions,
   chunks,
+  onChunksChange,
   onChunkOptionsChange,
   onRunChunking,
   disabled,
@@ -274,9 +292,19 @@ export function ChunkReviewPanel({
             </header>
             <div className="min-h-0 flex-1 overflow-y-auto p-4">
               <p className="mb-2 text-xs text-muted">{viewingChunk.rationale ?? "No rationale provided."}</p>
-              <pre className="whitespace-pre-wrap break-words border border-border bg-surface p-3 text-sm text-foreground">
-                {viewingChunk.text}
-              </pre>
+              <label className="block text-xs font-semibold uppercase tracking-wide text-muted">
+                Chunk text
+                <textarea
+                  value={viewingChunk.text}
+                  onChange={(event) => {
+                    const updated = updateChunk(chunks, viewingChunk.chunk_index, {
+                      text: event.target.value,
+                    })
+                    onChunksChange(updated)
+                  }}
+                  className="mt-1 h-64 w-full border border-border bg-surface p-3 font-mono text-xs text-foreground"
+                />
+              </label>
             </div>
           </section>
         </div>

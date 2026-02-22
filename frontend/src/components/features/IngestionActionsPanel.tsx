@@ -39,6 +39,7 @@ export function IngestionActionsPanel({
   const showAutomationControls = mode !== "manual"
   const showManualAction = mode !== "automatic"
   const showAutomaticActions = mode !== "manual"
+  const showLlmOverride = mode !== "manual"
 
   return (
     <SectionCard title={title} subtitle={subtitle}>
@@ -73,25 +74,27 @@ export function IngestionActionsPanel({
         </div>
       ) : null}
 
-      <div className="mb-4 grid gap-3 md:grid-cols-2">
-        <label className="flex flex-col gap-1 text-sm text-muted">
-          LLM model override
-          <input
-            value={llmModel}
-            onChange={(event) => onLlmModelChange(event.target.value)}
-            placeholder="qwen3:8b"
-            className="border border-border bg-background px-3 py-2 text-foreground"
-          />
-        </label>
-
+      <div className={`mb-4 grid gap-3 ${showLlmOverride ? "md:grid-cols-2" : "md:grid-cols-1"}`}>
+        {showLlmOverride ? (
+          <label className="flex flex-col gap-1 text-sm text-muted">
+            LLM model override
+            <input
+              value={llmModel}
+              onChange={(event) => onLlmModelChange(event.target.value)}
+              placeholder="qwen3:8b"
+              className="border border-border bg-background px-3 py-2 text-foreground"
+            />
+          </label>
+        ) : null}
         <label className="flex flex-col gap-1 text-sm text-muted">
           Embedding model override
           <input
             value={embeddingModel}
             onChange={(event) => onEmbeddingModelChange(event.target.value)}
-            placeholder="nomic-embed-text:latest"
+            placeholder="bge-m3:latest"
             className="border border-border bg-background px-3 py-2 text-foreground"
           />
+          <span className="text-xs text-muted">Default: backend embedding model (`OLLAMA_EMBEDDING_MODEL`).</span>
         </label>
       </div>
 

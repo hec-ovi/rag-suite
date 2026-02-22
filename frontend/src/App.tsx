@@ -43,6 +43,7 @@ function App() {
       onRawTextChange={actions.setRawText}
       onFileSelect={actions.handleFileSelected}
       onToggleNormalization={actions.runNormalize}
+      onChunksChange={actions.setChunks}
       onChunkOptionsChange={actions.setChunkOptions}
       onRunChunking={actions.runChunking}
       onContextualizedChunksChange={actions.setContextualizedChunks}

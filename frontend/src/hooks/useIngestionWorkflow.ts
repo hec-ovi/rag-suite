@@ -52,6 +52,7 @@ interface WorkflowActions {
   setProjectNameDraft: (value: string) => void
   setSelectedProjectId: (projectId: string) => void
   setRawText: (value: string) => void
+  setChunks: (chunks: ChunkProposal[]) => void
   setChunkMode: (mode: ChunkModeSelection) => void
   setContextMode: (mode: ContextModeSelection) => void
   setChunkOptions: (options: { maxChunkChars: number; minChunkChars: number; overlapChars: number }) => void
@@ -322,7 +323,7 @@ export function useIngestionWorkflow(): { state: WorkflowState; actions: Workflo
       const passthroughChunks = buildDirectContextualizedChunks(chunks)
       setContextualizedChunks(passthroughChunks)
       setErrorMessage("")
-      setStatusMessage("Context headers disabled. Using chunk text directly.")
+      setStatusMessage("Contextualization completed.")
       return
     }
 
@@ -522,6 +523,7 @@ export function useIngestionWorkflow(): { state: WorkflowState; actions: Workflo
       setChunks([])
       setContextualizedChunks([])
     },
+    setChunks,
     setChunkMode,
     setContextMode,
     setChunkOptions,

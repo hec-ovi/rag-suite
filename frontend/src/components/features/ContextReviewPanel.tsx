@@ -7,6 +7,7 @@ interface ContextReviewPanelProps {
   contextMode: ContextModeSelection
   chunks: ChunkProposal[]
   contextualizedChunks: ContextualizedChunk[]
+  onChunksChange: (chunks: ChunkProposal[]) => void
   onContextualizedChunksChange: (chunks: ContextualizedChunk[]) => void
   onRunContextualization: (mode?: ContextModeSelection) => Promise<void>
   disabled: boolean
@@ -59,6 +60,7 @@ export function ContextReviewPanel({
   contextMode,
   chunks,
   contextualizedChunks,
+  onChunksChange,
   onContextualizedChunksChange,
   onRunContextualization,
   disabled,
@@ -256,8 +258,36 @@ export function ContextReviewPanel({
                     })
                     onContextualizedChunksChange(updated)
                   }}
-                  readOnly={contextMode === "disabled"}
                   className="mt-1 h-20 w-full border border-border bg-surface p-2 text-sm text-foreground"
+                />
+              </label>
+              <label className="mb-3 block text-xs font-semibold uppercase tracking-wide text-muted">
+                Chunk text
+                <textarea
+                  value={viewingChunk.chunk_text}
+                  onChange={(event) => {
+                    const nextChunkText = event.target.value
+                    const updatedBaseChunks = chunks.map((chunk) => {
+                      if (chunk.chunk_index !== viewingChunk.chunk_index) {
+                        return chunk
+                      }
+                      return {
+                        ...chunk,
+                        text: nextChunkText,
+                      }
+                    })
+                    onChunksChange(updatedBaseChunks)
+
+                    const updated = updateChunk(previewChunks, viewingChunk.chunk_index, {
+                      chunk_text: nextChunkText,
+                      contextualized_text:
+                        contextMode === "disabled"
+                          ? nextChunkText
+                          : `${viewingChunk.context_header}\n\n${nextChunkText}`,
+                    })
+                    onContextualizedChunksChange(updated)
+                  }}
+                  className="mt-1 h-28 w-full border border-border bg-surface p-3 font-mono text-xs text-foreground"
                 />
               </label>
               <label className="block text-xs font-semibold uppercase tracking-wide text-muted">
@@ -270,7 +300,6 @@ export function ContextReviewPanel({
                     })
                     onContextualizedChunksChange(updated)
                   }}
-                  readOnly={contextMode === "disabled"}
                   className="mt-1 h-64 w-full border border-border bg-surface p-3 font-mono text-xs text-foreground"
                 />
               </label>
