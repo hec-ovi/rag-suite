@@ -46,6 +46,119 @@ function parseNumericInput(value: string): number {
   return 0
 }
 
+function ModeButton({
+  label,
+  active,
+  disabled,
+  onClick,
+}: {
+  label: string
+  active: boolean
+  disabled: boolean
+  onClick: () => void
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className={`border px-3 py-2 text-sm font-medium ${
+        active ? "border-primary bg-primary text-primary-foreground" : "border-border bg-background text-foreground"
+      } disabled:opacity-60`}
+    >
+      {label}
+    </button>
+  )
+}
+
+function RetrievalNumberField({
+  label,
+  value,
+  min,
+  max,
+  step,
+  disabled,
+  onChange,
+}: {
+  label: string
+  value: number
+  min: number
+  max: number
+  step?: number
+  disabled: boolean
+  onChange: (value: number) => void
+}) {
+  return (
+    <label className="grid gap-1 text-sm text-muted">
+      <span className="font-medium text-foreground">{label}</span>
+      <input
+        type="number"
+        min={min}
+        max={max}
+        step={step}
+        value={value}
+        disabled={disabled}
+        onChange={(event) => onChange(parseNumericInput(event.target.value))}
+        className="border border-border bg-background px-3 py-2 text-foreground"
+      />
+    </label>
+  )
+}
+
+function DocumentSelection({
+  selectedProjectId,
+  documents,
+  selectedDocumentIds,
+  disabled,
+  isLoadingDocuments,
+  onToggleDocument,
+}: {
+  selectedProjectId: string
+  documents: RagDocumentSummary[]
+  selectedDocumentIds: string[]
+  disabled: boolean
+  isLoadingDocuments: boolean
+  onToggleDocument: (documentId: string) => void
+}) {
+  if (selectedProjectId.trim().length === 0) {
+    return <p className="text-sm text-muted">Choose a project first.</p>
+  }
+
+  if (isLoadingDocuments) {
+    return <p className="text-sm text-muted">Loading project documents...</p>
+  }
+
+  if (documents.length === 0) {
+    return <p className="text-sm text-muted">This project has no documents yet.</p>
+  }
+
+  return (
+    <ul className="max-h-56 space-y-1 overflow-y-auto pr-1">
+      {documents.map((document) => {
+        const checked = selectedDocumentIds.includes(document.id)
+        return (
+          <li key={document.id}>
+            <label className="grid grid-cols-[auto_1fr_auto] items-center gap-2 border border-border bg-background px-2 py-2">
+              <input
+                type="checkbox"
+                checked={checked}
+                disabled={disabled}
+                onChange={() => onToggleDocument(document.id)}
+                className="mt-0.5"
+              />
+              <span className="min-w-0 text-sm text-foreground">
+                <span className="block truncate font-medium">{document.name}</span>
+                <span className="text-xs text-muted">{document.chunk_count} chunks</span>
+              </span>
+              <span className="font-mono text-[10px] uppercase tracking-wide text-muted">{document.workflow_mode}</span>
+            </label>
+          </li>
+        )
+      })}
+    </ul>
+  )
+}
+
 export function RagHybridConfigPanel({
   projects,
   selectedProjectId,
@@ -77,10 +190,14 @@ export function RagHybridConfigPanel({
   isLoadingDocuments,
   disabled,
 }: RagHybridConfigPanelProps) {
+  const selectedCount = selectedDocumentIds.length
+
   return (
     <SectionCard
-      title="Hybrid RAG Controls"
-      subtitle="Project scope, retrieval settings, mode selection, and optional model overrides."
+      title="Chat Settings"
+      subtitle="Set retrieval scope and models before asking questions."
+      className="h-full min-h-0 flex flex-col"
+      bodyClassName="min-h-0 flex-1 overflow-y-auto pr-1"
       actions={
         <button
           type="button"
@@ -90,68 +207,54 @@ export function RagHybridConfigPanel({
           disabled={disabled}
           className="border border-border bg-background px-3 py-2 text-xs font-semibold text-foreground disabled:opacity-60"
         >
-          Refresh Projects
+          Refresh
         </button>
       }
     >
-      <div className="grid gap-3 md:grid-cols-2">
+      <div className="grid gap-3">
         <section className="border border-border bg-background p-3">
-          <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted">Project Scope</p>
-          <div className="grid gap-2">
-            <label className="grid gap-1 text-sm text-muted">
-              Project
-              <select
-                value={selectedProjectId}
-                onChange={(event) => onProjectSelect(event.target.value)}
-                disabled={disabled}
-                className="border border-border bg-background px-3 py-2 text-foreground"
-              >
-                <option value="">Select project...</option>
-                {projects.map((project) => (
-                  <option key={project.id} value={project.id}>
-                    {project.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <p className="text-xs text-muted">
-              {isLoadingProjects ? "Loading projects..." : `${projects.length} project(s) available.`}
-            </p>
-          </div>
+          <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted">1. Project</p>
+          <label className="grid gap-1 text-sm text-muted">
+            <span className="font-medium text-foreground">Project Namespace</span>
+            <select
+              value={selectedProjectId}
+              onChange={(event) => onProjectSelect(event.target.value)}
+              disabled={disabled}
+              className="border border-border bg-background px-3 py-2 text-foreground"
+            >
+              <option value="">Select project...</option>
+              {projects.map((project) => (
+                <option key={project.id} value={project.id}>
+                  {project.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <p className="mt-1 text-xs text-muted">
+            {isLoadingProjects ? "Loading projects..." : `${projects.length} project(s) available.`}
+          </p>
         </section>
 
         <section className="border border-border bg-background p-3">
-          <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted">Conversation Mode</p>
+          <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted">2. Conversation</p>
           <div className="grid gap-2">
             <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
+              <ModeButton
+                label="Stateless"
+                active={chatMode === "stateless"}
+                disabled={disabled}
                 onClick={() => onChatModeChange("stateless")}
+              />
+              <ModeButton
+                label="Session"
+                active={chatMode === "session"}
                 disabled={disabled}
-                className={`border px-3 py-2 text-sm font-medium ${
-                  chatMode === "stateless"
-                    ? "border-primary bg-primary text-primary-foreground"
-                    : "border-border bg-background text-foreground"
-                } disabled:opacity-60`}
-              >
-                Stateless
-              </button>
-              <button
-                type="button"
                 onClick={() => onChatModeChange("session")}
-                disabled={disabled}
-                className={`border px-3 py-2 text-sm font-medium ${
-                  chatMode === "session"
-                    ? "border-primary bg-primary text-primary-foreground"
-                    : "border-border bg-background text-foreground"
-                } disabled:opacity-60`}
-              >
-                Session Memory
-              </button>
+              />
             </div>
 
             <label className="grid gap-1 text-sm text-muted">
-              Session Id
+              <span className="font-medium text-foreground">Session Id</span>
               <div className="grid grid-cols-[1fr_auto] gap-2">
                 <input
                   value={sessionId}
@@ -172,131 +275,90 @@ export function RagHybridConfigPanel({
             </label>
           </div>
         </section>
-      </div>
 
-      <div className="mt-3 grid gap-3 md:grid-cols-2">
         <section className="border border-border bg-background p-3">
-          <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted">Document Filter</p>
-          <p className="mb-2 text-sm text-muted">Optional. Leave unselected to search every document in the project.</p>
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted">3. Document Scope</p>
+            <span className="font-mono text-[11px] text-muted">{selectedCount} selected</span>
+          </div>
+          <p className="mb-2 text-xs text-muted">No selection means all project documents are searchable.</p>
+          <DocumentSelection
+            selectedProjectId={selectedProjectId}
+            documents={documents}
+            selectedDocumentIds={selectedDocumentIds}
+            disabled={disabled}
+            isLoadingDocuments={isLoadingDocuments}
+            onToggleDocument={onToggleDocument}
+          />
+        </section>
 
-          <div className="max-h-40 space-y-1 overflow-y-auto border border-border bg-surface p-2">
-            {selectedProjectId.trim().length === 0 ? (
-              <p className="text-sm text-muted">Select a project to load documents.</p>
-            ) : documents.length === 0 ? (
-              <p className="text-sm text-muted">
-                {isLoadingDocuments ? "Loading documents..." : "No documents found in this project."}
-              </p>
-            ) : (
-              documents.map((document) => {
-                const checked = selectedDocumentIds.includes(document.id)
-                return (
-                  <label key={document.id} className="flex items-start gap-2 border border-border bg-background px-2 py-1">
-                    <input
-                      type="checkbox"
-                      checked={checked}
-                      disabled={disabled}
-                      onChange={() => onToggleDocument(document.id)}
-                      className="mt-1"
-                    />
-                    <span className="min-w-0 text-sm text-foreground">
-                      <span className="block truncate font-medium">{document.name}</span>
-                      <span className="text-xs text-muted">{document.chunk_count} chunk(s)</span>
-                    </span>
-                  </label>
-                )
-              })
-            )}
+        <section className="border border-border bg-background p-3">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">4. Retrieval Parameters</p>
+          <div className="grid gap-2 md:grid-cols-2">
+            <RetrievalNumberField
+              label="Top K"
+              value={topK}
+              min={1}
+              max={50}
+              disabled={disabled}
+              onChange={onTopKChange}
+            />
+            <RetrievalNumberField
+              label="Dense Top K"
+              value={denseTopK}
+              min={1}
+              max={100}
+              disabled={disabled}
+              onChange={onDenseTopKChange}
+            />
+            <RetrievalNumberField
+              label="Sparse Top K"
+              value={sparseTopK}
+              min={1}
+              max={100}
+              disabled={disabled}
+              onChange={onSparseTopKChange}
+            />
+            <RetrievalNumberField
+              label="Dense Weight"
+              value={denseWeight}
+              min={0}
+              max={1}
+              step={0.01}
+              disabled={disabled}
+              onChange={onDenseWeightChange}
+            />
+            <RetrievalNumberField
+              label="History Window"
+              value={historyWindowMessages}
+              min={0}
+              max={40}
+              disabled={disabled}
+              onChange={onHistoryWindowMessagesChange}
+            />
           </div>
         </section>
 
         <section className="border border-border bg-background p-3">
-          <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted">Retrieval + Model Settings</p>
-          <div className="grid gap-2 md:grid-cols-2">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">5. Model Overrides</p>
+          <div className="grid gap-2">
             <label className="grid gap-1 text-sm text-muted">
-              Top K
-              <input
-                type="number"
-                min={1}
-                max={50}
-                value={topK}
-                disabled={disabled}
-                onChange={(event) => onTopKChange(parseNumericInput(event.target.value))}
-                className="border border-border bg-background px-3 py-2 text-foreground"
-              />
-            </label>
-            <label className="grid gap-1 text-sm text-muted">
-              Dense Top K
-              <input
-                type="number"
-                min={1}
-                max={100}
-                value={denseTopK}
-                disabled={disabled}
-                onChange={(event) => onDenseTopKChange(parseNumericInput(event.target.value))}
-                className="border border-border bg-background px-3 py-2 text-foreground"
-              />
-            </label>
-            <label className="grid gap-1 text-sm text-muted">
-              Sparse Top K
-              <input
-                type="number"
-                min={1}
-                max={100}
-                value={sparseTopK}
-                disabled={disabled}
-                onChange={(event) => onSparseTopKChange(parseNumericInput(event.target.value))}
-                className="border border-border bg-background px-3 py-2 text-foreground"
-              />
-            </label>
-            <label className="grid gap-1 text-sm text-muted">
-              Dense Weight
-              <input
-                type="number"
-                min={0}
-                max={1}
-                step={0.01}
-                value={denseWeight}
-                disabled={disabled}
-                onChange={(event) => onDenseWeightChange(parseNumericInput(event.target.value))}
-                className="border border-border bg-background px-3 py-2 text-foreground"
-              />
-            </label>
-            <label className="grid gap-1 text-sm text-muted">
-              History Window
-              <input
-                type="number"
-                min={0}
-                max={40}
-                value={historyWindowMessages}
-                disabled={disabled}
-                onChange={(event) => onHistoryWindowMessagesChange(parseNumericInput(event.target.value))}
-                className="border border-border bg-background px-3 py-2 text-foreground"
-              />
-            </label>
-            <div className="grid gap-1 text-sm text-muted">
-              <p>Streaming</p>
-              <p className="border border-border bg-surface px-3 py-2 text-foreground">Enabled (incremental rendering)</p>
-            </div>
-          </div>
-
-          <div className="mt-2 grid gap-2 md:grid-cols-2">
-            <label className="grid gap-1 text-sm text-muted">
-              Chat Model Override
+              <span className="font-medium text-foreground">Chat Model (Optional)</span>
               <input
                 value={chatModelOverride}
                 onChange={(event) => onChatModelOverrideChange(event.target.value)}
                 disabled={disabled}
-                placeholder="optional"
+                placeholder="gpt-oss:20b"
                 className="border border-border bg-background px-3 py-2 text-foreground"
               />
             </label>
             <label className="grid gap-1 text-sm text-muted">
-              Embedding Model Override
+              <span className="font-medium text-foreground">Embedding Model (Optional)</span>
               <input
                 value={embeddingModelOverride}
                 onChange={(event) => onEmbeddingModelOverrideChange(event.target.value)}
                 disabled={disabled}
-                placeholder="optional"
+                placeholder="bge-m3:latest"
                 className="border border-border bg-background px-3 py-2 text-foreground"
               />
             </label>

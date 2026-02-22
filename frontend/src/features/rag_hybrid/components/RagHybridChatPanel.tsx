@@ -1,3 +1,5 @@
+import { useEffect, useRef } from "react"
+
 import { SectionCard } from "../../../components/ui/SectionCard"
 import type { RagChatMessage } from "../types/rag"
 
@@ -26,6 +28,19 @@ function StreamingIndicator() {
   )
 }
 
+function formatMessageTime(isoValue: string): string {
+  const value = new Date(isoValue)
+  if (Number.isNaN(value.valueOf())) {
+    return ""
+  }
+
+  return value.toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  })
+}
+
 export function RagHybridChatPanel({
   messages,
   draftMessage,
@@ -40,11 +55,23 @@ export function RagHybridChatPanel({
   isStreaming,
 }: RagHybridChatPanelProps) {
   const canSend = draftMessage.trim().length > 0 && !disabled
+  const messagesContainerRef = useRef<HTMLDivElement | null>(null)
+
+  useEffect(() => {
+    const container = messagesContainerRef.current
+    if (!container) {
+      return
+    }
+
+    container.scrollTop = container.scrollHeight
+  }, [messages])
 
   return (
     <SectionCard
-      title="Hybrid Chat"
-      subtitle="Conversation panel. Retrieved evidence is shown in the Sources panel."
+      title="Chat"
+      subtitle="Ask grounded questions. Responses stream token-by-token."
+      className="h-full min-h-0 flex flex-col"
+      bodyClassName="min-h-0 flex-1 grid grid-rows-[auto_1fr_auto] gap-3"
       actions={
         <div className="flex items-center gap-2">
           <button
@@ -66,72 +93,73 @@ export function RagHybridChatPanel({
         </div>
       }
     >
-      <div className="grid gap-3">
-        <div className="border border-border bg-background px-3 py-2">
-          <div className="flex flex-wrap items-center gap-3 text-sm text-muted">
-            <span>{statusMessage}</span>
-            {isStreaming ? <StreamingIndicator /> : null}
-          </div>
-          {errorMessage.trim().length > 0 ? <p className="mt-1 text-sm text-danger">{errorMessage}</p> : null}
+      <div className="border border-border bg-background px-3 py-2">
+        <div className="flex flex-wrap items-center gap-3 text-sm text-muted">
+          <span>{statusMessage}</span>
+          {isStreaming ? <StreamingIndicator /> : null}
         </div>
-
-        <div className="grid h-[30rem] min-h-0 grid-rows-[1fr_auto] gap-3">
-          <div className="min-h-0 overflow-y-auto border border-border bg-background p-3">
-            {messages.length === 0 ? (
-              <p className="text-sm text-muted">No messages yet. Send your first question.</p>
-            ) : (
-              <div className="grid gap-2">
-                {messages.map((message) => (
-                  <article
-                    key={message.id}
-                    className={`border p-2 ${
-                      message.role === "assistant"
-                        ? "border-border bg-surface text-foreground"
-                        : "border-primary bg-primary/10 text-foreground"
-                    }`}
-                  >
-                    <p className="mb-1 font-mono text-[10px] font-semibold uppercase tracking-wide text-muted">
-                      {message.role === "assistant" ? "Assistant" : "User"}
-                    </p>
-                    <p className="whitespace-pre-wrap break-words text-sm">{message.content}</p>
-                    {message.isStreaming === true ? (
-                      <div className="mt-1">
-                        <StreamingIndicator />
-                      </div>
-                    ) : null}
-                  </article>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <div className="border border-border bg-background p-3">
-            <label className="grid gap-2 text-sm text-muted">
-              Message
-              <textarea
-                value={draftMessage}
-                onChange={(event) => onDraftMessageChange(event.target.value)}
-                disabled={disabled}
-                rows={5}
-                placeholder="Ask a grounded question..."
-                className="min-h-0 border border-border bg-background px-3 py-2 text-foreground"
-              />
-            </label>
-            <div className="mt-2 flex items-center justify-end">
-              <button
-                type="button"
-                onClick={() => {
-                  void onSendMessage()
-                }}
-                disabled={!canSend}
-                className="bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-60"
-              >
-                Send
-              </button>
-            </div>
-          </div>
-        </div>
+        {errorMessage.trim().length > 0 ? <p className="mt-1 text-sm text-danger">{errorMessage}</p> : null}
       </div>
+
+      <div ref={messagesContainerRef} className="min-h-0 overflow-y-auto border border-border bg-background p-3">
+        {messages.length === 0 ? (
+          <p className="text-sm text-muted">No messages yet. Ask your first question.</p>
+        ) : (
+          <div className="grid gap-3">
+            {messages.map((message) => (
+              <article key={message.id} className={`grid gap-1 ${message.role === "assistant" ? "" : "justify-items-end"}`}>
+                <div
+                  className={`max-w-[92%] border px-3 py-2 text-sm ${
+                    message.role === "assistant"
+                      ? "border-border bg-surface text-foreground"
+                      : "border-primary bg-primary text-primary-foreground"
+                  }`}
+                >
+                  <p className="mb-1 font-mono text-[10px] font-semibold uppercase tracking-wide opacity-80">
+                    {message.role === "assistant" ? "Assistant" : "User"}
+                  </p>
+                  <p className="whitespace-pre-wrap break-words leading-relaxed">{message.content}</p>
+                  {message.isStreaming === true ? (
+                    <div className="mt-2">
+                      <StreamingIndicator />
+                    </div>
+                  ) : null}
+                </div>
+                <p className="px-1 text-[11px] text-muted">{formatMessageTime(message.createdAt)}</p>
+              </article>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <form
+        className="border border-border bg-background p-3"
+        onSubmit={(event) => {
+          event.preventDefault()
+          void onSendMessage()
+        }}
+      >
+        <label className="grid gap-2 text-sm text-muted">
+          <span className="font-medium text-foreground">Message</span>
+          <textarea
+            value={draftMessage}
+            onChange={(event) => onDraftMessageChange(event.target.value)}
+            disabled={disabled}
+            rows={4}
+            placeholder="Ask a grounded question..."
+            className="min-h-0 border border-border bg-background px-3 py-2 text-foreground"
+          />
+        </label>
+        <div className="mt-2 flex items-center justify-end gap-2">
+          <button
+            type="submit"
+            disabled={!canSend}
+            className="bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-60"
+          >
+            Send
+          </button>
+        </div>
+      </form>
     </SectionCard>
   )
 }

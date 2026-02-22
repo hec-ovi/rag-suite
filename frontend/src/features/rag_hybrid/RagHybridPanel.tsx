@@ -3,5 +3,9 @@ import { useRagHybridWorkflow } from "./hooks/useRagHybridWorkflow"
 
 export function RagHybridPanel() {
   const { state, actions } = useRagHybridWorkflow()
-  return <RagHybridWorkbench state={state} actions={actions} />
+  return (
+    <div className="h-full min-h-0">
+      <RagHybridWorkbench state={state} actions={actions} />
+    </div>
+  )
 }

@@ -4,15 +4,21 @@ interface SectionCardProps extends PropsWithChildren {
   title: string
   subtitle: string
   actions?: React.ReactNode
+  className?: string
+  bodyClassName?: string
+  headerClassName?: string
 }
 
-export function SectionCard({ title, subtitle, actions, children }: SectionCardProps) {
+export function SectionCard({ title, subtitle, actions, className, bodyClassName, headerClassName, children }: SectionCardProps) {
   const stepMatch = title.match(/^STEP\s+(\d+)\s*-\s*(.+)$/i)
   const stepNumber = stepMatch?.[1]?.padStart(2, "0")
+  const sectionClassName = className ? `border border-border bg-surface/80 p-4 shadow-sm shadow-black/5 backdrop-blur ${className}` : "border border-border bg-surface/80 p-4 shadow-sm shadow-black/5 backdrop-blur"
+  const resolvedHeaderClassName = headerClassName ? `mb-4 flex flex-wrap items-start justify-between gap-3 ${headerClassName}` : "mb-4 flex flex-wrap items-start justify-between gap-3"
+  const resolvedBodyClassName = bodyClassName ?? ""
 
   return (
-    <section className="border border-border bg-surface/80 p-4 shadow-sm shadow-black/5 backdrop-blur">
-      <header className="mb-4 flex flex-wrap items-start justify-between gap-3">
+    <section className={sectionClassName}>
+      <header className={resolvedHeaderClassName}>
         <div>
           {stepMatch ? (
             <div className="mb-1 flex items-start gap-3">
@@ -31,7 +37,7 @@ export function SectionCard({ title, subtitle, actions, children }: SectionCardP
         </div>
         {actions}
       </header>
-      {children}
+      <div className={resolvedBodyClassName}>{children}</div>
     </section>
   )
 }
