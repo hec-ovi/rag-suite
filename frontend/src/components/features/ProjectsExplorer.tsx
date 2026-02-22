@@ -149,21 +149,20 @@ function ProjectExploreModal({ project, documents, onClose }: ExploreModalProps)
                   <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
                     <div>
                       <h4 className="font-display text-lg font-semibold text-foreground">{selectedDocument.name}</h4>
-                      <p className="font-mono text-xs text-muted">
-                        workflow={selectedDocument.workflow_mode} | chunking={selectedDocument.chunking_mode} |
-                        contextualization={selectedDocument.contextualization_mode}
-                      </p>
-                      <p className="font-mono text-xs text-muted">
-                        {chunksQuery.isFetching ? "Loading chunks..." : `${loadedChunks.length} chunks loaded`}
-                      </p>
                     </div>
                     <p className="font-mono text-xs text-muted">{selectedDocument.chunk_count} stored chunks</p>
                   </div>
 
-                  <div className="grid gap-2 md:grid-cols-3">
+                  <div className="grid gap-2 md:grid-cols-3 xl:grid-cols-4">
+                    <FlagPill label="Workflow HITL" enabled={selectedDocument.workflow_mode === "manual"} />
+                    <FlagPill label="Workflow Auto" enabled={selectedDocument.workflow_mode === "automatic"} />
+                    <FlagPill label="Chunk Agentic" enabled={selectedDocument.chunking_mode === "agentic"} />
+                    <FlagPill label="Chunk Deterministic" enabled={selectedDocument.chunking_mode === "deterministic"} />
+                    <FlagPill label="Context LLM" enabled={selectedDocument.contextualization_mode === "llm"} />
+                    <FlagPill label="Context Template" enabled={selectedDocument.contextualization_mode === "template"} />
+                    <FlagPill label="Context Disabled" enabled={selectedDocument.contextualization_mode === "disabled"} />
                     <FlagPill label="Normalized" enabled={selectedDocument.used_normalization} />
-                    <FlagPill label="Agentic Chunking" enabled={selectedDocument.used_agentic_chunking} />
-                    <FlagPill label="Context Headers" enabled={selectedDocument.has_contextual_headers} />
+                    <FlagPill label="Contextual Retrieval" enabled={selectedDocument.has_contextual_headers} />
                   </div>
                 </div>
 
@@ -204,53 +203,50 @@ function ProjectExploreModal({ project, documents, onClose }: ExploreModalProps)
                     <p className="text-sm text-muted">Select a chunk to inspect text variants.</p>
                   ) : (
                     <div className="grid gap-3">
-                      <div className="border border-border bg-background p-2">
-                        <p className="mb-2 font-mono text-xs uppercase tracking-wide text-muted">Chunk View Tabs</p>
-                        <div className="grid gap-2 md:grid-cols-3" role="tablist" aria-label="Chunk text variants">
-                          <button
-                            type="button"
-                            onClick={() => setSelectedChunkView("raw")}
-                            role="tab"
-                            aria-selected={selectedChunkView === "raw"}
-                            className={`border px-3 py-2 text-xs font-semibold uppercase tracking-wide ${
-                              selectedChunkView === "raw"
-                                ? "border-primary bg-primary text-primary-foreground"
-                                : "border-border bg-background text-muted"
-                            }`}
-                          >
-                            Raw
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setSelectedChunkView("normalized")}
-                            role="tab"
-                            aria-selected={selectedChunkView === "normalized"}
-                            className={`border px-3 py-2 text-xs font-semibold uppercase tracking-wide ${
-                              selectedChunkView === "normalized"
-                                ? "border-primary bg-primary text-primary-foreground"
-                                : "border-border bg-background text-muted"
-                            }`}
-                          >
-                            Normalized
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setSelectedChunkView("final")}
-                            role="tab"
-                            aria-selected={selectedChunkView === "final"}
-                            className={`border px-3 py-2 text-xs font-semibold uppercase tracking-wide ${
-                              selectedChunkView === "final"
-                                ? "border-primary bg-primary text-primary-foreground"
-                                : "border-border bg-background text-muted"
-                            }`}
-                          >
-                            Final Chunk
-                          </button>
-                        </div>
+                      <div className="flex flex-wrap gap-1" role="tablist" aria-label="Chunk text variants">
+                        <button
+                          type="button"
+                          onClick={() => setSelectedChunkView("raw")}
+                          role="tab"
+                          aria-selected={selectedChunkView === "raw"}
+                          className={`border border-b-0 px-3 py-2 text-xs font-semibold uppercase tracking-wide ${
+                            selectedChunkView === "raw"
+                              ? "border-primary bg-primary text-primary-foreground"
+                              : "border-border bg-surface text-muted"
+                          }`}
+                        >
+                          Raw
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedChunkView("normalized")}
+                          role="tab"
+                          aria-selected={selectedChunkView === "normalized"}
+                          className={`border border-b-0 px-3 py-2 text-xs font-semibold uppercase tracking-wide ${
+                            selectedChunkView === "normalized"
+                              ? "border-primary bg-primary text-primary-foreground"
+                              : "border-border bg-surface text-muted"
+                          }`}
+                        >
+                          Normalized
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedChunkView("final")}
+                          role="tab"
+                          aria-selected={selectedChunkView === "final"}
+                          className={`border border-b-0 px-3 py-2 text-xs font-semibold uppercase tracking-wide ${
+                            selectedChunkView === "final"
+                              ? "border-primary bg-primary text-primary-foreground"
+                              : "border-border bg-surface text-muted"
+                          }`}
+                        >
+                          Final Chunk
+                        </button>
                       </div>
 
                       {selectedChunkView === "raw" ? (
-                        <label className="flex flex-col gap-1 text-xs font-semibold uppercase tracking-wide text-muted">
+                        <label className="flex flex-col gap-1 border border-border bg-background p-3 text-xs font-semibold uppercase tracking-wide text-muted">
                           Raw Chunk Snapshot
                           <textarea
                             readOnly
@@ -261,7 +257,7 @@ function ProjectExploreModal({ project, documents, onClose }: ExploreModalProps)
                       ) : null}
 
                       {selectedChunkView === "normalized" ? (
-                        <label className="flex flex-col gap-1 text-xs font-semibold uppercase tracking-wide text-muted">
+                        <label className="flex flex-col gap-1 border border-border bg-background p-3 text-xs font-semibold uppercase tracking-wide text-muted">
                           Normalized Chunk
                           <textarea
                             readOnly
@@ -272,7 +268,7 @@ function ProjectExploreModal({ project, documents, onClose }: ExploreModalProps)
                       ) : null}
 
                       {selectedChunkView === "final" ? (
-                        <div className="grid gap-3">
+                        <div className="grid gap-3 border border-border bg-background p-3">
                           <label className="flex flex-col gap-1 text-xs font-semibold uppercase tracking-wide text-muted">
                             Header
                             <textarea
@@ -449,7 +445,7 @@ export function ProjectsExplorer({ projects, onProjectsRefresh }: ProjectsExplor
                       <div className="grid gap-1">
                         <FlagPill label="Norm" enabled={anyNormalized} />
                         <FlagPill label="Agentic" enabled={anyAgentic} />
-                        <FlagPill label="Context" enabled={anyContext} />
+                        <FlagPill label="Ctx Retrieval" enabled={anyContext} />
                       </div>
                     </td>
                     <td className="px-3 py-3 font-mono text-xs text-muted">
