@@ -49,7 +49,8 @@ interface IngestionWorkbenchProps {
   onToggleNormalization: () => Promise<void>
   onChunkModeChange: (mode: ChunkModeSelection) => void
   onChunkOptionsChange: (options: { maxChunkChars: number; minChunkChars: number; overlapChars: number }) => void
-  onRunChunking: () => Promise<void>
+  onRunChunking: (mode?: ChunkModeSelection) => Promise<void>
+  onContextModeChange: (mode: ContextModeSelection) => void
   onContextualizedChunksChange: (chunks: ContextualizedChunk[]) => void
   onRunContextualization: (mode?: ContextModeSelection) => Promise<void>
   onAutomationFlagChange: (key: "normalize_text" | "agentic_chunking" | "contextual_headers", value: boolean) => void
@@ -69,15 +70,6 @@ const tabLabels: Record<IngestionTabId, string> = {
   chunk: "4. Chunk",
   context: "5. Contextual Retrieval",
   manual: "6. HITL Vectorize",
-}
-
-const tabHint: Record<IngestionTabId, string> = {
-  project: "Create or select project namespace first.",
-  source: "Load source file/text only after project setup.",
-  normalize: "Clean text deterministically before splitting.",
-  chunk: "Set boundaries and review chunk rationale.",
-  context: "Add Anthropic-style contextual headers before embedding.",
-  manual: "Persist approved chunks to storage.",
 }
 
 function nextTab(current: IngestionTabId): IngestionTabId {
@@ -125,6 +117,7 @@ export function IngestionWorkbench({
   onChunkModeChange,
   onChunkOptionsChange,
   onRunChunking,
+  onContextModeChange,
   onContextualizedChunksChange,
   onRunContextualization,
   onAutomationFlagChange,
@@ -141,10 +134,6 @@ export function IngestionWorkbench({
   const contextModeSelected = contextMode !== ""
   const contextDisabled = contextMode === "disabled"
   const contextReady = contextDisabled ? chunks.length > 0 : contextModeSelected && contextualizedChunks.length > 0
-
-  const progressLabel = useMemo(() => {
-    return "Flow: Project -> Source -> Normalize -> Chunk -> Contextual Retrieval -> HITL Vectorize"
-  }, [])
 
   const hasPrevious = tabOrder.indexOf(activeTab) > 0
   const hasNext = tabOrder.indexOf(activeTab) < tabOrder.length - 1
@@ -195,8 +184,6 @@ export function IngestionWorkbench({
             </button>
           ))}
         </div>
-        <p className="font-mono text-xs text-muted">{progressLabel}</p>
-        <p className="text-sm text-foreground">{tabHint[activeTab]}</p>
       </section>
 
       {activeTab === "project" ? (
@@ -250,6 +237,7 @@ export function IngestionWorkbench({
           contextMode={contextMode}
           chunks={chunks}
           contextualizedChunks={contextualizedChunks}
+          onContextModeChange={onContextModeChange}
           onContextualizedChunksChange={onContextualizedChunksChange}
           onRunContextualization={onRunContextualization}
           disabled={isBusy}

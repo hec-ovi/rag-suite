@@ -61,7 +61,7 @@ interface WorkflowActions {
   setContextualizedChunks: (chunks: ContextualizedChunk[]) => void
   handleFileSelected: (file: File) => Promise<void>
   runNormalize: () => Promise<void>
-  runChunking: () => Promise<void>
+  runChunking: (mode?: ChunkModeSelection) => Promise<void>
   runContextualization: (mode?: ContextModeSelection) => Promise<void>
   runAutomaticPreview: () => Promise<void>
   runManualIngest: () => Promise<void>
@@ -262,19 +262,24 @@ export function useIngestionWorkflow(): { state: WorkflowState; actions: Workflo
     }
   }
 
-  async function runChunking(): Promise<void> {
+  async function runChunking(mode?: ChunkModeSelection): Promise<void> {
+    const selectedMode = mode ?? chunkMode
+    if (mode !== undefined) {
+      setChunkMode(mode)
+    }
+
     const source = normalizationEnabled && normalizedText.trim().length > 0 ? normalizedText : rawText
     if (source.trim().length === 0) {
       setErrorMessage("Provide normalized or raw text before chunking.")
       return
     }
 
-    if (chunkMode === "") {
+    if (selectedMode === "") {
       setErrorMessage("Select deterministic or agentic mode before chunking.")
       return
     }
 
-    const selectedChunkMode = chunkMode as ChunkMode
+    const selectedChunkMode = selectedMode as ChunkMode
     setChunks([])
     setContextualizedChunks([])
     setErrorMessage("")

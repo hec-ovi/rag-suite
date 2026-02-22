@@ -13,7 +13,7 @@ interface ChunkReviewPanelProps {
   chunks: ChunkProposal[]
   onChunkModeChange: (mode: ChunkModeSelection) => void
   onChunkOptionsChange: (options: { maxChunkChars: number; minChunkChars: number; overlapChars: number }) => void
-  onRunChunking: () => Promise<void>
+  onRunChunking: (mode?: ChunkModeSelection) => Promise<void>
   disabled: boolean
   isChunking: boolean
 }
@@ -88,32 +88,49 @@ export function ChunkReviewPanel({
         <section className="mb-3 border border-border bg-background p-3">
           <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">Chunking Mode (Required)</p>
           <div className="grid gap-3 md:grid-cols-3">
-            <button
-              type="button"
+            <div
               onClick={() => onChunkModeChange("")}
-              className={`border p-3 text-left ${modeCardClass(chunkMode === "")}`}
+              className={`cursor-pointer border p-3 text-left ${modeCardClass(chunkMode === "")}`}
             >
               <p className="mb-1 font-semibold text-foreground">Disabled (default)</p>
               <p className="text-sm text-muted">No chunk mode selected yet.</p>
-            </button>
+            </div>
 
-            <button
-              type="button"
+            <div
               onClick={() => onChunkModeChange("deterministic")}
-              className={`border p-3 text-left ${modeCardClass(chunkMode === "deterministic")}`}
+              className={`cursor-pointer border p-3 text-left ${modeCardClass(chunkMode === "deterministic")}`}
             >
               <p className="mb-1 font-semibold text-foreground">Deterministic</p>
               <p className="text-sm text-muted">Fast paragraph-aware boundaries, stable and repeatable.</p>
-            </button>
+              <div className="mt-3 flex justify-start">
+                <button
+                  type="button"
+                  onClick={() => void onRunChunking("deterministic")}
+                  disabled={disabled}
+                  className="border border-border bg-surface px-2 py-1 text-xs font-semibold text-foreground disabled:opacity-60"
+                >
+                  Generate
+                </button>
+              </div>
+            </div>
 
-            <button
-              type="button"
+            <div
               onClick={() => onChunkModeChange("agentic")}
-              className={`border p-3 text-left ${modeCardClass(chunkMode === "agentic")}`}
+              className={`cursor-pointer border p-3 text-left ${modeCardClass(chunkMode === "agentic")}`}
             >
               <p className="mb-1 font-semibold text-foreground">Agentic (experimental)</p>
               <p className="text-sm text-muted">Agent proposes semantic boundaries when structure is noisy.</p>
-            </button>
+              <div className="mt-3 flex justify-start">
+                <button
+                  type="button"
+                  onClick={() => void onRunChunking("agentic")}
+                  disabled={disabled}
+                  className="border border-border bg-surface px-2 py-1 text-xs font-semibold text-foreground disabled:opacity-60"
+                >
+                  Generate
+                </button>
+              </div>
+            </div>
           </div>
           {modeMissing ? (
             <p className="mt-2 text-sm text-danger">Select Deterministic or Agentic to continue.</p>
@@ -175,17 +192,6 @@ export function ChunkReviewPanel({
             </label>
           </div>
         </details>
-
-        <div className="mb-3 flex justify-end">
-          <button
-            type="button"
-            onClick={onRunChunking}
-            disabled={disabled || modeMissing}
-            className="bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-60"
-          >
-            Generate chunks
-          </button>
-        </div>
 
         <section className="max-w-full overflow-hidden border border-border bg-background p-3">
           {isChunking ? (

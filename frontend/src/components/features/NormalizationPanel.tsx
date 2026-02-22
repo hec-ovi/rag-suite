@@ -86,7 +86,6 @@ export function NormalizationPanel({
         >
           <span>Normalize</span>
           <span className="inline-flex items-center gap-2 border border-primary-foreground/40 bg-primary-foreground/10 px-2 py-1 font-mono text-xs">
-            <span className="text-primary-foreground/80">Toggle</span>
             <span className="inline-block h-2.5 w-2.5 border border-primary-foreground/60 bg-background/10">
               {normalizationEnabled ? <span className="block h-full w-full bg-primary-foreground" /> : null}
             </span>
