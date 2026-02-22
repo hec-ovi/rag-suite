@@ -6,6 +6,7 @@ import { IngestionWorkbench } from "./components/features/IngestionWorkbench"
 import { ProjectsExplorer } from "./components/features/ProjectsExplorer"
 import { RagModePanel } from "./components/features/RagModePanel"
 import { StartGuidePanel } from "./components/features/StartGuidePanel"
+import { RagHybridPanel } from "./features/rag_hybrid"
 import { useIngestionWorkflow } from "./hooks/useIngestionWorkflow"
 import { useThemeMode } from "./hooks/useThemeMode"
 import { useNavigationStore } from "./stores/navigation.store"
@@ -94,7 +95,7 @@ function App() {
 
   const startView = <StartGuidePanel />
   const projectsView = <ProjectsExplorer projects={state.projects} onProjectsRefresh={actions.refreshProjects} />
-  const ragHybridView = <RagModePanel mode="rag_hybrid" />
+  const ragHybridView = <RagHybridPanel />
   const ragRerankedView = <RagModePanel mode="rag_reranked" />
   const ragKnowledgeGraphView = <RagModePanel mode="rag_kg" />
 

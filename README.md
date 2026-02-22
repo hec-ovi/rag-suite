@@ -193,6 +193,13 @@ The ingestion UI in `frontend/` supports:
 - Manual ingest (approved chunks) or full automatic ingest
 - `Projects` table with document/chunk stats, flag summaries, delete action, and chunk lineage explorer popup
 
+Hybrid RAG UI (`RAG Mode -> Hybrid`) now supports:
+
+- Stateless and session-memory chat modes
+- Project-scoped queries with optional per-document filter
+- Streaming answer rendering in chat panel
+- Separated source trace panel (citations, documents, ranked chunk bullets, and full source preview)
+
 ## Audit Example (PDF-Derived TXT)
 
 Document used: `data/2512.10398v6.txt` (generated from a PDF extraction).
