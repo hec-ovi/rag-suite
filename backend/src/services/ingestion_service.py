@@ -1,12 +1,13 @@
 from __future__ import annotations
 
+import logging
 import uuid
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from src.core.config import Settings
-from src.core.exceptions import ResourceNotFoundError, ValidationDomainError
+from src.core.exceptions import ExternalServiceError, ResourceNotFoundError, ValidationDomainError
 from src.models.api.pipeline import (
     AutomaticPipelinePreviewRequest,
     AutomaticPipelinePreviewResponse,
@@ -31,6 +32,8 @@ from src.tools.deterministic_chunker import DeterministicChunker
 from src.tools.normalize_text import DeterministicTextNormalizer
 from src.tools.ollama_embedding_client import OllamaEmbeddingClient
 from src.tools.qdrant_indexer import QdrantIndexer
+
+logger = logging.getLogger(__name__)
 
 
 class IngestionService:
@@ -380,12 +383,36 @@ class IngestionService:
             )
 
         model_name = llm_model or self._settings.ollama_chat_model
-        return await self._agentic_chunker.chunk(
-            text=text,
-            model=model_name,
-            max_chunk_chars=max_chunk_chars,
-            min_chunk_chars=min_chunk_chars,
-        )
+        try:
+            return await self._agentic_chunker.chunk(
+                text=text,
+                model=model_name,
+                max_chunk_chars=max_chunk_chars,
+                min_chunk_chars=min_chunk_chars,
+            )
+        except (ExternalServiceError, ValidationDomainError) as error:
+            logger.warning(
+                "Agentic chunking failed; falling back to deterministic chunking. model=%s error=%s",
+                model_name,
+                error,
+            )
+            fallback_chunks = self._deterministic_chunker.chunk(
+                text=text,
+                max_chunk_chars=max_chunk_chars,
+                min_chunk_chars=min_chunk_chars,
+                overlap_chars=overlap_chars,
+            )
+            fallback_rationale = "Fallback to deterministic chunking: agentic model unavailable or invalid output."
+            return [
+                ChunkCandidate(
+                    chunk_index=chunk.chunk_index,
+                    start_char=chunk.start_char,
+                    end_char=chunk.end_char,
+                    text=chunk.text,
+                    rationale=fallback_rationale,
+                )
+                for chunk in fallback_chunks
+            ]
 
     async def _automatic_contextualization(
         self,

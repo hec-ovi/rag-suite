@@ -13,6 +13,7 @@ interface ChunkReviewPanelProps {
   onChunkOptionsChange: (options: { maxChunkChars: number; minChunkChars: number; overlapChars: number }) => void
   onRunChunking: () => Promise<void>
   disabled: boolean
+  isChunking: boolean
 }
 
 export function ChunkReviewPanel({
@@ -23,7 +24,11 @@ export function ChunkReviewPanel({
   onChunkOptionsChange,
   onRunChunking,
   disabled,
+  isChunking,
 }: ChunkReviewPanelProps) {
+  const loadingLabel =
+    chunkMode === "agentic" ? "Agentic chunker is analyzing boundaries..." : "Building deterministic chunks..."
+
   return (
     <SectionCard
       title="Chunk Boundary Review"
@@ -105,7 +110,19 @@ export function ChunkReviewPanel({
       </div>
 
       <div className="max-h-72 space-y-3 overflow-auto pr-1">
-        {chunks.length === 0 ? <p className="text-sm text-muted">No chunks proposed yet.</p> : null}
+        {isChunking ? (
+          <div className="border border-border bg-background p-3">
+            <div className="mb-2 flex items-center gap-2">
+              <span
+                aria-hidden="true"
+                className="inline-block h-3 w-3 animate-spin border border-primary border-t-transparent"
+              />
+              <p className="text-sm font-semibold text-foreground">{loadingLabel}</p>
+            </div>
+            <p className="text-xs text-muted animate-pulse">Previous chunk results were cleared for this new run.</p>
+          </div>
+        ) : null}
+        {!isChunking && chunks.length === 0 ? <p className="text-sm text-muted">No chunks proposed yet.</p> : null}
         {chunks.map((chunk) => (
           <article key={chunk.chunk_index} className="border border-border bg-background p-3">
             <div className="mb-2 flex items-center justify-between">
@@ -115,7 +132,7 @@ export function ChunkReviewPanel({
               <p className="text-xs text-muted">{chunk.text.length} chars</p>
             </div>
             <p className="mb-2 text-xs text-muted">{chunk.rationale ?? "No rationale provided."}</p>
-            <p className="max-h-28 overflow-hidden whitespace-pre-wrap text-sm text-foreground">{chunk.text}</p>
+            <p className="whitespace-pre-wrap break-words text-sm text-foreground">{chunk.text}</p>
           </article>
         ))}
       </div>

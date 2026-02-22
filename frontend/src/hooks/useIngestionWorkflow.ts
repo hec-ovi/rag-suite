@@ -35,6 +35,7 @@ interface WorkflowState {
   errorMessage: string
   diffLines: ReturnType<typeof buildLineDiff>
   isBusy: boolean
+  isChunking: boolean
 }
 
 interface WorkflowActions {
@@ -151,6 +152,7 @@ export function useIngestionWorkflow(): { state: WorkflowState; actions: Workflo
     contextualizeMutation.isPending ||
     previewMutation.isPending ||
     ingestMutation.isPending
+  const isChunking = chunkMutation.isPending
 
   const diffLines = useMemo(() => buildLineDiff(rawText, normalizedText), [normalizedText, rawText])
 
@@ -224,6 +226,8 @@ export function useIngestionWorkflow(): { state: WorkflowState; actions: Workflo
       return
     }
 
+    setChunks([])
+    setContextualizedChunks([])
     setErrorMessage("")
     setStatusMessage(`Generating ${chunkMode} chunks...`)
 
@@ -415,6 +419,7 @@ export function useIngestionWorkflow(): { state: WorkflowState; actions: Workflo
     errorMessage,
     diffLines,
     isBusy,
+    isChunking,
   }
 
   const actions: WorkflowActions = {

@@ -13,12 +13,14 @@ function diffClassName(kind: DiffLine["kind"]): string {
     return "bg-emerald-500/15 text-emerald-900 dark:text-emerald-200"
   }
   if (kind === "removed") {
-    return "bg-rose-500/15 text-rose-900 dark:text-rose-200"
+    return "bg-rose-500/15 text-rose-900 opacity-65 dark:text-rose-200"
   }
   return "bg-transparent text-muted"
 }
 
 export function NormalizationPanel({ normalizedText, diffLines, onNormalize, disabled }: NormalizationPanelProps) {
+  const changedLines = diffLines.filter((line) => line.kind !== "unchanged")
+
   return (
     <SectionCard
       title="Normalization Review"
@@ -34,28 +36,20 @@ export function NormalizationPanel({ normalizedText, diffLines, onNormalize, dis
         </button>
       }
     >
-      <div className="grid gap-4 md:grid-cols-[1fr_1fr]">
-        <div className="border border-border bg-background p-3">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">Diff (raw -&gt; normalized)</p>
-          <div className="max-h-60 space-y-1 overflow-auto font-mono text-xs">
-            {diffLines.length === 0 ? <p className="text-muted">No normalization output yet.</p> : null}
-            {diffLines.map((line, index) => (
-              <p key={`${line.kind}-${index.toString(10)}`} className={`px-2 py-1 ${diffClassName(line.kind)}`}>
-                {line.kind === "added" ? "+ " : line.kind === "removed" ? "- " : "  "}
-                {line.text}
-              </p>
-            ))}
-          </div>
+      <div className="border border-border bg-background p-3">
+        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">Changed Lines (raw vs normalized)</p>
+        <div className="max-h-72 space-y-1 overflow-auto font-mono text-xs">
+          {normalizedText.length === 0 ? <p className="text-muted">No normalization output yet.</p> : null}
+          {normalizedText.length > 0 && changedLines.length === 0 ? (
+            <p className="text-muted">No line-level changes were detected.</p>
+          ) : null}
+          {changedLines.map((line, index) => (
+            <p key={`${line.kind}-${index.toString(10)}`} className={`px-2 py-1 ${diffClassName(line.kind)}`}>
+              {line.kind === "added" ? "+ " : "- "}
+              {line.text}
+            </p>
+          ))}
         </div>
-
-        <label className="block text-xs font-semibold uppercase tracking-wide text-muted">
-          Normalized text
-          <textarea
-            value={normalizedText}
-            readOnly
-            className="mt-2 h-60 w-full border border-border bg-background p-3 font-mono text-xs text-foreground"
-          />
-        </label>
       </div>
     </SectionCard>
   )

@@ -114,7 +114,7 @@ export function IngestionActionsPanel({
             disabled={disabled}
             className="bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-60"
           >
-            Ingest manual reviewed chunks
+            Ingest data
           </button>
         ) : null}
 

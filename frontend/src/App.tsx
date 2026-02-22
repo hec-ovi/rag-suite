@@ -36,6 +36,7 @@ function App() {
       errorMessage={state.errorMessage}
       diffLines={state.diffLines}
       isBusy={state.isBusy}
+      isChunking={state.isChunking}
       onProjectNameDraftChange={actions.setProjectNameDraft}
       onProjectCreate={actions.createProject}
       onProjectSelect={actions.setSelectedProjectId}

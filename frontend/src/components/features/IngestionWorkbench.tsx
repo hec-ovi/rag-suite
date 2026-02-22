@@ -40,6 +40,7 @@ interface IngestionWorkbenchProps {
   errorMessage: string
   diffLines: Array<{ kind: "added" | "removed" | "unchanged"; text: string }>
   isBusy: boolean
+  isChunking: boolean
   onProjectNameDraftChange: (value: string) => void
   onProjectCreate: () => Promise<void>
   onProjectSelect: (projectId: string) => void
@@ -67,8 +68,8 @@ const tabLabels: Record<IngestionTabId, string> = {
   source: "2. Source",
   normalize: "3. Normalize",
   chunk: "4. Chunk",
-  context: "5. Context",
-  manual: "6. Manual Ingest",
+  context: "5. Contextual Retrieval",
+  manual: "6. Ingest Data",
 }
 
 const tabHint: Record<IngestionTabId, string> = {
@@ -76,8 +77,8 @@ const tabHint: Record<IngestionTabId, string> = {
   source: "Load source file/text only after project setup.",
   normalize: "Clean text deterministically before splitting.",
   chunk: "Set boundaries and review chunk rationale.",
-  context: "Add context headers before embedding.",
-  manual: "Persist reviewed chunks manually.",
+  context: "Add Anthropic-style contextual headers before embedding.",
+  manual: "Persist approved chunks to storage.",
 }
 
 function nextTab(current: IngestionTabId): IngestionTabId {
@@ -115,6 +116,7 @@ export function IngestionWorkbench({
   errorMessage,
   diffLines,
   isBusy,
+  isChunking,
   onProjectNameDraftChange,
   onProjectCreate,
   onProjectSelect,
@@ -138,7 +140,7 @@ export function IngestionWorkbench({
   const projectReady = selectedProjectId.length > 0
 
   const progressLabel = useMemo(() => {
-    return "Flow: Project -> Source -> Normalize -> Chunk -> Context -> Manual Ingest"
+    return "Flow: Project -> Source -> Normalize -> Chunk -> Contextual Retrieval -> Ingest Data"
   }, [])
 
   const hasPrevious = tabOrder.indexOf(activeTab) > 0
@@ -203,6 +205,7 @@ export function IngestionWorkbench({
           onChunkOptionsChange={onChunkOptionsChange}
           onRunChunking={onRunChunking}
           disabled={isBusy}
+          isChunking={isChunking}
         />
       ) : null}
 
@@ -232,8 +235,8 @@ export function IngestionWorkbench({
           onAutomaticIngest={onAutomaticIngest}
           disabled={isBusy}
           mode="manual"
-          title="Manual Ingestion"
-          subtitle="Approve and persist reviewed chunks into Qdrant."
+          title="Ingest Data"
+          subtitle="Persist reviewed chunks into Qdrant."
         />
       ) : null}
 
