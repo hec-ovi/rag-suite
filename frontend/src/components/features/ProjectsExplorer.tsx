@@ -16,6 +16,16 @@ interface FlagPillProps {
   enabled: boolean
 }
 
+interface ModeOption {
+  label: string
+  selected: boolean
+}
+
+interface ModeGroupProps {
+  label: string
+  options: ModeOption[]
+}
+
 function FlagPill({ label, enabled }: FlagPillProps) {
   return (
     <span
@@ -26,6 +36,32 @@ function FlagPill({ label, enabled }: FlagPillProps) {
       <span>{label}</span>
       <span>{enabled ? "On" : "Off"}</span>
     </span>
+  )
+}
+
+function ModeGroup({ label, options }: ModeGroupProps) {
+  const columnClass = options.length >= 3 ? "grid-cols-3" : "grid-cols-2"
+
+  return (
+    <section className="border border-border bg-background p-2">
+      <p className="mb-2 font-mono text-[11px] uppercase tracking-wide text-muted">{label}</p>
+      <div className={`grid gap-1 ${columnClass}`} role="radiogroup" aria-label={label}>
+        {options.map((option) => (
+          <span
+            key={option.label}
+            role="radio"
+            aria-checked={option.selected}
+            className={`border px-2 py-1 text-center text-[11px] font-semibold uppercase tracking-wide ${
+              option.selected
+                ? "border-primary/50 bg-primary/15 text-foreground"
+                : "border-border bg-surface text-muted"
+            }`}
+          >
+            {option.label}
+          </span>
+        ))}
+      </div>
+    </section>
   )
 }
 
@@ -79,6 +115,12 @@ function ProjectExploreModal({ project, documents, onClose }: ExploreModalProps)
 
   const selectedChunk: ChunkSummaryRecord | null =
     loadedChunks.find((chunk) => chunk.id === effectiveSelectedChunkId) ?? null
+
+  const contextModeForDisplay = !selectedDocument?.has_contextual_headers
+    ? "disabled"
+    : selectedDocument.contextualization_mode === "template"
+      ? "template"
+      : "llm"
 
   function goToPreviousChunk(): void {
     if (!canGoToPreviousChunk) {
@@ -153,16 +195,43 @@ function ProjectExploreModal({ project, documents, onClose }: ExploreModalProps)
                     <p className="font-mono text-xs text-muted">{selectedDocument.chunk_count} stored chunks</p>
                   </div>
 
-                  <div className="grid gap-2 md:grid-cols-3 xl:grid-cols-4">
-                    <FlagPill label="Workflow HITL" enabled={selectedDocument.workflow_mode === "manual"} />
-                    <FlagPill label="Workflow Auto" enabled={selectedDocument.workflow_mode === "automatic"} />
-                    <FlagPill label="Chunk Agentic" enabled={selectedDocument.chunking_mode === "agentic"} />
-                    <FlagPill label="Chunk Deterministic" enabled={selectedDocument.chunking_mode === "deterministic"} />
-                    <FlagPill label="Context LLM" enabled={selectedDocument.contextualization_mode === "llm"} />
-                    <FlagPill label="Context Template" enabled={selectedDocument.contextualization_mode === "template"} />
-                    <FlagPill label="Context Disabled" enabled={selectedDocument.contextualization_mode === "disabled"} />
-                    <FlagPill label="Normalized" enabled={selectedDocument.used_normalization} />
-                    <FlagPill label="Contextual Retrieval" enabled={selectedDocument.has_contextual_headers} />
+                  <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
+                    <ModeGroup
+                      label="Workflow"
+                      options={[
+                        { label: "HITL", selected: selectedDocument.workflow_mode === "manual" },
+                        { label: "Auto", selected: selectedDocument.workflow_mode === "automatic" },
+                      ]}
+                    />
+                    <ModeGroup
+                      label="Chunk"
+                      options={[
+                        { label: "Deterministic", selected: selectedDocument.chunking_mode === "deterministic" },
+                        { label: "Agentic", selected: selectedDocument.chunking_mode === "agentic" },
+                      ]}
+                    />
+                    <ModeGroup
+                      label="Context"
+                      options={[
+                        { label: "Disabled", selected: contextModeForDisplay === "disabled" },
+                        { label: "Template", selected: contextModeForDisplay === "template" },
+                        { label: "LLM", selected: contextModeForDisplay === "llm" },
+                      ]}
+                    />
+                    <ModeGroup
+                      label="Normalization"
+                      options={[
+                        { label: "Off", selected: !selectedDocument.used_normalization },
+                        { label: "On", selected: selectedDocument.used_normalization },
+                      ]}
+                    />
+                    <ModeGroup
+                      label="Contextual Retrieval"
+                      options={[
+                        { label: "Off", selected: !selectedDocument.has_contextual_headers },
+                        { label: "On", selected: selectedDocument.has_contextual_headers },
+                      ]}
+                    />
                   </div>
                 </div>
 

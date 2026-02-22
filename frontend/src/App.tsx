@@ -41,6 +41,7 @@ function App() {
       onProjectNameDraftChange={actions.setProjectNameDraft}
       onProjectCreate={actions.createProject}
       onProjectSelect={actions.setSelectedProjectId}
+      onFileNameChange={actions.setFileName}
       onRawTextChange={actions.setRawText}
       onFileSelect={actions.handleFileSelected}
       onToggleNormalization={actions.runNormalize}
@@ -75,6 +76,7 @@ function App() {
       onProjectNameDraftChange={actions.setProjectNameDraft}
       onProjectCreate={actions.createProject}
       onProjectSelect={actions.setSelectedProjectId}
+      onFileNameChange={actions.setFileName}
       onRawTextChange={actions.setRawText}
       onFileSelect={actions.handleFileSelected}
       onAutomationFlagChange={actions.setAutomationFlag}

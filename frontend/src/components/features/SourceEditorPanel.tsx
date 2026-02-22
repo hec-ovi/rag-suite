@@ -2,6 +2,7 @@ import { SectionCard } from "../ui/SectionCard"
 
 interface SourceEditorPanelProps {
   fileName: string
+  onFileNameChange: (value: string) => void
   rawText: string
   onRawTextChange: (value: string) => void
   onFileSelect: (file: File) => Promise<void>
@@ -11,6 +12,7 @@ interface SourceEditorPanelProps {
 
 export function SourceEditorPanel({
   fileName,
+  onFileNameChange,
   rawText,
   onRawTextChange,
   onFileSelect,
@@ -50,7 +52,16 @@ export function SourceEditorPanel({
           />
           Upload file
         </label>
-        <span className="text-sm text-muted">{fileName.length > 0 ? fileName : "No file selected"}</span>
+        <label className="flex min-w-[260px] flex-1 flex-col gap-1 text-sm text-muted">
+          Source name
+          <input
+            value={fileName}
+            onChange={(event) => onFileNameChange(event.target.value)}
+            disabled={inputsDisabled}
+            className="border border-border bg-background px-3 py-2 text-foreground"
+            placeholder="Untitled Document"
+          />
+        </label>
       </div>
 
       <label className="block text-sm text-muted">

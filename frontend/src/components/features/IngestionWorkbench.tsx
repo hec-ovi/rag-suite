@@ -45,6 +45,7 @@ interface IngestionWorkbenchProps {
   onProjectNameDraftChange: (value: string) => void
   onProjectCreate: () => Promise<void>
   onProjectSelect: (projectId: string) => void
+  onFileNameChange: (value: string) => void
   onRawTextChange: (value: string) => void
   onFileSelect: (file: File) => Promise<void>
   onToggleNormalization: () => Promise<void>
@@ -112,6 +113,7 @@ export function IngestionWorkbench({
   onProjectNameDraftChange,
   onProjectCreate,
   onProjectSelect,
+  onFileNameChange,
   onRawTextChange,
   onFileSelect,
   onToggleNormalization,
@@ -201,6 +203,7 @@ export function IngestionWorkbench({
       {activeTab === "source" ? (
         <SourceEditorPanel
           fileName={fileName}
+          onFileNameChange={onFileNameChange}
           rawText={rawText}
           onRawTextChange={onRawTextChange}
           onFileSelect={onFileSelect}

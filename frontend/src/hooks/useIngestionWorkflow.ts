@@ -53,6 +53,7 @@ interface WorkflowActions {
   createProject: () => Promise<void>
   setProjectNameDraft: (value: string) => void
   setSelectedProjectId: (projectId: string) => void
+  setFileName: (value: string) => void
   setRawText: (value: string) => void
   setChunks: (chunks: ChunkProposal[]) => void
   setChunkMode: (mode: ChunkModeSelection) => void
@@ -526,6 +527,7 @@ export function useIngestionWorkflow(): { state: WorkflowState; actions: Workflo
     createProject: handleCreateProject,
     setProjectNameDraft,
     setSelectedProjectId,
+    setFileName,
     setRawText: (value) => {
       const hasText = value.trim().length > 0
       if (hasText && fileName.trim().length === 0) {

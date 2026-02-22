@@ -17,6 +17,7 @@ interface AutoIngestionPanelProps {
   onProjectNameDraftChange: (value: string) => void
   onProjectCreate: () => Promise<void>
   onProjectSelect: (projectId: string) => void
+  onFileNameChange: (value: string) => void
   onRawTextChange: (value: string) => void
   onFileSelect: (file: File) => Promise<void>
   onAutomationFlagChange: (key: "normalize_text" | "agentic_chunking" | "contextual_headers", value: boolean) => void
@@ -41,6 +42,7 @@ export function AutoIngestionPanel({
   onProjectNameDraftChange,
   onProjectCreate,
   onProjectSelect,
+  onFileNameChange,
   onRawTextChange,
   onFileSelect,
   onAutomationFlagChange,
@@ -118,7 +120,16 @@ export function AutoIngestionPanel({
               />
               Upload
             </label>
-            <span className="text-sm text-muted">{fileName.length > 0 ? fileName : "Or paste text below"}</span>
+            <label className="flex min-w-[260px] flex-1 flex-col gap-1 text-sm text-muted">
+              Source name
+              <input
+                value={fileName}
+                onChange={(event) => onFileNameChange(event.target.value)}
+                disabled={isBusy || !projectReady}
+                className="border border-border bg-background px-3 py-2 text-foreground"
+                placeholder="Untitled Document"
+              />
+            </label>
           </div>
           <textarea
             value={rawText}
