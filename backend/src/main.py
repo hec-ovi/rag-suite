@@ -54,16 +54,7 @@ SWAGGER_NOWRAP_CSS = """
 """
 
 REDOC_NOWRAP_CSS = """
-.redoc-wrap,
-.redoc-wrap * {
-  white-space: nowrap !important;
-}
-
-.redoc-wrap table td,
-.redoc-wrap table th,
-.redoc-wrap button,
-.redoc-wrap label,
-.redoc-wrap [role="button"] {
+.ragsuite-inline-content-type {
   white-space: nowrap !important;
 }
 """
@@ -71,15 +62,50 @@ REDOC_NOWRAP_CSS = """
 REDOC_CONTENT_TYPE_FIX_SCRIPT = """
 <script>
 (function () {
-  function fixContentTypeRows() {
-    const nodes = document.querySelectorAll(".redoc-wrap div, .redoc-wrap span, .redoc-wrap label, .redoc-wrap strong");
-    for (const node of nodes) {
-      const text = (node.textContent || "").trim();
+  const MIME_RE = /^[A-Za-z0-9!#$&^_.+-]+\\/[A-Za-z0-9!#$&^_.+-]+$/i;
 
-      // Handle single-node cases where line break is injected inside one element.
-      if (/^Content\\s*type\\s+[A-Za-z0-9!#$&^_.+-]+\\/[A-Za-z0-9!#$&^_.+-]+$/i.test(text)) {
-        node.textContent = text.replace(/\\s+/g, " ");
-        node.style.whiteSpace = "nowrap";
+  function findMimeNode(container, labelNode) {
+    const tags = "div, span, code, p, strong, label";
+    const inContainer = Array.from(container.querySelectorAll(tags));
+    for (const candidate of inContainer) {
+      if (candidate === labelNode) {
+        continue;
+      }
+      const candidateText = (candidate.textContent || "").trim();
+      if (MIME_RE.test(candidateText)) {
+        return candidate;
+      }
+    }
+
+    let sibling = container.nextElementSibling;
+    let guard = 0;
+    while (sibling && guard < 2) {
+      guard += 1;
+      const siblingText = (sibling.textContent || "").trim();
+      if (MIME_RE.test(siblingText)) {
+        return sibling;
+      }
+      const nested = Array.from(sibling.querySelectorAll(tags)).find((candidate) => {
+        const candidateText = (candidate.textContent || "").trim();
+        return MIME_RE.test(candidateText);
+      });
+      if (nested) {
+        return nested;
+      }
+      sibling = sibling.nextElementSibling;
+    }
+
+    return null;
+  }
+
+  function fixContentTypeRows() {
+    const nodes = document.querySelectorAll(
+      ".redoc-wrap div, .redoc-wrap span, .redoc-wrap label, .redoc-wrap strong, .redoc-wrap p"
+    );
+    for (const node of nodes) {
+      const text = (node.textContent || "").replace(/\\s+/g, " ").trim();
+      if (/^Content type:\\s+[A-Za-z0-9!#$&^_.+-]+\\/[A-Za-z0-9!#$&^_.+-]+$/i.test(text)) {
+        node.classList.add("ragsuite-inline-content-type");
         continue;
       }
 
@@ -92,30 +118,24 @@ REDOC_CONTENT_TYPE_FIX_SCRIPT = """
         continue;
       }
 
-      const valueNode = Array.from(parent.querySelectorAll("div, span, code, p, strong")).find((candidate) => {
-        if (candidate === node) {
-          return false;
-        }
-        const candidateText = (candidate.textContent || "").trim();
-        return /^[A-Za-z0-9!#$&^_.+-]+\\/[A-Za-z0-9!#$&^_.+-]+$/i.test(candidateText);
-      });
+      if (node.getAttribute("data-ragsuite-content-type-patched") === "1") {
+        continue;
+      }
 
+      const valueNode = findMimeNode(parent, node);
       if (!valueNode) {
         continue;
       }
 
-      parent.style.display = "flex";
-      parent.style.flexDirection = "row";
-      parent.style.flexWrap = "nowrap";
-      parent.style.alignItems = "center";
-      parent.style.columnGap = "8px";
-      parent.style.rowGap = "0";
-      parent.style.whiteSpace = "nowrap";
+      const mimeValue = (valueNode.textContent || "").trim();
+      if (!MIME_RE.test(mimeValue)) {
+        continue;
+      }
 
-      node.style.whiteSpace = "nowrap";
-      node.style.margin = "0";
-      valueNode.style.whiteSpace = "nowrap";
-      valueNode.style.margin = "0";
+      node.textContent = `Content type: ${mimeValue}`;
+      node.classList.add("ragsuite-inline-content-type");
+      node.setAttribute("data-ragsuite-content-type-patched", "1");
+      valueNode.style.display = "none";
     }
   }
 
