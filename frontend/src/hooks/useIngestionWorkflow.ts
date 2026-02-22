@@ -62,7 +62,7 @@ interface WorkflowActions {
   handleFileSelected: (file: File) => Promise<void>
   runNormalize: () => Promise<void>
   runChunking: () => Promise<void>
-  runContextualization: () => Promise<void>
+  runContextualization: (mode?: ContextModeSelection) => Promise<void>
   runAutomaticPreview: () => Promise<void>
   runManualIngest: () => Promise<void>
   runAutomaticIngest: () => Promise<void>
@@ -297,18 +297,23 @@ export function useIngestionWorkflow(): { state: WorkflowState; actions: Workflo
     }
   }
 
-  async function runContextualization(): Promise<void> {
+  async function runContextualization(mode?: ContextModeSelection): Promise<void> {
+    const selectedMode = mode ?? contextMode
+    if (mode !== undefined) {
+      setContextMode(mode)
+    }
+
     if (chunks.length === 0) {
       setErrorMessage("Generate chunks before contextualization.")
       return
     }
 
-    if (contextMode === "") {
+    if (selectedMode === "") {
       setErrorMessage("Select contextualization mode before generating headers.")
       return
     }
 
-    if (contextMode === "disabled") {
+    if (selectedMode === "disabled") {
       const passthroughChunks = buildDirectContextualizedChunks(chunks)
       setContextualizedChunks(passthroughChunks)
       setErrorMessage("")
@@ -316,7 +321,7 @@ export function useIngestionWorkflow(): { state: WorkflowState; actions: Workflo
       return
     }
 
-    const selectedContextMode = contextMode as ContextMode
+    const selectedContextMode = selectedMode as ContextMode
     const source = normalizationEnabled && normalizedText.trim().length > 0 ? normalizedText : rawText
     setErrorMessage("")
     setStatusMessage("Generating contextual headers...")

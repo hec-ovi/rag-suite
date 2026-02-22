@@ -77,21 +77,23 @@ export function NormalizationPanel({
         </div>
       </div>
 
-      <button
-        type="button"
-        onClick={onToggleNormalization}
-        disabled={disabled || !canToggle}
-        className="mt-3 flex w-full items-center justify-between border border-border bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-60"
-      >
-        <span>Normalize</span>
-        <span className="inline-flex items-center gap-2 border border-primary-foreground/40 bg-primary-foreground/10 px-2 py-1 font-mono text-xs">
-          <span className="text-primary-foreground/80">Toggle</span>
-          <span className="inline-block h-2.5 w-2.5 border border-primary-foreground/60 bg-background/10">
-            {normalizationEnabled ? <span className="block h-full w-full bg-primary-foreground" /> : null}
+      <div className="mt-3 flex justify-end">
+        <button
+          type="button"
+          onClick={onToggleNormalization}
+          disabled={disabled || !canToggle}
+          className="inline-flex items-center justify-between gap-3 border border-border bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-60"
+        >
+          <span>Normalize</span>
+          <span className="inline-flex items-center gap-2 border border-primary-foreground/40 bg-primary-foreground/10 px-2 py-1 font-mono text-xs">
+            <span className="text-primary-foreground/80">Toggle</span>
+            <span className="inline-block h-2.5 w-2.5 border border-primary-foreground/60 bg-background/10">
+              {normalizationEnabled ? <span className="block h-full w-full bg-primary-foreground" /> : null}
+            </span>
+            <span>{normalizationEnabled ? "ON" : "OFF"}</span>
           </span>
-          <span>{normalizationEnabled ? "ON" : "OFF"}</span>
-        </span>
-      </button>
+        </button>
+      </div>
     </SectionCard>
   )
 }

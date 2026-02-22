@@ -50,9 +50,8 @@ interface IngestionWorkbenchProps {
   onChunkModeChange: (mode: ChunkModeSelection) => void
   onChunkOptionsChange: (options: { maxChunkChars: number; minChunkChars: number; overlapChars: number }) => void
   onRunChunking: () => Promise<void>
-  onContextModeChange: (mode: ContextModeSelection) => void
   onContextualizedChunksChange: (chunks: ContextualizedChunk[]) => void
-  onRunContextualization: () => Promise<void>
+  onRunContextualization: (mode?: ContextModeSelection) => Promise<void>
   onAutomationFlagChange: (key: "normalize_text" | "agentic_chunking" | "contextual_headers", value: boolean) => void
   onLlmModelChange: (value: string) => void
   onEmbeddingModelChange: (value: string) => void
@@ -126,7 +125,6 @@ export function IngestionWorkbench({
   onChunkModeChange,
   onChunkOptionsChange,
   onRunChunking,
-  onContextModeChange,
   onContextualizedChunksChange,
   onRunContextualization,
   onAutomationFlagChange,
@@ -252,7 +250,6 @@ export function IngestionWorkbench({
           contextMode={contextMode}
           chunks={chunks}
           contextualizedChunks={contextualizedChunks}
-          onContextModeChange={onContextModeChange}
           onContextualizedChunksChange={onContextualizedChunksChange}
           onRunContextualization={onRunContextualization}
           disabled={isBusy}

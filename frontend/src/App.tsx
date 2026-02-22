@@ -46,7 +46,6 @@ function App() {
       onChunkModeChange={actions.setChunkMode}
       onChunkOptionsChange={actions.setChunkOptions}
       onRunChunking={actions.runChunking}
-      onContextModeChange={actions.setContextMode}
       onContextualizedChunksChange={actions.setContextualizedChunks}
       onRunContextualization={actions.runContextualization}
       onAutomationFlagChange={actions.setAutomationFlag}
