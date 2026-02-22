@@ -155,6 +155,8 @@ function ProjectExploreModal({ project, documents, onClose }: ExploreModalProps)
 
   const selectedChunk: ChunkSummaryRecord | null =
     loadedChunks.find((chunk) => chunk.id === effectiveSelectedChunkId) ?? null
+  const hasSelectedChunkHeader =
+    selectedChunk !== null && typeof selectedChunk.context_header === "string" && selectedChunk.context_header.trim().length > 0
 
   const contextModeForDisplay = selectedDocument ? resolveContextModeForDocument(selectedDocument) : "disabled"
 
@@ -360,15 +362,20 @@ function ProjectExploreModal({ project, documents, onClose }: ExploreModalProps)
 
                       {selectedChunkView === "final" ? (
                         <div className="grid gap-3 border border-border bg-background p-3">
-                          <label className="flex flex-col gap-1 text-xs font-semibold uppercase tracking-wide text-muted">
-                            Header
-                            <textarea
-                              readOnly
-                              value={selectedChunk.context_header ?? ""}
-                              className="h-20 border border-border bg-background p-3 font-mono text-xs text-foreground"
-                              placeholder="No contextual header for this chunk."
-                            />
-                          </label>
+                          {hasSelectedChunkHeader ? (
+                            <details className="border border-border bg-surface">
+                              <summary className="cursor-pointer px-3 py-2 text-xs font-semibold uppercase tracking-wide text-muted">
+                                Context Header
+                              </summary>
+                              <div className="border-t border-border p-3">
+                                <textarea
+                                  readOnly
+                                  value={selectedChunk.context_header ?? ""}
+                                  className="h-24 w-full border border-border bg-background p-3 font-mono text-xs text-foreground"
+                                />
+                              </div>
+                            </details>
+                          ) : null}
                           <label className="flex flex-col gap-1 text-xs font-semibold uppercase tracking-wide text-muted">
                             Final Chunk
                             <textarea
