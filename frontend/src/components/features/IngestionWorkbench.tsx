@@ -193,7 +193,13 @@ export function IngestionWorkbench({
       ) : null}
 
       {activeTab === "normalize" ? (
-        <NormalizationPanel normalizedText={normalizedText} diffLines={diffLines} onNormalize={onNormalize} disabled={isBusy} />
+        <NormalizationPanel
+          rawText={rawText}
+          normalizedText={normalizedText}
+          diffLines={diffLines}
+          onNormalize={onNormalize}
+          disabled={isBusy}
+        />
       ) : null}
 
       {activeTab === "chunk" ? (

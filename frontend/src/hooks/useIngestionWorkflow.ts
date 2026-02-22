@@ -154,7 +154,12 @@ export function useIngestionWorkflow(): { state: WorkflowState; actions: Workflo
     ingestMutation.isPending
   const isChunking = chunkMutation.isPending
 
-  const diffLines = useMemo(() => buildLineDiff(rawText, normalizedText), [normalizedText, rawText])
+  const diffLines = useMemo(() => {
+    if (normalizedText.trim().length === 0) {
+      return []
+    }
+    return buildLineDiff(rawText, normalizedText)
+  }, [normalizedText, rawText])
 
   async function refreshProjects(): Promise<void> {
     await queryClient.invalidateQueries({ queryKey: ["projects"] })
