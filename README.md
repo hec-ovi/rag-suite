@@ -15,7 +15,7 @@ Current stage implements the data preparation control plane:
 
 - Deterministic text normalization (no model rewriting)
 - Deterministic chunking and experimental agentic chunk boundary proposals
-- Contextual chunk headers (Anthropic-style contextual retrieval pattern)
+- Context-aware retrieval headers (Anthropic-style contextual retrieval pattern)
 - Embedding and vector indexing in Qdrant
 - SQLite metadata registry for projects, documents, and chunk audit records
 - OpenAPI backend for step-by-step and one-shot ingestion workflows
@@ -110,7 +110,9 @@ The ingestion UI in `frontend/` supports:
 - Raw text review and editing
 - Deterministic normalization with diff visualization
 - Deterministic or agentic chunk proposal review
-- Contextual header generation and manual edit
+- Context-aware retrieval header generation and manual edit
+- Interrupt controls for long-running agentic chunk/context operations
+- Stage-level error reporting for chunking/contextualization failures
 - Manual ingest (approved chunks) or full automatic ingest
 - `Projects` table with document/chunk stats, flag summaries, delete action, and chunk lineage explorer popup
 
@@ -158,5 +160,6 @@ If Ollama logs include messages like `Memory access fault by GPU` or the desktop
 
 - Keep `OLLAMA_NUM_PARALLEL=1`.
 - Keep `OLLAMA_MAX_LOADED_MODELS=1`.
+- Keep `OLLAMA_CONTEXT_LENGTH=8192` (or lower for extra stability).
 - Use `Interrupt` in chunk/context steps to stop in-flight LLM work.
 - If failures persist, test a smaller chat model for chunk/context operations.
