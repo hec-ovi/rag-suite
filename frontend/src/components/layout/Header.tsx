@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from "react"
 
 import type { ThemeMode } from "../../hooks/useThemeMode"
 import {
-  isLoadDataView,
   isRagView,
   type LoadDataViewId,
   type RagViewId,
@@ -65,7 +64,6 @@ export function Header({ currentView, onViewChange, themeMode, onThemeModeChange
   const ragMenuRef = useRef<HTMLDivElement | null>(null)
   const themeMenuRef = useRef<HTMLDivElement | null>(null)
 
-  const activeLoadDataLabel = isLoadDataView(currentView) ? loadDataMenuLabels[currentView] : loadDataMenuLabels.start
   const activeRagLabel = isRagView(currentView) ? ragMenuLabels[currentView] : ragMenuLabels.rag_hybrid
 
   useEffect(() => {
@@ -113,11 +111,11 @@ export function Header({ currentView, onViewChange, themeMode, onThemeModeChange
                 setIsLoadDataMenuOpen((open) => !open)
                 setIsRagMenuOpen(false)
               }}
-              className="border border-border bg-surface px-3 py-2 text-sm font-medium text-foreground hover:bg-background"
+            className="border border-border bg-surface px-3 py-2 text-sm font-medium text-foreground hover:bg-background"
               aria-haspopup="menu"
               aria-expanded={isLoadDataMenuOpen}
             >
-              Load Data: {activeLoadDataLabel}
+              Load Data
             </button>
             {isLoadDataMenuOpen ? (
               <div
