@@ -103,7 +103,7 @@ export function ChunkReviewPanel({
               className={`border p-3 text-left ${modeCardClass(chunkMode === "agentic")}`}
             >
               <p className="mb-1 font-semibold text-foreground">Agentic (experimental)</p>
-              <p className="text-sm text-muted">LLM proposes semantic boundaries when structure is noisy.</p>
+              <p className="text-sm text-muted">Agent proposes semantic boundaries when structure is noisy.</p>
             </button>
           </div>
           {modeMissing ? (
@@ -165,17 +165,18 @@ export function ChunkReviewPanel({
               />
             </label>
           </div>
-          <div className="mt-3 flex justify-end">
-            <button
-              type="button"
-              onClick={onRunChunking}
-              disabled={disabled || modeMissing}
-              className="bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-60"
-            >
-              Generate chunks
-            </button>
-          </div>
         </details>
+
+        <div className="mb-3 flex justify-end">
+          <button
+            type="button"
+            onClick={onRunChunking}
+            disabled={disabled || modeMissing}
+            className="bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-60"
+          >
+            Generate chunks
+          </button>
+        </div>
 
         <section className="max-w-full overflow-hidden border border-border bg-background p-3">
           {isChunking ? (
