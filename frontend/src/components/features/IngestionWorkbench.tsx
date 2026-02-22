@@ -137,6 +137,9 @@ export function IngestionWorkbench({
 }: IngestionWorkbenchProps) {
   const [activeTab, setActiveTab] = useState<IngestionTabId>("project")
   const projectReady = selectedProjectId.length > 0
+  const selectedProjectName =
+    projects.find((project) => project.id === selectedProjectId)?.name ??
+    ""
   const sourceReady = rawText.trim().length > 0
   const chunkModeSelected = chunkMode !== ""
   const contextModeSelected = contextMode !== ""
@@ -175,22 +178,30 @@ export function IngestionWorkbench({
   return (
     <section className="space-y-4">
       <section className="border border-border bg-surface p-3">
-        <div className="mb-2 flex flex-wrap gap-2">
-          {tabOrder.map((tabId) => (
-            <button
-              key={tabId}
-              type="button"
-              onClick={() => setActiveTab(tabId)}
-              disabled={!tabUnlocked[tabId] && activeTab !== tabId}
-              className={`border px-3 py-2 text-sm font-semibold ${
-                activeTab === tabId
-                  ? "border-primary bg-primary text-primary-foreground"
-                  : "border-border bg-background text-foreground hover:bg-surface"
-              } disabled:opacity-40`}
-            >
-              {tabLabels[tabId]}
-            </button>
-          ))}
+        <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+          <div className="flex flex-wrap gap-2">
+            {tabOrder.map((tabId) => (
+              <button
+                key={tabId}
+                type="button"
+                onClick={() => setActiveTab(tabId)}
+                disabled={!tabUnlocked[tabId] && activeTab !== tabId}
+                className={`border px-3 py-2 text-sm font-semibold ${
+                  activeTab === tabId
+                    ? "border-primary bg-primary text-primary-foreground"
+                    : "border-border bg-background text-foreground hover:bg-surface"
+                } disabled:opacity-40`}
+              >
+                {tabLabels[tabId]}
+              </button>
+            ))}
+          </div>
+
+          {activeTab !== "project" ? (
+            <p className="border border-border bg-background px-3 py-2 font-mono text-xs text-foreground">
+              Project: {projectReady ? selectedProjectName : "Not selected"}
+            </p>
+          ) : null}
         </div>
       </section>
 
@@ -213,6 +224,8 @@ export function IngestionWorkbench({
           rawText={rawText}
           onRawTextChange={onRawTextChange}
           onFileSelect={onFileSelect}
+          statusMessage={statusMessage}
+          errorMessage={errorMessage}
           disabled={isBusy}
           projectReady={projectReady}
         />

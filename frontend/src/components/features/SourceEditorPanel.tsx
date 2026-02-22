@@ -6,6 +6,8 @@ interface SourceEditorPanelProps {
   rawText: string
   onRawTextChange: (value: string) => void
   onFileSelect: (file: File) => Promise<void>
+  statusMessage: string
+  errorMessage: string
   disabled: boolean
   projectReady: boolean
 }
@@ -16,6 +18,8 @@ export function SourceEditorPanel({
   rawText,
   onRawTextChange,
   onFileSelect,
+  statusMessage,
+  errorMessage,
   disabled,
   projectReady,
 }: SourceEditorPanelProps) {
@@ -59,6 +63,7 @@ export function SourceEditorPanel({
                 if (file !== undefined) {
                   void onFileSelect(file)
                 }
+                event.currentTarget.value = ""
               }}
               disabled={inputsDisabled}
               className="hidden"
@@ -89,6 +94,11 @@ export function SourceEditorPanel({
           placeholder="Paste extracted text here if you prefer manual input."
         />
       </label>
+
+      <div className="mt-3 border border-border bg-background px-3 py-2">
+        <p className="font-mono text-xs text-muted">{statusMessage}</p>
+        {errorMessage.length > 0 ? <p className="mt-1 font-mono text-xs text-danger">Error: {errorMessage}</p> : null}
+      </div>
     </SectionCard>
   )
 }

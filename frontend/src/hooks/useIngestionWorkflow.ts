@@ -273,6 +273,9 @@ export function useIngestionWorkflow(): { state: WorkflowState; actions: Workflo
 
     try {
       const text = await extractTextFromFile(file)
+      if (text.trim().length === 0) {
+        throw new Error("No extractable text detected in this file.")
+      }
       setFileName(file.name)
       setRawText(text)
       setNormalizedText("")
@@ -281,7 +284,9 @@ export function useIngestionWorkflow(): { state: WorkflowState; actions: Workflo
       setContextualizedChunks([])
       setStatusMessage("Text extracted. Run normalization next.")
     } catch (error) {
-      setErrorMessage(extractApiErrorMessage(error))
+      const message = extractApiErrorMessage(error)
+      setErrorMessage(message)
+      setStatusMessage("Source extraction failed.")
     }
   }
 

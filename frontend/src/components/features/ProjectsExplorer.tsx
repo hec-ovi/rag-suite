@@ -11,11 +11,6 @@ interface ProjectsExplorerProps {
   onProjectsRefresh: () => Promise<void>
 }
 
-interface FlagPillProps {
-  label: string
-  enabled: boolean
-}
-
 interface ModeOption {
   label: string
   selected: boolean
@@ -24,19 +19,6 @@ interface ModeOption {
 interface ModeGroupProps {
   label: string
   options: ModeOption[]
-}
-
-function FlagPill({ label, enabled }: FlagPillProps) {
-  return (
-    <span
-      className={`flex w-full items-center justify-between border px-2 py-1 text-[11px] font-semibold uppercase tracking-wide ${
-        enabled ? "border-primary/40 bg-primary/15 text-foreground" : "border-border bg-surface text-muted"
-      }`}
-    >
-      <span>{label}</span>
-      <span>{enabled ? "On" : "Off"}</span>
-    </span>
-  )
 }
 
 function ModeGroup({ label, options }: ModeGroupProps) {
@@ -82,6 +64,45 @@ function formatShortTimestamp(value: string): string {
 
 function totalChunks(documents: DocumentSummaryRecord[]): number {
   return documents.reduce((accumulator, document) => accumulator + document.chunk_count, 0)
+}
+
+function summarizeNormalization(documents: DocumentSummaryRecord[]): string {
+  if (documents.length === 0) {
+    return "No documents"
+  }
+  if (documents.every((document) => document.used_normalization)) {
+    return "Normalized"
+  }
+  if (documents.every((document) => !document.used_normalization)) {
+    return "Not normalized"
+  }
+  return "Mixed normalization"
+}
+
+function summarizeChunking(documents: DocumentSummaryRecord[]): string {
+  if (documents.length === 0) {
+    return "No chunking data"
+  }
+  if (documents.every((document) => document.used_agentic_chunking)) {
+    return "Agentic chunking (LLM boundaries)"
+  }
+  if (documents.every((document) => !document.used_agentic_chunking)) {
+    return "Deterministic chunking (rule-based)"
+  }
+  return "Mixed chunking modes"
+}
+
+function summarizeContextualHeaders(documents: DocumentSummaryRecord[]): string {
+  if (documents.length === 0) {
+    return "No context data"
+  }
+  if (documents.every((document) => document.has_contextual_headers)) {
+    return "Context headers enabled"
+  }
+  if (documents.every((document) => !document.has_contextual_headers)) {
+    return "Context headers disabled"
+  }
+  return "Mixed context headers"
 }
 
 interface ExploreModalProps {
@@ -458,13 +479,13 @@ export function ProjectsExplorer({ projects, onProjectsRefresh }: ProjectsExplor
         <div className="overflow-x-auto border border-border bg-background">
           <table className="min-w-[820px] w-full border-collapse text-sm">
             <thead>
-              <tr className="border-b border-border bg-surface text-left">
-                <th className="px-3 py-2 font-semibold text-foreground">Project</th>
-                <th className="px-3 py-2 font-semibold text-foreground">Documents</th>
-                <th className="px-3 py-2 font-semibold text-foreground">Total Chunks</th>
-                <th className="px-3 py-2 font-semibold text-foreground">Flags Summary</th>
-                <th className="px-3 py-2 font-semibold text-foreground">Created</th>
-                <th className="px-3 py-2 font-semibold text-foreground">Actions</th>
+              <tr className="border-b border-border text-center">
+                <th className="bg-surface/70 px-3 py-2 align-middle font-semibold text-foreground">Project</th>
+                <th className="bg-background px-3 py-2 align-middle font-semibold text-foreground">Documents</th>
+                <th className="bg-surface/70 px-3 py-2 align-middle font-semibold text-foreground">Total Chunks</th>
+                <th className="bg-background px-3 py-2 align-middle font-semibold text-foreground">Configuration</th>
+                <th className="bg-surface/70 px-3 py-2 align-middle font-semibold text-foreground">Created</th>
+                <th className="bg-background px-3 py-2 align-middle font-semibold text-foreground">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -482,38 +503,45 @@ export function ProjectsExplorer({ projects, onProjectsRefresh }: ProjectsExplor
                 const documents = documentsByProject.get(project.id) ?? []
                 const documentCount = documents.length
                 const chunkCount = totalChunks(documents)
-                const anyNormalized = documents.some((document) => document.used_normalization)
-                const anyAgentic = documents.some((document) => document.used_agentic_chunking)
-                const anyContext = documents.some((document) => document.has_contextual_headers)
+                const configurationKeywords = [
+                  summarizeNormalization(documents),
+                  summarizeChunking(documents),
+                  summarizeContextualHeaders(documents),
+                ]
 
                 return (
-                  <tr key={project.id} className="border-b border-border align-top">
-                  <td className="px-3 py-3">
+                  <tr key={project.id} className="border-b border-border align-middle text-center">
+                    <td className="bg-surface/70 px-3 py-3 align-middle">
                       <button
                         type="button"
                         onClick={() => setExploreProjectId(project.id)}
-                        className="font-semibold text-foreground underline decoration-border/80 underline-offset-4 hover:text-primary"
+                        className="inline-flex items-center justify-center font-semibold text-foreground underline decoration-border/80 underline-offset-4 hover:text-primary"
                       >
                         {project.name}
                       </button>
                     </td>
-                    <td className="px-3 py-3 font-mono text-xs text-foreground">
+                    <td className="bg-background px-3 py-3 align-middle font-mono text-xs text-foreground">
                       {documentQuery?.isFetching ? "..." : documentCount}
                     </td>
-                    <td className="px-3 py-3 font-mono text-xs text-foreground">
+                    <td className="bg-surface/70 px-3 py-3 align-middle font-mono text-xs text-foreground">
                       {documentQuery?.isFetching ? "..." : chunkCount}
                     </td>
-                    <td className="px-3 py-3">
-                      <div className="grid gap-1">
-                        <FlagPill label="Norm" enabled={anyNormalized} />
-                        <FlagPill label="Agentic" enabled={anyAgentic} />
-                        <FlagPill label="Ctx Retrieval" enabled={anyContext} />
+                    <td className="bg-background px-3 py-3 align-middle">
+                      <div className="grid justify-items-center gap-1">
+                        {configurationKeywords.map((keyword) => (
+                          <span
+                            key={`${project.id}-${keyword}`}
+                            className="border border-primary/35 bg-primary/10 px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-foreground"
+                          >
+                            {keyword}
+                          </span>
+                        ))}
                       </div>
                     </td>
-                    <td className="px-3 py-3 font-mono text-xs text-muted">
+                    <td className="bg-surface/70 px-3 py-3 align-middle font-mono text-xs text-muted">
                       {formatShortTimestamp(project.created_at)}
                     </td>
-                    <td className="px-3 py-3">
+                    <td className="bg-background px-3 py-3 align-middle">
                       <button
                         type="button"
                         onClick={() => setDeleteProjectId(project.id)}
