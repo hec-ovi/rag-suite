@@ -1,13 +1,8 @@
 import { Footer } from "./components/layout/Footer"
 import { Header } from "./components/layout/Header"
 import { MainContent } from "./components/layout/MainContent"
-import { ChunkReviewPanel } from "./components/features/ChunkReviewPanel"
-import { ContextReviewPanel } from "./components/features/ContextReviewPanel"
-import { IngestionActionsPanel } from "./components/features/IngestionActionsPanel"
-import { NormalizationPanel } from "./components/features/NormalizationPanel"
-import { ProjectPanel } from "./components/features/ProjectPanel"
+import { IngestionWorkbench } from "./components/features/IngestionWorkbench"
 import { ProjectsExplorer } from "./components/features/ProjectsExplorer"
-import { SourceEditorPanel } from "./components/features/SourceEditorPanel"
 import { StartGuidePanel } from "./components/features/StartGuidePanel"
 import { useIngestionWorkflow } from "./hooks/useIngestionWorkflow"
 import { useThemeMode } from "./hooks/useThemeMode"
@@ -21,66 +16,44 @@ function App() {
   const { state, actions } = useIngestionWorkflow()
 
   const ingestionView = (
-    <>
-      <ProjectPanel
-        projects={state.projects}
-        selectedProjectId={state.selectedProjectId}
-        projectNameDraft={state.projectNameDraft}
-        onProjectNameDraftChange={actions.setProjectNameDraft}
-        onProjectCreate={actions.createProject}
-        onProjectSelect={actions.setSelectedProjectId}
-        disabled={state.isBusy}
-      />
-
-      <SourceEditorPanel
-        fileName={state.fileName}
-        rawText={state.rawText}
-        onRawTextChange={actions.setRawText}
-        onFileSelect={actions.handleFileSelected}
-        disabled={state.isBusy}
-      />
-
-      <NormalizationPanel
-        normalizedText={state.normalizedText}
-        diffLines={state.diffLines}
-        onNormalize={actions.runNormalize}
-        disabled={state.isBusy}
-      />
-
-      <ChunkReviewPanel
-        chunkMode={state.chunkMode}
-        chunkOptions={state.chunkOptions}
-        chunks={state.chunks}
-        onChunkModeChange={actions.setChunkMode}
-        onChunkOptionsChange={actions.setChunkOptions}
-        onRunChunking={actions.runChunking}
-        disabled={state.isBusy}
-      />
-
-      <ContextReviewPanel
-        contextMode={state.contextMode}
-        contextualizedChunks={state.contextualizedChunks}
-        onContextModeChange={actions.setContextMode}
-        onContextualizedChunksChange={actions.setContextualizedChunks}
-        onRunContextualization={actions.runContextualization}
-        disabled={state.isBusy}
-      />
-
-      <IngestionActionsPanel
-        automation={state.automation}
-        llmModel={state.llmModel}
-        embeddingModel={state.embeddingModel}
-        statusMessage={state.statusMessage}
-        errorMessage={state.errorMessage}
-        onAutomationFlagChange={actions.setAutomationFlag}
-        onLlmModelChange={actions.setLlmModel}
-        onEmbeddingModelChange={actions.setEmbeddingModel}
-        onAutomaticPreview={actions.runAutomaticPreview}
-        onManualIngest={actions.runManualIngest}
-        onAutomaticIngest={actions.runAutomaticIngest}
-        disabled={state.isBusy}
-      />
-    </>
+    <IngestionWorkbench
+      projects={state.projects}
+      selectedProjectId={state.selectedProjectId}
+      projectNameDraft={state.projectNameDraft}
+      fileName={state.fileName}
+      rawText={state.rawText}
+      normalizedText={state.normalizedText}
+      chunks={state.chunks}
+      contextualizedChunks={state.contextualizedChunks}
+      chunkMode={state.chunkMode}
+      contextMode={state.contextMode}
+      chunkOptions={state.chunkOptions}
+      automation={state.automation}
+      llmModel={state.llmModel}
+      embeddingModel={state.embeddingModel}
+      statusMessage={state.statusMessage}
+      errorMessage={state.errorMessage}
+      diffLines={state.diffLines}
+      isBusy={state.isBusy}
+      onProjectNameDraftChange={actions.setProjectNameDraft}
+      onProjectCreate={actions.createProject}
+      onProjectSelect={actions.setSelectedProjectId}
+      onRawTextChange={actions.setRawText}
+      onFileSelect={actions.handleFileSelected}
+      onNormalize={actions.runNormalize}
+      onChunkModeChange={actions.setChunkMode}
+      onChunkOptionsChange={actions.setChunkOptions}
+      onRunChunking={actions.runChunking}
+      onContextModeChange={actions.setContextMode}
+      onContextualizedChunksChange={actions.setContextualizedChunks}
+      onRunContextualization={actions.runContextualization}
+      onAutomationFlagChange={actions.setAutomationFlag}
+      onLlmModelChange={actions.setLlmModel}
+      onEmbeddingModelChange={actions.setEmbeddingModel}
+      onAutomaticPreview={actions.runAutomaticPreview}
+      onManualIngest={actions.runManualIngest}
+      onAutomaticIngest={actions.runAutomaticIngest}
+    />
   )
 
   const startView = <StartGuidePanel />

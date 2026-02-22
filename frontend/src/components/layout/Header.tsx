@@ -17,9 +17,9 @@ const modeCycle: Record<ThemeMode, ThemeMode> = {
 }
 
 const menuLabels: Record<ViewId, string> = {
-  start: "Start",
-  ingestion: "Ingestion",
-  projects: "Projects",
+  start: "1. Start",
+  ingestion: "2. Ingestion",
+  projects: "3. Projects",
 }
 
 export function Header({ currentView, onViewChange, themeMode, onThemeModeChange }: HeaderProps) {

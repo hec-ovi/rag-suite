@@ -54,6 +54,11 @@ SWAGGER_NOWRAP_CSS = """
 """
 
 REDOC_NOWRAP_CSS = """
+.redoc-wrap,
+.redoc-wrap * {
+  white-space: nowrap !important;
+}
+
 .redoc-wrap table td,
 .redoc-wrap table th,
 .redoc-wrap button,
@@ -61,6 +66,66 @@ REDOC_NOWRAP_CSS = """
 .redoc-wrap [role="button"] {
   white-space: nowrap !important;
 }
+"""
+
+REDOC_CONTENT_TYPE_FIX_SCRIPT = """
+<script>
+(function () {
+  function fixContentTypeRows() {
+    const nodes = document.querySelectorAll(".redoc-wrap div, .redoc-wrap span, .redoc-wrap label, .redoc-wrap strong");
+    for (const node of nodes) {
+      const text = (node.textContent || "").trim();
+
+      // Handle single-node cases where line break is injected inside one element.
+      if (/^Content\\s*type\\s+[A-Za-z0-9!#$&^_.+-]+\\/[A-Za-z0-9!#$&^_.+-]+$/i.test(text)) {
+        node.textContent = text.replace(/\\s+/g, " ");
+        node.style.whiteSpace = "nowrap";
+        continue;
+      }
+
+      if (text !== "Content type") {
+        continue;
+      }
+
+      const parent = node.parentElement;
+      if (!parent) {
+        continue;
+      }
+
+      const valueNode = Array.from(parent.querySelectorAll("div, span, code, p, strong")).find((candidate) => {
+        if (candidate === node) {
+          return false;
+        }
+        const candidateText = (candidate.textContent || "").trim();
+        return /^[A-Za-z0-9!#$&^_.+-]+\\/[A-Za-z0-9!#$&^_.+-]+$/i.test(candidateText);
+      });
+
+      if (!valueNode) {
+        continue;
+      }
+
+      parent.style.display = "flex";
+      parent.style.flexDirection = "row";
+      parent.style.flexWrap = "nowrap";
+      parent.style.alignItems = "center";
+      parent.style.columnGap = "8px";
+      parent.style.rowGap = "0";
+      parent.style.whiteSpace = "nowrap";
+
+      node.style.whiteSpace = "nowrap";
+      node.style.margin = "0";
+      valueNode.style.whiteSpace = "nowrap";
+      valueNode.style.margin = "0";
+    }
+  }
+
+  const observer = new MutationObserver(fixContentTypeRows);
+  window.addEventListener("load", function () {
+    fixContentTypeRows();
+    observer.observe(document.body, { childList: true, subtree: true });
+  });
+})();
+</script>
 """
 
 
@@ -89,7 +154,7 @@ async def custom_redoc_ui() -> HTMLResponse:
     )
     html = redoc.body.decode("utf-8").replace(
         "</head>",
-        f"<style>{REDOC_NOWRAP_CSS}</style></head>",
+        f"<style>{REDOC_NOWRAP_CSS}</style>{REDOC_CONTENT_TYPE_FIX_SCRIPT}</head>",
     )
     return HTMLResponse(content=html, status_code=redoc.status_code)
 

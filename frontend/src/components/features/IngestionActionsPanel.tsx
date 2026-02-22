@@ -14,6 +14,9 @@ interface IngestionActionsPanelProps {
   onManualIngest: () => Promise<void>
   onAutomaticIngest: () => Promise<void>
   disabled: boolean
+  mode?: "all" | "manual" | "automatic"
+  title?: string
+  subtitle?: string
 }
 
 export function IngestionActionsPanel({
@@ -29,37 +32,46 @@ export function IngestionActionsPanel({
   onManualIngest,
   onAutomaticIngest,
   disabled,
+  mode = "all",
+  title = "Execution Controls",
+  subtitle = "Run preview or persist chunks into Qdrant using manual or full-auto mode.",
 }: IngestionActionsPanelProps) {
+  const showAutomationControls = mode !== "manual"
+  const showManualAction = mode !== "automatic"
+  const showAutomaticActions = mode !== "manual"
+
   return (
-    <SectionCard title="Execution Controls" subtitle="Run preview or persist chunks into Qdrant using manual or full-auto mode.">
-      <div className="mb-4 grid gap-3 md:grid-cols-3">
-        <label className="flex items-center justify-between gap-3 border border-border bg-background px-3 py-2 text-sm text-foreground">
-          Normalize
-          <input
-            type="checkbox"
-            checked={automation.normalize_text}
-            onChange={(event) => onAutomationFlagChange("normalize_text", event.target.checked)}
-          />
-        </label>
+    <SectionCard title={title} subtitle={subtitle}>
+      {showAutomationControls ? (
+        <div className="mb-4 grid gap-3 md:grid-cols-3">
+          <label className="flex items-center justify-between gap-3 border border-border bg-background px-3 py-2 text-sm text-foreground">
+            Normalize
+            <input
+              type="checkbox"
+              checked={automation.normalize_text}
+              onChange={(event) => onAutomationFlagChange("normalize_text", event.target.checked)}
+            />
+          </label>
 
-        <label className="flex items-center justify-between gap-3 border border-border bg-background px-3 py-2 text-sm text-foreground">
-          Agentic chunking
-          <input
-            type="checkbox"
-            checked={automation.agentic_chunking}
-            onChange={(event) => onAutomationFlagChange("agentic_chunking", event.target.checked)}
-          />
-        </label>
+          <label className="flex items-center justify-between gap-3 border border-border bg-background px-3 py-2 text-sm text-foreground">
+            Agentic chunking
+            <input
+              type="checkbox"
+              checked={automation.agentic_chunking}
+              onChange={(event) => onAutomationFlagChange("agentic_chunking", event.target.checked)}
+            />
+          </label>
 
-        <label className="flex items-center justify-between gap-3 border border-border bg-background px-3 py-2 text-sm text-foreground">
-          Context headers
-          <input
-            type="checkbox"
-            checked={automation.contextual_headers}
-            onChange={(event) => onAutomationFlagChange("contextual_headers", event.target.checked)}
-          />
-        </label>
-      </div>
+          <label className="flex items-center justify-between gap-3 border border-border bg-background px-3 py-2 text-sm text-foreground">
+            Context headers
+            <input
+              type="checkbox"
+              checked={automation.contextual_headers}
+              onChange={(event) => onAutomationFlagChange("contextual_headers", event.target.checked)}
+            />
+          </label>
+        </div>
+      ) : null}
 
       <div className="mb-4 grid gap-3 md:grid-cols-2">
         <label className="flex flex-col gap-1 text-sm text-muted">
@@ -84,30 +96,38 @@ export function IngestionActionsPanel({
       </div>
 
       <div className="mb-3 flex flex-wrap gap-2">
-        <button
-          type="button"
-          onClick={onAutomaticPreview}
-          disabled={disabled}
-          className="border border-border bg-surface px-3 py-2 text-sm font-semibold text-foreground disabled:opacity-60"
-        >
-          Preview automatic pipeline
-        </button>
-        <button
-          type="button"
-          onClick={onManualIngest}
-          disabled={disabled}
-          className="bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-60"
-        >
-          Ingest manual reviewed chunks
-        </button>
-        <button
-          type="button"
-          onClick={onAutomaticIngest}
-          disabled={disabled}
-          className="border border-border bg-primary/10 px-3 py-2 text-sm font-semibold text-foreground disabled:opacity-60"
-        >
-          Ingest full automatic mode
-        </button>
+        {showAutomaticActions ? (
+          <button
+            type="button"
+            onClick={onAutomaticPreview}
+            disabled={disabled}
+            className="border border-border bg-surface px-3 py-2 text-sm font-semibold text-foreground disabled:opacity-60"
+          >
+            Preview automatic pipeline
+          </button>
+        ) : null}
+
+        {showManualAction ? (
+          <button
+            type="button"
+            onClick={onManualIngest}
+            disabled={disabled}
+            className="bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-60"
+          >
+            Ingest manual reviewed chunks
+          </button>
+        ) : null}
+
+        {showAutomaticActions ? (
+          <button
+            type="button"
+            onClick={onAutomaticIngest}
+            disabled={disabled}
+            className="border border-border bg-primary/10 px-3 py-2 text-sm font-semibold text-foreground disabled:opacity-60"
+          >
+            Ingest full automatic mode
+          </button>
+        ) : null}
       </div>
 
       <div className="border border-border bg-background px-3 py-2">
