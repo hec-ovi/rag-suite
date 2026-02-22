@@ -47,10 +47,8 @@ interface IngestionWorkbenchProps {
   onRawTextChange: (value: string) => void
   onFileSelect: (file: File) => Promise<void>
   onToggleNormalization: () => Promise<void>
-  onChunkModeChange: (mode: ChunkModeSelection) => void
   onChunkOptionsChange: (options: { maxChunkChars: number; minChunkChars: number; overlapChars: number }) => void
   onRunChunking: (mode?: ChunkModeSelection) => Promise<void>
-  onContextModeChange: (mode: ContextModeSelection) => void
   onContextualizedChunksChange: (chunks: ContextualizedChunk[]) => void
   onRunContextualization: (mode?: ContextModeSelection) => Promise<void>
   onAutomationFlagChange: (key: "normalize_text" | "agentic_chunking" | "contextual_headers", value: boolean) => void
@@ -114,10 +112,8 @@ export function IngestionWorkbench({
   onRawTextChange,
   onFileSelect,
   onToggleNormalization,
-  onChunkModeChange,
   onChunkOptionsChange,
   onRunChunking,
-  onContextModeChange,
   onContextualizedChunksChange,
   onRunContextualization,
   onAutomationFlagChange,
@@ -224,7 +220,6 @@ export function IngestionWorkbench({
           chunkMode={chunkMode}
           chunkOptions={chunkOptions}
           chunks={chunks}
-          onChunkModeChange={onChunkModeChange}
           onChunkOptionsChange={onChunkOptionsChange}
           onRunChunking={onRunChunking}
           disabled={isBusy}
@@ -237,7 +232,6 @@ export function IngestionWorkbench({
           contextMode={contextMode}
           chunks={chunks}
           contextualizedChunks={contextualizedChunks}
-          onContextModeChange={onContextModeChange}
           onContextualizedChunksChange={onContextualizedChunksChange}
           onRunContextualization={onRunContextualization}
           disabled={isBusy}
