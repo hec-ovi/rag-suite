@@ -14,7 +14,14 @@ import {
   proposeChunks,
 } from "../services/pipeline.service"
 import { useIngestionStore } from "../stores/ingestion.store"
-import type { ChunkProposal, ContextualizedChunk } from "../types/pipeline"
+import type {
+  ChunkMode,
+  ChunkModeSelection,
+  ContextMode,
+  ContextModeSelection,
+  ChunkProposal,
+  ContextualizedChunk,
+} from "../types/pipeline"
 
 interface WorkflowState {
   projects: ReturnType<typeof useIngestionStore.getState>["projects"]
@@ -44,8 +51,8 @@ interface WorkflowActions {
   setProjectNameDraft: (value: string) => void
   setSelectedProjectId: (projectId: string) => void
   setRawText: (value: string) => void
-  setChunkMode: (mode: "deterministic" | "agentic") => void
-  setContextMode: (mode: "llm" | "template") => void
+  setChunkMode: (mode: ChunkModeSelection) => void
+  setContextMode: (mode: ContextModeSelection) => void
   setChunkOptions: (options: { maxChunkChars: number; minChunkChars: number; overlapChars: number }) => void
   setAutomationFlag: (key: "normalize_text" | "agentic_chunking" | "contextual_headers", value: boolean) => void
   setLlmModel: (value: string) => void
@@ -231,15 +238,21 @@ export function useIngestionWorkflow(): { state: WorkflowState; actions: Workflo
       return
     }
 
+    if (chunkMode === "") {
+      setErrorMessage("Select deterministic or agentic mode before chunking.")
+      return
+    }
+
+    const selectedChunkMode = chunkMode as ChunkMode
     setChunks([])
     setContextualizedChunks([])
     setErrorMessage("")
-    setStatusMessage(`Generating ${chunkMode} chunks...`)
+    setStatusMessage(`Generating ${selectedChunkMode} chunks...`)
 
     try {
       const response = await chunkMutation.mutateAsync({
         text: source,
-        mode: chunkMode,
+        mode: selectedChunkMode,
         max_chunk_chars: chunkOptions.maxChunkChars,
         min_chunk_chars: chunkOptions.minChunkChars,
         overlap_chars: chunkOptions.overlapChars,
@@ -259,6 +272,12 @@ export function useIngestionWorkflow(): { state: WorkflowState; actions: Workflo
       return
     }
 
+    if (contextMode === "") {
+      setErrorMessage("Select contextualization mode before generating headers.")
+      return
+    }
+
+    const selectedContextMode = contextMode as ContextMode
     const source = normalizedText.trim().length > 0 ? normalizedText : rawText
     setErrorMessage("")
     setStatusMessage("Generating contextual headers...")
@@ -268,7 +287,7 @@ export function useIngestionWorkflow(): { state: WorkflowState; actions: Workflo
         document_name: fileName || "Untitled Document",
         full_document_text: source,
         chunks,
-        mode: contextMode,
+        mode: selectedContextMode,
         llm_model: llmModel.trim() || undefined,
       })
       setContextualizedChunks(response.chunks)
@@ -284,6 +303,9 @@ export function useIngestionWorkflow(): { state: WorkflowState; actions: Workflo
       return
     }
 
+    const chunkModeForAutomatic: ChunkMode = chunkMode === "" ? "deterministic" : chunkMode
+    const contextModeForAutomatic: ContextMode = contextMode === "" ? "llm" : contextMode
+
     setErrorMessage("")
     setStatusMessage("Running automatic preview pipeline...")
 
@@ -293,12 +315,12 @@ export function useIngestionWorkflow(): { state: WorkflowState; actions: Workflo
         raw_text: rawText,
         automation,
         chunk_options: {
-          mode: chunkMode,
+          mode: chunkModeForAutomatic,
           max_chunk_chars: chunkOptions.maxChunkChars,
           min_chunk_chars: chunkOptions.minChunkChars,
           overlap_chars: chunkOptions.overlapChars,
         },
-        contextualization_mode: contextMode,
+        contextualization_mode: contextModeForAutomatic,
         llm_model: llmModel.trim() || undefined,
       })
 
@@ -322,6 +344,9 @@ export function useIngestionWorkflow(): { state: WorkflowState; actions: Workflo
       return
     }
 
+    const chunkModeForPersist: ChunkMode = chunkMode === "" ? "deterministic" : chunkMode
+    const contextModeForPersist: ContextMode = contextMode === "" ? "llm" : contextMode
+
     setErrorMessage("")
     setStatusMessage("Persisting approved manual chunks...")
 
@@ -335,12 +360,12 @@ export function useIngestionWorkflow(): { state: WorkflowState; actions: Workflo
           workflow_mode: "manual",
           automation,
           chunk_options: {
-            mode: chunkMode,
+            mode: chunkModeForPersist,
             max_chunk_chars: chunkOptions.maxChunkChars,
             min_chunk_chars: chunkOptions.minChunkChars,
             overlap_chars: chunkOptions.overlapChars,
           },
-          contextualization_mode: contextMode,
+          contextualization_mode: contextModeForPersist,
           llm_model: llmModel.trim() || undefined,
           embedding_model: embeddingModel.trim() || undefined,
           normalized_text: normalizedText.length > 0 ? normalizedText : rawText,
@@ -374,6 +399,9 @@ export function useIngestionWorkflow(): { state: WorkflowState; actions: Workflo
       return
     }
 
+    const chunkModeForAutomatic: ChunkMode = chunkMode === "" ? "deterministic" : chunkMode
+    const contextModeForAutomatic: ContextMode = contextMode === "" ? "llm" : contextMode
+
     setErrorMessage("")
     setStatusMessage("Running automatic ingest and indexing...")
 
@@ -387,12 +415,12 @@ export function useIngestionWorkflow(): { state: WorkflowState; actions: Workflo
           workflow_mode: "automatic",
           automation,
           chunk_options: {
-            mode: chunkMode,
+            mode: chunkModeForAutomatic,
             max_chunk_chars: chunkOptions.maxChunkChars,
             min_chunk_chars: chunkOptions.minChunkChars,
             overlap_chars: chunkOptions.overlapChars,
           },
-          contextualization_mode: contextMode,
+          contextualization_mode: contextModeForAutomatic,
           llm_model: llmModel.trim() || undefined,
           embedding_model: embeddingModel.trim() || undefined,
         },

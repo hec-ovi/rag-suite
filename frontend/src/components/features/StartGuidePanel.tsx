@@ -1,63 +1,40 @@
 import { SectionCard } from "../ui/SectionCard"
-
-const steps = [
-  {
-    title: "1. Create Project Namespace",
-    description: "Create a project first. This becomes the persistent namespace for documents and vectors in Qdrant.",
-    checklist: ["Set a clear project name", "Confirm collection mapping", "Keep one project per domain/corpus"],
-  },
-  {
-    title: "2. Run Ingestion Pipeline",
-    description: "Upload or paste raw text, normalize, chunk, contextualize, then embed and index.",
-    checklist: ["Review normalization diff", "Validate chunk boundaries", "Approve contextual headers"],
-  },
-  {
-    title: "3. Audit Stored Results",
-    description: "Open Projects to inspect documents, chunk lineage, and processing flags before retrieval stage starts.",
-    checklist: ["Check document/chunk counts", "Inspect raw vs normalized vs contextualized chunk text", "Remove stale test projects"],
-  },
-]
+import { useNavigationStore } from "../../stores/navigation.store"
 
 export function StartGuidePanel() {
+  const setView = useNavigationStore((state) => state.setView)
+
   return (
     <section className="grid gap-4">
-      <SectionCard
-        title="Start Here"
-        subtitle="Production-first ingestion flow. Review every stage before indexing to maximize retrieval quality."
-      >
-        <div className="grid gap-3 md:grid-cols-3">
-          {steps.map((step) => (
-            <article key={step.title} className="border border-border bg-background p-3">
-              <h3 className="mb-2 font-display text-lg font-semibold text-foreground">{step.title}</h3>
-              <p className="mb-3 text-sm text-muted">{step.description}</p>
-              <ul className="space-y-1 font-mono text-xs text-foreground">
-                {step.checklist.map((item) => (
-                  <li key={item}>- {item}</li>
-                ))}
-              </ul>
-            </article>
-          ))}
-        </div>
-      </SectionCard>
-
-      <SectionCard
-        title="Execution Modes"
-        subtitle="Choose strict manual review or full automatic ingestion based on compliance and speed requirements."
-      >
+      <SectionCard title="Start Here" subtitle="Choose your ingestion path and jump directly into execution mode.">
         <div className="grid gap-3 md:grid-cols-2">
           <article className="border border-border bg-background p-3">
-            <p className="mb-2 font-mono text-xs uppercase tracking-wide text-muted">Manual Reviewed</p>
-            <p className="text-sm text-foreground">
-              You approve normalization, chunk boundaries, and contextual headers before persistence. Use for legal,
-              medical, or high-audit workloads.
+            <p className="mb-2 font-mono text-xs uppercase tracking-wide text-muted">Manual Ingestion</p>
+            <p className="mb-3 text-sm text-foreground">
+              Step-by-step review: project selection, source input, normalization, chunking, contextual retrieval, then
+              manual ingest.
             </p>
+            <button
+              type="button"
+              onClick={() => setView("ingestion")}
+              className="border border-border bg-surface px-3 py-2 text-sm font-semibold text-foreground hover:bg-background"
+            >
+              Open Ingest
+            </button>
           </article>
+
           <article className="border border-border bg-background p-3">
-            <p className="mb-2 font-mono text-xs uppercase tracking-wide text-muted">Full Automatic</p>
-            <p className="text-sm text-foreground">
-              Pipeline executes end-to-end in one pass using your flags (normalize, agentic chunking, contextual
-              headers). Use when throughput matters and review is sampled.
+            <p className="mb-2 font-mono text-xs uppercase tracking-wide text-muted">Automatic Ingestion</p>
+            <p className="mb-3 text-sm text-foreground">
+              One-shot execution with automation flags and optional preview before indexing to Qdrant.
             </p>
+            <button
+              type="button"
+              onClick={() => setView("auto_ingest")}
+              className="border border-border bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground"
+            >
+              Open Auto-Ingest
+            </button>
           </article>
         </div>
       </SectionCard>

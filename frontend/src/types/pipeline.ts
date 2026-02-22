@@ -1,5 +1,7 @@
 export type ChunkMode = "deterministic" | "agentic"
 export type ContextMode = "llm" | "template"
+export type ChunkModeSelection = ChunkMode | ""
+export type ContextModeSelection = ContextMode | ""
 export type WorkflowMode = "automatic" | "manual"
 
 export interface ProjectRecord {

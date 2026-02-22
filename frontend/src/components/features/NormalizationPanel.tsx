@@ -36,7 +36,7 @@ export function NormalizationPanel({ rawText, normalizedText, diffLines, onNorma
 
   return (
     <SectionCard
-      title="Normalization Review"
+      title="STEP 3 - Normalize Text"
       subtitle="Deterministic cleanup (spaces, line breaks, repeated short headers/footers) with full-text review."
       actions={
         <button
@@ -55,20 +55,18 @@ export function NormalizationPanel({ rawText, normalizedText, diffLines, onNorma
             {hasNormalizedOutput ? "Full Diff (raw vs normalized)" : "Raw Text Preview"}
           </p>
           <div className="flex items-center gap-3">
-            <p
+            <button
+              type="button"
+              disabled
               className={`inline-flex items-center gap-2 border px-2 py-1 font-mono text-xs ${
                 hasNormalizedOutput
                   ? "border-emerald-600 bg-emerald-500/20 text-foreground"
                   : "border-border bg-surface text-muted"
               }`}
             >
-              <span
-                className={`inline-block h-2 w-2 ${
-                  hasNormalizedOutput ? "bg-emerald-500" : "border border-border bg-transparent"
-                }`}
-              />
+              <span className="inline-block w-6 text-center">{hasNormalizedOutput ? "[x]" : "[ ]"}</span>
               {hasNormalizedOutput ? "Normalized" : "Not normalized"}
-            </p>
+            </button>
             {hasNormalizedOutput ? (
               <p className="font-mono text-xs text-muted">
                 <span className="mr-3 text-emerald-700">+ {addedCount}</span>

@@ -1,9 +1,9 @@
 import { create } from "zustand"
 
 import type {
-  ChunkMode,
+  ChunkModeSelection,
   ChunkProposal,
-  ContextMode,
+  ContextModeSelection,
   ContextualizedChunk,
   PipelineAutomationFlags,
   ProjectRecord,
@@ -18,7 +18,7 @@ interface IngestionStore {
   rawText: string
   normalizedText: string
 
-  chunkMode: ChunkMode
+  chunkMode: ChunkModeSelection
   chunkOptions: {
     maxChunkChars: number
     minChunkChars: number
@@ -26,7 +26,7 @@ interface IngestionStore {
   }
   chunks: ChunkProposal[]
 
-  contextMode: ContextMode
+  contextMode: ContextModeSelection
   contextualizedChunks: ContextualizedChunk[]
 
   automation: PipelineAutomationFlags
@@ -42,10 +42,10 @@ interface IngestionStore {
   setFileName: (fileName: string) => void
   setRawText: (text: string) => void
   setNormalizedText: (text: string) => void
-  setChunkMode: (mode: ChunkMode) => void
+  setChunkMode: (mode: ChunkModeSelection) => void
   setChunkOptions: (options: { maxChunkChars: number; minChunkChars: number; overlapChars: number }) => void
   setChunks: (chunks: ChunkProposal[]) => void
-  setContextMode: (mode: ContextMode) => void
+  setContextMode: (mode: ContextModeSelection) => void
   setContextualizedChunks: (chunks: ContextualizedChunk[]) => void
   setAutomation: (flags: PipelineAutomationFlags) => void
   setLlmModel: (value: string) => void
@@ -70,7 +70,7 @@ export const useIngestionStore = create<IngestionStore>((set) => ({
   rawText: "",
   normalizedText: "",
 
-  chunkMode: "deterministic",
+  chunkMode: "",
   chunkOptions: {
     maxChunkChars: 1500,
     minChunkChars: 350,
@@ -78,7 +78,7 @@ export const useIngestionStore = create<IngestionStore>((set) => ({
   },
   chunks: [],
 
-  contextMode: "llm",
+  contextMode: "",
   contextualizedChunks: [],
 
   automation: defaultAutomation,

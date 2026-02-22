@@ -1,9 +1,9 @@
 import { useMemo, useState } from "react"
 
 import type {
-  ChunkMode,
+  ChunkModeSelection,
   ChunkProposal,
-  ContextMode,
+  ContextModeSelection,
   ContextualizedChunk,
   PipelineAutomationFlags,
   ProjectRecord,
@@ -26,8 +26,8 @@ interface IngestionWorkbenchProps {
   normalizedText: string
   chunks: ChunkProposal[]
   contextualizedChunks: ContextualizedChunk[]
-  chunkMode: ChunkMode
-  contextMode: ContextMode
+  chunkMode: ChunkModeSelection
+  contextMode: ContextModeSelection
   chunkOptions: {
     maxChunkChars: number
     minChunkChars: number
@@ -47,10 +47,10 @@ interface IngestionWorkbenchProps {
   onRawTextChange: (value: string) => void
   onFileSelect: (file: File) => Promise<void>
   onNormalize: () => Promise<void>
-  onChunkModeChange: (mode: ChunkMode) => void
+  onChunkModeChange: (mode: ChunkModeSelection) => void
   onChunkOptionsChange: (options: { maxChunkChars: number; minChunkChars: number; overlapChars: number }) => void
   onRunChunking: () => Promise<void>
-  onContextModeChange: (mode: ContextMode) => void
+  onContextModeChange: (mode: ContextModeSelection) => void
   onContextualizedChunksChange: (chunks: ContextualizedChunk[]) => void
   onRunContextualization: () => Promise<void>
   onAutomationFlagChange: (key: "normalize_text" | "agentic_chunking" | "contextual_headers", value: boolean) => void
@@ -138,6 +138,9 @@ export function IngestionWorkbench({
 }: IngestionWorkbenchProps) {
   const [activeTab, setActiveTab] = useState<IngestionTabId>("project")
   const projectReady = selectedProjectId.length > 0
+  const sourceReady = rawText.trim().length > 0
+  const chunkModeSelected = chunkMode !== ""
+  const contextModeSelected = contextMode !== ""
 
   const progressLabel = useMemo(() => {
     return "Flow: Project -> Source -> Normalize -> Chunk -> Contextual Retrieval -> Ingest Data"
@@ -145,6 +148,32 @@ export function IngestionWorkbench({
 
   const hasPrevious = tabOrder.indexOf(activeTab) > 0
   const hasNext = tabOrder.indexOf(activeTab) < tabOrder.length - 1
+  const tabUnlocked: Record<IngestionTabId, boolean> = {
+    project: true,
+    source: projectReady,
+    normalize: projectReady && sourceReady,
+    chunk: projectReady && sourceReady,
+    context: projectReady && sourceReady && chunkModeSelected && chunks.length > 0,
+    manual: projectReady && sourceReady && contextModeSelected && contextualizedChunks.length > 0,
+  }
+  const canGoNext = useMemo(() => {
+    if (activeTab === "project") {
+      return projectReady
+    }
+    if (activeTab === "source") {
+      return sourceReady
+    }
+    if (activeTab === "normalize") {
+      return sourceReady
+    }
+    if (activeTab === "chunk") {
+      return chunkModeSelected && chunks.length > 0
+    }
+    if (activeTab === "context") {
+      return contextModeSelected && contextualizedChunks.length > 0
+    }
+    return false
+  }, [activeTab, chunkModeSelected, chunks.length, contextModeSelected, contextualizedChunks.length, projectReady, sourceReady])
 
   return (
     <section className="space-y-4">
@@ -155,11 +184,12 @@ export function IngestionWorkbench({
               key={tabId}
               type="button"
               onClick={() => setActiveTab(tabId)}
+              disabled={!tabUnlocked[tabId] && activeTab !== tabId}
               className={`border px-3 py-2 text-sm font-semibold ${
                 activeTab === tabId
                   ? "border-primary bg-primary text-primary-foreground"
                   : "border-border bg-background text-foreground hover:bg-surface"
-              }`}
+              } disabled:opacity-40`}
             >
               {tabLabels[tabId]}
             </button>
@@ -219,6 +249,7 @@ export function IngestionWorkbench({
         <ContextReviewPanel
           contextMode={contextMode}
           contextualizedChunks={contextualizedChunks}
+          hasChunkCandidates={chunks.length > 0}
           onContextModeChange={onContextModeChange}
           onContextualizedChunksChange={onContextualizedChunksChange}
           onRunContextualization={onRunContextualization}
@@ -241,7 +272,7 @@ export function IngestionWorkbench({
           onAutomaticIngest={onAutomaticIngest}
           disabled={isBusy}
           mode="manual"
-          title="Ingest Data"
+          title="STEP 6 - Ingest Data"
           subtitle="Persist reviewed chunks into Qdrant."
         />
       ) : null}
@@ -255,11 +286,10 @@ export function IngestionWorkbench({
         >
           Previous
         </button>
-        <p className="font-mono text-xs text-muted">{tabLabels[activeTab]}</p>
         <button
           type="button"
           onClick={() => setActiveTab(nextTab(activeTab))}
-          disabled={!hasNext}
+          disabled={!hasNext || !canGoNext || isBusy}
           className="border border-border bg-background px-3 py-2 text-sm font-semibold text-foreground disabled:opacity-40"
         >
           Next

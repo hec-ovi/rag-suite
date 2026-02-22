@@ -21,7 +21,7 @@ export function SourceEditorPanel({
 
   return (
     <SectionCard
-      title="Source Text (Step 2)"
+      title="STEP 2 - Add Source Text"
       subtitle="Load source only after project setup. Raw text remains immutable in backend history."
     >
       {!projectReady ? (
