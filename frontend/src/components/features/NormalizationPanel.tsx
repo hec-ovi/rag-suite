@@ -39,7 +39,6 @@ export function NormalizationPanel({
   const canToggle = rawText.trim().length > 0
   const addedCount = diffLines.filter((line) => line.kind === "added").length
   const removedCount = diffLines.filter((line) => line.kind === "removed").length
-  const statusText = normalizationEnabled ? "Normalization: ON" : "Normalization: OFF"
 
   return (
     <SectionCard
@@ -82,14 +81,16 @@ export function NormalizationPanel({
         type="button"
         onClick={onToggleNormalization}
         disabled={disabled || !canToggle}
-        className={`mt-3 w-full border px-3 py-2 text-sm font-semibold ${
-          normalizationEnabled
-            ? "border-emerald-600 bg-emerald-500/20 text-foreground"
-            : "border-border bg-surface text-foreground"
-        } disabled:opacity-60`}
+        className="mt-3 flex w-full items-center justify-between border border-border bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-60"
       >
-        {normalizationEnabled ? "[x] " : "[ ] "}
-        {statusText}
+        <span>Normalize</span>
+        <span className="inline-flex items-center gap-2 border border-primary-foreground/40 bg-primary-foreground/10 px-2 py-1 font-mono text-xs">
+          <span className="text-primary-foreground/80">Toggle</span>
+          <span className="inline-block h-2.5 w-2.5 border border-primary-foreground/60 bg-background/10">
+            {normalizationEnabled ? <span className="block h-full w-full bg-primary-foreground" /> : null}
+          </span>
+          <span>{normalizationEnabled ? "ON" : "OFF"}</span>
+        </span>
       </button>
     </SectionCard>
   )

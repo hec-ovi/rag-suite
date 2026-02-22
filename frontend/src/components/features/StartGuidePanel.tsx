@@ -16,7 +16,7 @@ export function StartGuidePanel() {
             <button
               type="button"
               onClick={() => setView("ingestion")}
-              className="border border-border bg-surface px-3 py-2 text-sm font-semibold text-foreground hover:bg-background"
+              className="border border-border bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground"
             >
               Open HITL
             </button>
@@ -40,22 +40,36 @@ export function StartGuidePanel() {
         <div className="mt-4 grid gap-3 md:grid-cols-2">
           <article className="border border-border bg-background p-3">
             <p className="mb-2 font-mono text-xs uppercase tracking-wide text-muted">HITL Steps</p>
-            <div className="grid gap-1 text-sm text-foreground">
-              <p>1. Select or create project.</p>
-              <p>2. Upload/paste source text.</p>
-              <p>3. Toggle normalization ON/OFF.</p>
-              <p>4. Choose chunk mode and generate chunks.</p>
-              <p>5. Choose context option and review.</p>
-              <p>6. Ingest data to Qdrant.</p>
+            <div className="grid gap-2">
+              <div className="border border-border bg-surface p-2">
+                <p className="font-mono text-xs text-foreground">STEP 01-02</p>
+                <p className="text-sm text-muted">Pick project scope, then load source text from file or paste.</p>
+              </div>
+              <div className="border border-border bg-surface p-2">
+                <p className="font-mono text-xs text-foreground">STEP 03-04</p>
+                <p className="text-sm text-muted">Enable normalization if needed, choose chunk mode, and generate chunks.</p>
+              </div>
+              <div className="border border-border bg-surface p-2">
+                <p className="font-mono text-xs text-foreground">STEP 05-06</p>
+                <p className="text-sm text-muted">Select context strategy, review results, then ingest to Qdrant.</p>
+              </div>
             </div>
           </article>
           <article className="border border-border bg-background p-3">
             <p className="mb-2 font-mono text-xs uppercase tracking-wide text-muted">AUTOMATED/CLASSIC Steps</p>
-            <div className="grid gap-1 text-sm text-foreground">
-              <p>1. Select or create project.</p>
-              <p>2. Upload/paste source text.</p>
-              <p>3. Select normalization/chunk/context modes.</p>
-              <p>4. Ingest in one action.</p>
+            <div className="grid gap-2">
+              <div className="border border-border bg-surface p-2">
+                <p className="font-mono text-xs text-foreground">STEP 01-02</p>
+                <p className="text-sm text-muted">Choose project and provide source text.</p>
+              </div>
+              <div className="border border-border bg-surface p-2">
+                <p className="font-mono text-xs text-foreground">STEP 03</p>
+                <p className="text-sm text-muted">Set normalization, chunk mode, and context header mode.</p>
+              </div>
+              <div className="border border-border bg-surface p-2">
+                <p className="font-mono text-xs text-foreground">STEP 04</p>
+                <p className="text-sm text-muted">Run ingest directly with no intermediate previews.</p>
+              </div>
             </div>
           </article>
         </div>
