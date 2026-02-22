@@ -4,6 +4,7 @@ import { Header } from "./components/layout/Header"
 import { MainContent } from "./components/layout/MainContent"
 import { IngestionWorkbench } from "./components/features/IngestionWorkbench"
 import { ProjectsExplorer } from "./components/features/ProjectsExplorer"
+import { RagModePanel } from "./components/features/RagModePanel"
 import { StartGuidePanel } from "./components/features/StartGuidePanel"
 import { useIngestionWorkflow } from "./hooks/useIngestionWorkflow"
 import { useThemeMode } from "./hooks/useThemeMode"
@@ -91,6 +92,9 @@ function App() {
 
   const startView = <StartGuidePanel />
   const projectsView = <ProjectsExplorer projects={state.projects} onProjectsRefresh={actions.refreshProjects} />
+  const ragHybridView = <RagModePanel mode="rag_hybrid" />
+  const ragRerankedView = <RagModePanel mode="rag_reranked" />
+  const ragKnowledgeGraphView = <RagModePanel mode="rag_kg" />
 
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-grid-gradient text-foreground">
@@ -101,6 +105,9 @@ function App() {
         ingestionView={ingestionView}
         autoIngestView={autoIngestView}
         projectsView={projectsView}
+        ragHybridView={ragHybridView}
+        ragRerankedView={ragRerankedView}
+        ragKnowledgeGraphView={ragKnowledgeGraphView}
       />
       <Footer />
     </div>

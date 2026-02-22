@@ -8,9 +8,21 @@ interface MainContentProps {
   ingestionView: React.ReactNode
   autoIngestView: React.ReactNode
   projectsView: React.ReactNode
+  ragHybridView: React.ReactNode
+  ragRerankedView: React.ReactNode
+  ragKnowledgeGraphView: React.ReactNode
 }
 
-export function MainContent({ currentView, startView, ingestionView, autoIngestView, projectsView }: MainContentProps) {
+export function MainContent({
+  currentView,
+  startView,
+  ingestionView,
+  autoIngestView,
+  projectsView,
+  ragHybridView,
+  ragRerankedView,
+  ragKnowledgeGraphView,
+}: MainContentProps) {
   return (
     <main className="mx-auto w-full max-w-7xl flex-1 overflow-hidden px-4 py-6">
       <AnimatePresence mode="wait">
@@ -28,7 +40,13 @@ export function MainContent({ currentView, startView, ingestionView, autoIngestV
               ? ingestionView
               : currentView === "auto_ingest"
                 ? autoIngestView
-                : projectsView}
+                : currentView === "projects"
+                  ? projectsView
+                  : currentView === "rag_hybrid"
+                    ? ragHybridView
+                    : currentView === "rag_reranked"
+                      ? ragRerankedView
+                      : ragKnowledgeGraphView}
         </motion.section>
       </AnimatePresence>
     </main>

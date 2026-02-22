@@ -1,7 +1,13 @@
 import { useEffect, useRef, useState } from "react"
 
 import type { ThemeMode } from "../../hooks/useThemeMode"
-import type { ViewId } from "../../stores/navigation.store"
+import {
+  isLoadDataView,
+  isRagView,
+  type LoadDataViewId,
+  type RagViewId,
+  type ViewId,
+} from "../../stores/navigation.store"
 
 interface HeaderProps {
   currentView: ViewId
@@ -12,11 +18,17 @@ interface HeaderProps {
 
 const themeModes: ThemeMode[] = ["system", "light", "dark"]
 
-const menuLabels: Record<ViewId, string> = {
+const loadDataMenuLabels: Record<LoadDataViewId, string> = {
   start: "Start Here",
   ingestion: "HITL",
   auto_ingest: "AUTOMATED/CLASSIC",
   projects: "Projects",
+}
+
+const ragMenuLabels: Record<RagViewId, string> = {
+  rag_hybrid: "Hybrid (Sparse + Keywords)",
+  rag_reranked: "Hybrid + Re-ranked",
+  rag_kg: "Hybrid + Knowledge Graph Enhanced",
 }
 
 function ThemeModeIcon({ mode }: { mode: ThemeMode }) {
@@ -46,10 +58,15 @@ function ThemeModeIcon({ mode }: { mode: ThemeMode }) {
 }
 
 export function Header({ currentView, onViewChange, themeMode, onThemeModeChange }: HeaderProps) {
-  const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [isLoadDataMenuOpen, setIsLoadDataMenuOpen] = useState(false)
+  const [isRagMenuOpen, setIsRagMenuOpen] = useState(false)
   const [isThemeMenuOpen, setIsThemeMenuOpen] = useState(false)
-  const menuRef = useRef<HTMLDivElement | null>(null)
+  const loadDataMenuRef = useRef<HTMLDivElement | null>(null)
+  const ragMenuRef = useRef<HTMLDivElement | null>(null)
   const themeMenuRef = useRef<HTMLDivElement | null>(null)
+
+  const activeLoadDataLabel = isLoadDataView(currentView) ? loadDataMenuLabels[currentView] : loadDataMenuLabels.start
+  const activeRagLabel = isRagView(currentView) ? ragMenuLabels[currentView] : ragMenuLabels.rag_hybrid
 
   useEffect(() => {
     function handleDocumentClick(event: MouseEvent): void {
@@ -57,8 +74,12 @@ export function Header({ currentView, onViewChange, themeMode, onThemeModeChange
         return
       }
 
-      if (menuRef.current !== null && !menuRef.current.contains(event.target)) {
-        setIsMenuOpen(false)
+      if (loadDataMenuRef.current !== null && !loadDataMenuRef.current.contains(event.target)) {
+        setIsLoadDataMenuOpen(false)
+      }
+
+      if (ragMenuRef.current !== null && !ragMenuRef.current.contains(event.target)) {
+        setIsRagMenuOpen(false)
       }
 
       if (themeMenuRef.current !== null && !themeMenuRef.current.contains(event.target)) {
@@ -84,39 +105,82 @@ export function Header({ currentView, onViewChange, themeMode, onThemeModeChange
           <p className="font-display text-xl font-semibold tracking-tight text-foreground">RAG Suite</p>
         </button>
 
-        <div ref={menuRef} className="relative">
-          <button
-            type="button"
-            onClick={() => setIsMenuOpen((open) => !open)}
-            className="border border-border bg-surface px-3 py-2 text-sm font-medium text-foreground hover:bg-background"
-            aria-haspopup="menu"
-            aria-expanded={isMenuOpen}
-          >
-            Vectorization Mode: {menuLabels[currentView]}
-          </button>
-          {isMenuOpen ? (
-            <div
-              className="absolute right-0 top-[calc(100%+6px)] z-50 grid min-w-40 gap-1 border border-border bg-surface p-1 shadow-lg shadow-black/10"
-              role="menu"
+        <div className="ml-auto flex items-center gap-2">
+          <div ref={loadDataMenuRef} className="relative">
+            <button
+              type="button"
+              onClick={() => {
+                setIsLoadDataMenuOpen((open) => !open)
+                setIsRagMenuOpen(false)
+              }}
+              className="border border-border bg-surface px-3 py-2 text-sm font-medium text-foreground hover:bg-background"
+              aria-haspopup="menu"
+              aria-expanded={isLoadDataMenuOpen}
             >
-              {(Object.entries(menuLabels) as Array<[ViewId, string]>).map(([viewId, label]) => (
-                <button
-                  key={viewId}
-                  type="button"
-                  onClick={() => {
-                    onViewChange(viewId)
-                    setIsMenuOpen(false)
-                  }}
-                  className={`px-3 py-2 text-left text-sm ${
-                    currentView === viewId ? "bg-primary text-primary-foreground" : "text-foreground hover:bg-background"
-                  }`}
-                  role="menuitem"
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-          ) : null}
+              Load Data: {activeLoadDataLabel}
+            </button>
+            {isLoadDataMenuOpen ? (
+              <div
+                className="absolute right-0 top-[calc(100%+6px)] z-50 grid min-w-56 gap-1 border border-border bg-surface p-1 shadow-lg shadow-black/10"
+                role="menu"
+              >
+                {(Object.entries(loadDataMenuLabels) as Array<[LoadDataViewId, string]>).map(([viewId, label]) => (
+                  <button
+                    key={viewId}
+                    type="button"
+                    onClick={() => {
+                      onViewChange(viewId)
+                      setIsLoadDataMenuOpen(false)
+                    }}
+                    className={`px-3 py-2 text-left text-sm ${
+                      currentView === viewId ? "bg-primary text-primary-foreground" : "text-foreground hover:bg-background"
+                    }`}
+                    role="menuitem"
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            ) : null}
+          </div>
+
+          <div ref={ragMenuRef} className="relative">
+            <button
+              type="button"
+              onClick={() => {
+                setIsRagMenuOpen((open) => !open)
+                setIsLoadDataMenuOpen(false)
+              }}
+              className="border border-border bg-surface px-3 py-2 text-sm font-medium text-foreground hover:bg-background"
+              aria-haspopup="menu"
+              aria-expanded={isRagMenuOpen}
+            >
+              RAG: {activeRagLabel}
+            </button>
+            {isRagMenuOpen ? (
+              <div
+                className="absolute right-0 top-[calc(100%+6px)] z-50 grid min-w-64 gap-1 border border-border bg-surface p-1 shadow-lg shadow-black/10"
+                role="menu"
+              >
+                {(Object.entries(ragMenuLabels) as Array<[RagViewId, string]>).map(([viewId, label]) => (
+                  <button
+                    key={viewId}
+                    type="button"
+                    onClick={() => {
+                      onViewChange(viewId)
+                      setIsRagMenuOpen(false)
+                    }}
+                    className={`px-3 py-2 text-left text-sm ${
+                      currentView === viewId ? "bg-primary text-primary-foreground" : "text-foreground hover:bg-background"
+                    }`}
+                    role="menuitem"
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            ) : null}
+          </div>
         </div>
 
         <div ref={themeMenuRef} className="relative">
