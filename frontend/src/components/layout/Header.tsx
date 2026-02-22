@@ -149,11 +149,11 @@ export function Header({ currentView, onViewChange, themeMode, onThemeModeChange
                 setIsRagMenuOpen((open) => !open)
                 setIsLoadDataMenuOpen(false)
               }}
-              className="border border-border bg-surface px-3 py-2 text-sm font-medium text-foreground hover:bg-background"
+            className="border border-border bg-surface px-3 py-2 text-sm font-medium text-foreground hover:bg-background"
               aria-haspopup="menu"
               aria-expanded={isRagMenuOpen}
             >
-              RAG: {activeRagLabel}
+              RAG Mode: {activeRagLabel}
             </button>
             {isRagMenuOpen ? (
               <div
