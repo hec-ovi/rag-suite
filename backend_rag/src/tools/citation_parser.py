@@ -6,7 +6,7 @@ import re
 class CitationParser:
     """Extract citation labels from model answers."""
 
-    _citation_pattern = re.compile(r"\[(S\d+)\]")
+    _citation_pattern = re.compile(r"[\[【](S\d+)[\]】]")
 
     def extract(self, answer: str, available_source_ids: set[str]) -> list[str]:
         """Return deduplicated citations in first-seen order."""
