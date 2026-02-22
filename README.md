@@ -49,8 +49,9 @@ docker-compose.yml  Local stack orchestration (frontend, backend, qdrant, ollama
 cp .env.template .env
 ```
 
-2. Update absolute host paths in `.env` (`OLLAMA_MODELS_DIR`, `QDRANT_STORAGE_DIR`, `BACKEND_DATA_DIR`).
-   Use your persistent Ollama model cache path so models are reused between runs.
+2. Update host paths in `.env`.
+   Keep `OLLAMA_MODELS_DIR` absolute (persistent model cache).
+   `QDRANT_STORAGE_DIR` and `BACKEND_DATA_DIR` can stay relative (defaults in template).
    The `.env.template` paths are placeholders by design; run compose with your real `.env`.
 
 3. Start stack:
@@ -67,9 +68,9 @@ docker compose --env-file .env up -d --build
 
 ## Persistent Paths
 
-- `.env.template` now uses generic example paths only (no machine-specific path leakage).
-- Set `OLLAMA_MODELS_DIR` to your persistent local model store (for example your existing `/home/.../models/ollama` path in your real `.env`).
-- `qdrant/storage/` is included for persistent vector data mounts.
+- `.env.template` keeps `OLLAMA_MODELS_DIR` as an absolute placeholder.
+- `QDRANT_STORAGE_DIR=./qdrant/storage` and `BACKEND_DATA_DIR=./backend/data` work as repository-relative defaults.
+- Set `OLLAMA_MODELS_DIR` to your persistent local model store (for example `/home/.../models/ollama` in your real `.env`).
 
 ## Stage 0 Backend Endpoints
 
