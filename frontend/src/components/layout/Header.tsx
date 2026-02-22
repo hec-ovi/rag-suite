@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react"
 
 import type { ThemeMode } from "../../hooks/useThemeMode"
 import {
-  isRagView,
+  isLoadDataView,
   type LoadDataViewId,
   type RagViewId,
   type ViewId,
@@ -28,6 +28,11 @@ const ragMenuLabels: Record<RagViewId, string> = {
   rag_hybrid: "Hybrid (Sparse + Keywords)",
   rag_reranked: "Hybrid + Re-ranked",
   rag_kg: "Hybrid + Knowledge Graph Enhanced",
+}
+
+const sectionLabels: Record<ViewId, string> = {
+  ...loadDataMenuLabels,
+  ...ragMenuLabels,
 }
 
 function ThemeModeIcon({ mode }: { mode: ThemeMode }) {
@@ -63,8 +68,7 @@ export function Header({ currentView, onViewChange, themeMode, onThemeModeChange
   const loadDataMenuRef = useRef<HTMLDivElement | null>(null)
   const ragMenuRef = useRef<HTMLDivElement | null>(null)
   const themeMenuRef = useRef<HTMLDivElement | null>(null)
-
-  const activeRagLabel = isRagView(currentView) ? ragMenuLabels[currentView] : ragMenuLabels.rag_hybrid
+  const activeSectionTitle = `${isLoadDataView(currentView) ? "Load Data" : "RAG Mode"} - ${sectionLabels[currentView]}`
 
   useEffect(() => {
     function handleDocumentClick(event: MouseEvent): void {
@@ -94,14 +98,9 @@ export function Header({ currentView, onViewChange, themeMode, onThemeModeChange
   return (
     <header className="z-50 shrink-0 border-b border-border/80 bg-background/80 backdrop-blur">
       <nav className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4 px-4 py-3">
-        <button
-          type="button"
-          onClick={() => onViewChange("start")}
-          className="text-left"
-          aria-label="Go to Start Here"
-        >
-          <p className="font-display text-xl font-semibold tracking-tight text-foreground">RAG Suite</p>
-        </button>
+        <div className="text-left">
+          <p className="font-display text-xl font-semibold tracking-tight text-foreground">{activeSectionTitle}</p>
+        </div>
 
         <div className="ml-auto flex items-center gap-2">
           <div ref={loadDataMenuRef} className="relative">
@@ -153,7 +152,7 @@ export function Header({ currentView, onViewChange, themeMode, onThemeModeChange
               aria-haspopup="menu"
               aria-expanded={isRagMenuOpen}
             >
-              RAG Mode: {activeRagLabel}
+              RAG Mode
             </button>
             {isRagMenuOpen ? (
               <div
