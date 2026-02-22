@@ -123,7 +123,7 @@ services:
       INFERENCE_TIMEOUT_SECONDS: ${INFERENCE_TIMEOUT_SECONDS:-300}
       OLLAMA_CHAT_MODEL: ${OLLAMA_CHAT_MODEL}
       OLLAMA_EMBEDDING_MODEL: ${OLLAMA_EMBEDDING_MODEL}
-      RAG_CHECKPOINT_PATH: ./data/rag_memory_checkpoints.db
+      RAG_CHECKPOINT_PATH: ${RAG_CHECKPOINT_PATH:-./data/rag_memory_checkpoints.db}
     volumes:
       - ${DATA_DIR}:/app/data
     depends_on:
