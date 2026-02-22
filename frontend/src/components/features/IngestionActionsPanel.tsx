@@ -33,7 +33,7 @@ export function IngestionActionsPanel({
   return (
     <SectionCard title="Execution Controls" subtitle="Run preview or persist chunks into Qdrant using manual or full-auto mode.">
       <div className="mb-4 grid gap-3 md:grid-cols-3">
-        <label className="flex items-center justify-between gap-3 rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground">
+        <label className="flex items-center justify-between gap-3 border border-border bg-background px-3 py-2 text-sm text-foreground">
           Normalize
           <input
             type="checkbox"
@@ -42,7 +42,7 @@ export function IngestionActionsPanel({
           />
         </label>
 
-        <label className="flex items-center justify-between gap-3 rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground">
+        <label className="flex items-center justify-between gap-3 border border-border bg-background px-3 py-2 text-sm text-foreground">
           Agentic chunking
           <input
             type="checkbox"
@@ -51,7 +51,7 @@ export function IngestionActionsPanel({
           />
         </label>
 
-        <label className="flex items-center justify-between gap-3 rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground">
+        <label className="flex items-center justify-between gap-3 border border-border bg-background px-3 py-2 text-sm text-foreground">
           Context headers
           <input
             type="checkbox"
@@ -68,7 +68,7 @@ export function IngestionActionsPanel({
             value={llmModel}
             onChange={(event) => onLlmModelChange(event.target.value)}
             placeholder="qwen3:8b"
-            className="rounded-lg border border-border bg-background px-3 py-2 text-foreground"
+            className="border border-border bg-background px-3 py-2 text-foreground"
           />
         </label>
 
@@ -78,7 +78,7 @@ export function IngestionActionsPanel({
             value={embeddingModel}
             onChange={(event) => onEmbeddingModelChange(event.target.value)}
             placeholder="nomic-embed-text:latest"
-            className="rounded-lg border border-border bg-background px-3 py-2 text-foreground"
+            className="border border-border bg-background px-3 py-2 text-foreground"
           />
         </label>
       </div>
@@ -88,7 +88,7 @@ export function IngestionActionsPanel({
           type="button"
           onClick={onAutomaticPreview}
           disabled={disabled}
-          className="rounded-lg border border-border bg-surface px-3 py-2 text-sm font-semibold text-foreground disabled:opacity-60"
+          className="border border-border bg-surface px-3 py-2 text-sm font-semibold text-foreground disabled:opacity-60"
         >
           Preview automatic pipeline
         </button>
@@ -96,7 +96,7 @@ export function IngestionActionsPanel({
           type="button"
           onClick={onManualIngest}
           disabled={disabled}
-          className="rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-60"
+          className="bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-60"
         >
           Ingest manual reviewed chunks
         </button>
@@ -104,13 +104,13 @@ export function IngestionActionsPanel({
           type="button"
           onClick={onAutomaticIngest}
           disabled={disabled}
-          className="rounded-lg border border-border bg-primary/10 px-3 py-2 text-sm font-semibold text-foreground disabled:opacity-60"
+          className="border border-border bg-primary/10 px-3 py-2 text-sm font-semibold text-foreground disabled:opacity-60"
         >
           Ingest full automatic mode
         </button>
       </div>
 
-      <div className="rounded-lg border border-border bg-background px-3 py-2">
+      <div className="border border-border bg-background px-3 py-2">
         <p className="font-mono text-xs text-muted">{statusMessage}</p>
         {errorMessage.length > 0 ? <p className="mt-1 font-mono text-xs text-danger">Error: {errorMessage}</p> : null}
       </div>

@@ -43,7 +43,7 @@ export function ContextReviewPanel({
           type="button"
           onClick={onRunContextualization}
           disabled={disabled}
-          className="rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-60"
+          className="bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-60"
         >
           Generate headers
         </button>
@@ -55,7 +55,7 @@ export function ContextReviewPanel({
           <select
             value={contextMode}
             onChange={(event) => onContextModeChange(event.target.value as ContextMode)}
-            className="rounded-lg border border-border bg-background px-3 py-2 text-foreground"
+            className="border border-border bg-background px-3 py-2 text-foreground"
           >
             <option value="llm">LLM contextual header</option>
             <option value="template">Template header</option>
@@ -66,7 +66,7 @@ export function ContextReviewPanel({
       <div className="max-h-80 space-y-3 overflow-auto pr-1">
         {contextualizedChunks.length === 0 ? <p className="text-sm text-muted">No contextualized chunks yet.</p> : null}
         {contextualizedChunks.map((chunk) => (
-          <article key={chunk.chunk_index} className="rounded-xl border border-border bg-background p-3">
+          <article key={chunk.chunk_index} className="border border-border bg-background p-3">
             <p className="mb-2 font-mono text-xs uppercase tracking-wide text-muted">Chunk {chunk.chunk_index + 1}</p>
 
             <label className="mb-2 flex flex-col gap-1 text-xs text-muted">
@@ -81,7 +81,7 @@ export function ContextReviewPanel({
                   })
                   onContextualizedChunksChange(updated)
                 }}
-                className="h-20 rounded-lg border border-border bg-surface p-2 text-sm text-foreground"
+                className="h-20 border border-border bg-surface p-2 text-sm text-foreground"
               />
             </label>
 
@@ -95,7 +95,7 @@ export function ContextReviewPanel({
                   })
                   onContextualizedChunksChange(updated)
                 }}
-                className="h-32 rounded-lg border border-border bg-surface p-2 font-mono text-xs text-foreground"
+                className="h-32 border border-border bg-surface p-2 font-mono text-xs text-foreground"
               />
             </label>
           </article>

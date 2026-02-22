@@ -4,7 +4,8 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse
+from fastapi.openapi.docs import get_swagger_ui_html
+from fastapi.responses import HTMLResponse, JSONResponse
 from sqlalchemy import Engine
 
 from src.core.config import load_settings
@@ -38,11 +39,34 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 app = FastAPI(
     title="RAG Suite Backend",
     version="0.1.0",
-    docs_url="/docs",
+    docs_url=None,
     redoc_url="/redoc",
     openapi_url="/openapi.json",
     lifespan=lifespan,
 )
+
+SWAGGER_NOWRAP_CSS = """
+.opblock .opblock-section-header label,
+.opblock .opblock-section-header select,
+.opblock .tab-header .tab-item {
+  white-space: nowrap !important;
+}
+"""
+
+
+@app.get("/docs", include_in_schema=False)
+async def custom_swagger_ui() -> HTMLResponse:
+    """Serve Swagger UI with CSS override so media types stay on one line."""
+
+    swagger = get_swagger_ui_html(
+        openapi_url=app.openapi_url or "/openapi.json",
+        title=f"{app.title} - Swagger UI",
+    )
+    html = swagger.body.decode("utf-8").replace(
+        "</head>",
+        f"<style>{SWAGGER_NOWRAP_CSS}</style></head>",
+    )
+    return HTMLResponse(content=html, status_code=swagger.status_code)
 
 
 @app.exception_handler(ResourceNotFoundError)

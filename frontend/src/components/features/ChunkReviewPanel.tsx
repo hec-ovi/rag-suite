@@ -33,7 +33,7 @@ export function ChunkReviewPanel({
           type="button"
           onClick={onRunChunking}
           disabled={disabled}
-          className="rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-60"
+          className="bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-60"
         >
           Propose chunks
         </button>
@@ -45,7 +45,7 @@ export function ChunkReviewPanel({
           <select
             value={chunkMode}
             onChange={(event) => onChunkModeChange(event.target.value as ChunkMode)}
-            className="rounded-lg border border-border bg-background px-3 py-2 text-foreground"
+            className="border border-border bg-background px-3 py-2 text-foreground"
           >
             <option value="deterministic">Deterministic</option>
             <option value="agentic">Agentic (experimental)</option>
@@ -65,7 +65,7 @@ export function ChunkReviewPanel({
                 maxChunkChars: Number(event.target.value),
               })
             }
-            className="rounded-lg border border-border bg-background px-3 py-2 text-foreground"
+            className="border border-border bg-background px-3 py-2 text-foreground"
           />
         </label>
 
@@ -82,7 +82,7 @@ export function ChunkReviewPanel({
                 minChunkChars: Number(event.target.value),
               })
             }
-            className="rounded-lg border border-border bg-background px-3 py-2 text-foreground"
+            className="border border-border bg-background px-3 py-2 text-foreground"
           />
         </label>
 
@@ -99,7 +99,7 @@ export function ChunkReviewPanel({
                 overlapChars: Number(event.target.value),
               })
             }
-            className="rounded-lg border border-border bg-background px-3 py-2 text-foreground"
+            className="border border-border bg-background px-3 py-2 text-foreground"
           />
         </label>
       </div>
@@ -107,7 +107,7 @@ export function ChunkReviewPanel({
       <div className="max-h-72 space-y-3 overflow-auto pr-1">
         {chunks.length === 0 ? <p className="text-sm text-muted">No chunks proposed yet.</p> : null}
         {chunks.map((chunk) => (
-          <article key={chunk.chunk_index} className="rounded-xl border border-border bg-background p-3">
+          <article key={chunk.chunk_index} className="border border-border bg-background p-3">
             <div className="mb-2 flex items-center justify-between">
               <p className="font-mono text-xs uppercase tracking-wide text-muted">
                 Chunk {chunk.chunk_index + 1} ({chunk.start_char}-{chunk.end_char})

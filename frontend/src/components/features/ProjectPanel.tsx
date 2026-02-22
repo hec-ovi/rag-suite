@@ -29,7 +29,7 @@ export function ProjectPanel({
           type="button"
           onClick={onProjectCreate}
           disabled={disabled}
-          className="rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-60"
+          className="bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-60"
         >
           Create
         </button>
@@ -41,7 +41,7 @@ export function ProjectPanel({
           <input
             value={projectNameDraft}
             onChange={(event) => onProjectNameDraftChange(event.target.value)}
-            className="rounded-lg border border-border bg-background px-3 py-2 text-foreground"
+            className="border border-border bg-background px-3 py-2 text-foreground"
             placeholder="Legal Corpus 2026"
           />
         </label>
@@ -51,7 +51,7 @@ export function ProjectPanel({
           <select
             value={selectedProjectId}
             onChange={(event) => onProjectSelect(event.target.value)}
-            className="rounded-lg border border-border bg-background px-3 py-2 text-foreground"
+            className="border border-border bg-background px-3 py-2 text-foreground"
           >
             <option value="">Select project...</option>
             {projects.map((project) => (

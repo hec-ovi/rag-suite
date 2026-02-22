@@ -85,7 +85,7 @@ function App() {
   const projectsView = <ProjectsExplorer projects={state.projects} />
 
   return (
-    <div className="min-h-screen bg-grid-gradient text-foreground">
+    <div className="flex h-screen flex-col overflow-hidden bg-grid-gradient text-foreground">
       <Header currentView={currentView} onViewChange={setView} themeMode={mode} onThemeModeChange={setMode} />
       <MainContent currentView={currentView} ingestionView={ingestionView} projectsView={projectsView} />
       <Footer />

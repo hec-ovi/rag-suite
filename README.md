@@ -1,5 +1,12 @@
 # RAG Suite
 
+![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688?logo=fastapi&logoColor=white)
+![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=111111)
+![Qdrant](https://img.shields.io/badge/Qdrant-Vector%20DB-DC244C)
+![Ollama](https://img.shields.io/badge/Ollama-Local%20Inference-111111)
+![Docker Compose](https://img.shields.io/badge/Docker%20Compose-Stack-2496ED?logo=docker&logoColor=white)
+
 Production-focused RAG platform with a quality-first ingestion pipeline.
 
 ## Stage 0 Scope
