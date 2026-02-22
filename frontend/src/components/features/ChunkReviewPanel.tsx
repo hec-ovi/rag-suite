@@ -90,7 +90,7 @@ export function ChunkReviewPanel({
           <div className="grid gap-3 md:grid-cols-3">
             <div
               onClick={() => onChunkModeChange("")}
-              className={`cursor-pointer border p-3 text-left ${modeCardClass(chunkMode === "")}`}
+              className={`flex h-full cursor-pointer flex-col border p-3 text-left ${modeCardClass(chunkMode === "")}`}
             >
               <p className="mb-1 font-semibold text-foreground">Disabled (default)</p>
               <p className="text-sm text-muted">No chunk mode selected yet.</p>
@@ -98,16 +98,16 @@ export function ChunkReviewPanel({
 
             <div
               onClick={() => onChunkModeChange("deterministic")}
-              className={`cursor-pointer border p-3 text-left ${modeCardClass(chunkMode === "deterministic")}`}
+              className={`flex h-full cursor-pointer flex-col border p-3 text-left ${modeCardClass(chunkMode === "deterministic")}`}
             >
               <p className="mb-1 font-semibold text-foreground">Deterministic</p>
               <p className="text-sm text-muted">Fast paragraph-aware boundaries, stable and repeatable.</p>
-              <div className="mt-3 flex justify-start">
+              <div className="mt-auto flex justify-start pt-3">
                 <button
                   type="button"
                   onClick={() => void onRunChunking("deterministic")}
                   disabled={disabled}
-                  className="border border-border bg-surface px-2 py-1 text-xs font-semibold text-foreground disabled:opacity-60"
+                  className="bg-primary px-2 py-1 text-xs font-semibold text-primary-foreground disabled:opacity-60"
                 >
                   Generate
                 </button>
@@ -116,16 +116,16 @@ export function ChunkReviewPanel({
 
             <div
               onClick={() => onChunkModeChange("agentic")}
-              className={`cursor-pointer border p-3 text-left ${modeCardClass(chunkMode === "agentic")}`}
+              className={`flex h-full cursor-pointer flex-col border p-3 text-left ${modeCardClass(chunkMode === "agentic")}`}
             >
               <p className="mb-1 font-semibold text-foreground">Agentic (experimental)</p>
               <p className="text-sm text-muted">Agent proposes semantic boundaries when structure is noisy.</p>
-              <div className="mt-3 flex justify-start">
+              <div className="mt-auto flex justify-start pt-3">
                 <button
                   type="button"
                   onClick={() => void onRunChunking("agentic")}
                   disabled={disabled}
-                  className="border border-border bg-surface px-2 py-1 text-xs font-semibold text-foreground disabled:opacity-60"
+                  className="bg-primary px-2 py-1 text-xs font-semibold text-primary-foreground disabled:opacity-60"
                 >
                   Generate
                 </button>
