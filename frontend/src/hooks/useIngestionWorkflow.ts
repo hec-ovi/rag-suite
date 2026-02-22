@@ -30,6 +30,7 @@ interface WorkflowState {
   fileName: string
   rawText: string
   normalizedText: string
+  normalizationEnabled: boolean
   chunks: ChunkProposal[]
   contextualizedChunks: ContextualizedChunk[]
   chunkMode: ReturnType<typeof useIngestionStore.getState>["chunkMode"]
@@ -78,6 +79,18 @@ function extractApiErrorMessage(error: unknown): string {
   return "Unexpected error"
 }
 
+function buildDirectContextualizedChunks(chunks: ChunkProposal[]): ContextualizedChunk[] {
+  return chunks.map((chunk) => ({
+    chunk_index: chunk.chunk_index,
+    start_char: chunk.start_char,
+    end_char: chunk.end_char,
+    rationale: chunk.rationale,
+    chunk_text: chunk.text,
+    context_header: "",
+    contextualized_text: chunk.text,
+  }))
+}
+
 export function useIngestionWorkflow(): { state: WorkflowState; actions: WorkflowActions } {
   const queryClient = useQueryClient()
 
@@ -88,6 +101,7 @@ export function useIngestionWorkflow(): { state: WorkflowState; actions: Workflo
     fileName,
     rawText,
     normalizedText,
+    normalizationEnabled,
     chunks,
     contextualizedChunks,
     chunkMode,
@@ -104,6 +118,7 @@ export function useIngestionWorkflow(): { state: WorkflowState; actions: Workflo
     setFileName,
     setRawText,
     setNormalizedText,
+    setNormalizationEnabled,
     setChunkMode,
     setContextMode,
     setChunkOptions,
@@ -162,11 +177,11 @@ export function useIngestionWorkflow(): { state: WorkflowState; actions: Workflo
   const isChunking = chunkMutation.isPending
 
   const diffLines = useMemo(() => {
-    if (normalizedText.trim().length === 0) {
+    if (!normalizationEnabled || normalizedText.trim().length === 0) {
       return []
     }
     return buildLineDiff(rawText, normalizedText)
-  }, [normalizedText, rawText])
+  }, [normalizationEnabled, normalizedText, rawText])
 
   async function refreshProjects(): Promise<void> {
     await queryClient.invalidateQueries({ queryKey: ["projects"] })
@@ -202,6 +217,7 @@ export function useIngestionWorkflow(): { state: WorkflowState; actions: Workflo
       setFileName(file.name)
       setRawText(text)
       setNormalizedText("")
+      setNormalizationEnabled(false)
       setChunks([])
       setContextualizedChunks([])
       setStatusMessage("Text extracted. Run normalization next.")
@@ -211,8 +227,22 @@ export function useIngestionWorkflow(): { state: WorkflowState; actions: Workflo
   }
 
   async function runNormalize(): Promise<void> {
+    if (normalizationEnabled) {
+      setNormalizationEnabled(false)
+      setErrorMessage("")
+      setStatusMessage("Normalization disabled. Raw text is active.")
+      return
+    }
+
     if (rawText.trim().length === 0) {
       setErrorMessage("Provide raw text before normalization.")
+      return
+    }
+
+    if (normalizedText.trim().length > 0) {
+      setNormalizationEnabled(true)
+      setErrorMessage("")
+      setStatusMessage("Normalization enabled.")
       return
     }
 
@@ -225,14 +255,15 @@ export function useIngestionWorkflow(): { state: WorkflowState; actions: Workflo
         remove_repeated_short_lines: true,
       })
       setNormalizedText(response.normalized_text)
-      setStatusMessage("Normalization completed.")
+      setNormalizationEnabled(true)
+      setStatusMessage("Normalization enabled.")
     } catch (error) {
       setErrorMessage(extractApiErrorMessage(error))
     }
   }
 
   async function runChunking(): Promise<void> {
-    const source = normalizedText.trim().length > 0 ? normalizedText : rawText
+    const source = normalizationEnabled && normalizedText.trim().length > 0 ? normalizedText : rawText
     if (source.trim().length === 0) {
       setErrorMessage("Provide normalized or raw text before chunking.")
       return
@@ -277,8 +308,16 @@ export function useIngestionWorkflow(): { state: WorkflowState; actions: Workflo
       return
     }
 
+    if (contextMode === "disabled") {
+      const passthroughChunks = buildDirectContextualizedChunks(chunks)
+      setContextualizedChunks(passthroughChunks)
+      setErrorMessage("")
+      setStatusMessage("Context headers disabled. Using chunk text directly.")
+      return
+    }
+
     const selectedContextMode = contextMode as ContextMode
-    const source = normalizedText.trim().length > 0 ? normalizedText : rawText
+    const source = normalizationEnabled && normalizedText.trim().length > 0 ? normalizedText : rawText
     setErrorMessage("")
     setStatusMessage("Generating contextual headers...")
 
@@ -304,7 +343,7 @@ export function useIngestionWorkflow(): { state: WorkflowState; actions: Workflo
     }
 
     const chunkModeForAutomatic: ChunkMode = chunkMode === "" ? "deterministic" : chunkMode
-    const contextModeForAutomatic: ContextMode = contextMode === "" ? "llm" : contextMode
+    const contextModeForAutomatic: ContextMode = contextMode === "template" ? "template" : "llm"
 
     setErrorMessage("")
     setStatusMessage("Running automatic preview pipeline...")
@@ -325,6 +364,7 @@ export function useIngestionWorkflow(): { state: WorkflowState; actions: Workflo
       })
 
       setNormalizedText(response.normalized_text)
+      setNormalizationEnabled(true)
       setChunks(response.chunks)
       setContextualizedChunks(response.contextualized_chunks)
       setStatusMessage("Automatic preview completed.")
@@ -339,13 +379,17 @@ export function useIngestionWorkflow(): { state: WorkflowState; actions: Workflo
       return
     }
 
-    if (contextualizedChunks.length === 0) {
+    const chunkModeForPersist: ChunkMode = chunkMode === "" ? "deterministic" : chunkMode
+    const contextModeForPersist: ContextMode = contextMode === "template" ? "template" : "llm"
+    const chunksForIngest =
+      contextMode === "disabled"
+        ? buildDirectContextualizedChunks(chunks)
+        : contextualizedChunks
+
+    if (chunksForIngest.length === 0) {
       setErrorMessage("Generate contextualized chunks before manual ingest.")
       return
     }
-
-    const chunkModeForPersist: ChunkMode = chunkMode === "" ? "deterministic" : chunkMode
-    const contextModeForPersist: ContextMode = contextMode === "" ? "llm" : contextMode
 
     setErrorMessage("")
     setStatusMessage("Persisting approved manual chunks...")
@@ -368,8 +412,8 @@ export function useIngestionWorkflow(): { state: WorkflowState; actions: Workflo
           contextualization_mode: contextModeForPersist,
           llm_model: llmModel.trim() || undefined,
           embedding_model: embeddingModel.trim() || undefined,
-          normalized_text: normalizedText.length > 0 ? normalizedText : rawText,
-          approved_chunks: contextualizedChunks.map((chunk) => ({
+          normalized_text: normalizationEnabled && normalizedText.length > 0 ? normalizedText : rawText,
+          approved_chunks: chunksForIngest.map((chunk) => ({
             chunk_index: chunk.chunk_index,
             start_char: chunk.start_char,
             end_char: chunk.end_char,
@@ -400,7 +444,7 @@ export function useIngestionWorkflow(): { state: WorkflowState; actions: Workflo
     }
 
     const chunkModeForAutomatic: ChunkMode = chunkMode === "" ? "deterministic" : chunkMode
-    const contextModeForAutomatic: ContextMode = contextMode === "" ? "llm" : contextMode
+    const contextModeForAutomatic: ContextMode = contextMode === "template" ? "template" : "llm"
 
     setErrorMessage("")
     setStatusMessage("Running automatic ingest and indexing...")
@@ -440,6 +484,7 @@ export function useIngestionWorkflow(): { state: WorkflowState; actions: Workflo
     fileName,
     rawText,
     normalizedText,
+    normalizationEnabled,
     chunks,
     contextualizedChunks,
     chunkMode,
@@ -460,7 +505,13 @@ export function useIngestionWorkflow(): { state: WorkflowState; actions: Workflo
     createProject: handleCreateProject,
     setProjectNameDraft,
     setSelectedProjectId,
-    setRawText,
+    setRawText: (value) => {
+      setRawText(value)
+      setNormalizedText("")
+      setNormalizationEnabled(false)
+      setChunks([])
+      setContextualizedChunks([])
+    },
     setChunkMode,
     setContextMode,
     setChunkOptions,

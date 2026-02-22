@@ -1,7 +1,4 @@
-import type { PipelineAutomationFlags, ProjectRecord } from "../../types/pipeline"
-import { IngestionActionsPanel } from "./IngestionActionsPanel"
-import { ProjectPanel } from "./ProjectPanel"
-import { SourceEditorPanel } from "./SourceEditorPanel"
+import type { ChunkModeSelection, ContextModeSelection, PipelineAutomationFlags, ProjectRecord } from "../../types/pipeline"
 import { SectionCard } from "../ui/SectionCard"
 
 interface AutoIngestionPanelProps {
@@ -11,8 +8,8 @@ interface AutoIngestionPanelProps {
   fileName: string
   rawText: string
   automation: PipelineAutomationFlags
-  llmModel: string
-  embeddingModel: string
+  chunkMode: ChunkModeSelection
+  contextMode: ContextModeSelection
   statusMessage: string
   errorMessage: string
   isBusy: boolean
@@ -22,10 +19,8 @@ interface AutoIngestionPanelProps {
   onRawTextChange: (value: string) => void
   onFileSelect: (file: File) => Promise<void>
   onAutomationFlagChange: (key: "normalize_text" | "agentic_chunking" | "contextual_headers", value: boolean) => void
-  onLlmModelChange: (value: string) => void
-  onEmbeddingModelChange: (value: string) => void
-  onAutomaticPreview: () => Promise<void>
-  onManualIngest: () => Promise<void>
+  onChunkModeChange: (mode: ChunkModeSelection) => void
+  onContextModeChange: (mode: ContextModeSelection) => void
   onAutomaticIngest: () => Promise<void>
 }
 
@@ -36,8 +31,8 @@ export function AutoIngestionPanel({
   fileName,
   rawText,
   automation,
-  llmModel,
-  embeddingModel,
+  chunkMode,
+  contextMode,
   statusMessage,
   errorMessage,
   isBusy,
@@ -47,59 +42,191 @@ export function AutoIngestionPanel({
   onRawTextChange,
   onFileSelect,
   onAutomationFlagChange,
-  onLlmModelChange,
-  onEmbeddingModelChange,
-  onAutomaticPreview,
-  onManualIngest,
+  onChunkModeChange,
+  onContextModeChange,
   onAutomaticIngest,
 }: AutoIngestionPanelProps) {
   const projectReady = selectedProjectId.length > 0
+  const sourceReady = rawText.trim().length > 0
+  const canCreate = projectNameDraft.trim().length >= 2
+  const canIngest = projectReady && sourceReady && chunkMode !== "" && contextMode !== ""
 
   return (
     <section className="space-y-4">
-      <SectionCard
-        title="Auto-Ingest Mode"
-        subtitle="One-shot path. Configure flags and run preview or full ingestion after project + source setup."
-      >
-        <p className="font-mono text-xs text-muted">Flow: Project -&gt; Source -&gt; Auto Preview -&gt; Auto Ingest</p>
+      <SectionCard title="AUTOMATED/CLASSIC" subtitle="">
+        <div className="grid gap-3 md:grid-cols-2">
+          <section className="border border-border bg-background p-3">
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">Existing Project</p>
+            <select
+              value={selectedProjectId}
+              onChange={(event) => onProjectSelect(event.target.value)}
+              className="w-full border border-border bg-background px-3 py-2 text-foreground"
+            >
+              <option value="">Select project...</option>
+              {projects.map((project) => (
+                <option key={project.id} value={project.id}>
+                  {project.name}
+                </option>
+              ))}
+            </select>
+          </section>
+
+          <section className="border border-border bg-background p-3">
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">Create Project</p>
+            <div className="grid gap-2 md:grid-cols-[1fr_auto]">
+              <input
+                value={projectNameDraft}
+                onChange={(event) => onProjectNameDraftChange(event.target.value)}
+                className="border border-border bg-background px-3 py-2 text-foreground"
+                placeholder="Project name"
+              />
+              <button
+                type="button"
+                onClick={onProjectCreate}
+                disabled={isBusy || !canCreate}
+                className="bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-60"
+              >
+                Create
+              </button>
+            </div>
+          </section>
+        </div>
+
+        <section className="mt-3 border border-border bg-background p-3">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">Source</p>
+          <div className="mb-2 flex flex-wrap items-center gap-3">
+            <label
+              className={`inline-flex items-center gap-2 border border-border px-3 py-2 text-sm font-medium ${
+                isBusy || !projectReady
+                  ? "cursor-not-allowed bg-background text-muted"
+                  : "cursor-pointer bg-surface text-foreground"
+              }`}
+            >
+              <input
+                type="file"
+                accept=".pdf,.docx,.txt,text/plain,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                onChange={(event) => {
+                  const file = event.target.files?.[0]
+                  if (file !== undefined) {
+                    void onFileSelect(file)
+                  }
+                }}
+                disabled={isBusy || !projectReady}
+                className="hidden"
+              />
+              Upload
+            </label>
+            <span className="text-sm text-muted">{fileName.length > 0 ? fileName : "Or paste text below"}</span>
+          </div>
+          <textarea
+            value={rawText}
+            onChange={(event) => onRawTextChange(event.target.value)}
+            disabled={isBusy || !projectReady}
+            className="h-40 w-full border border-border bg-background p-3 font-mono text-sm text-foreground"
+            placeholder="Paste source text..."
+          />
+        </section>
+
+        <section className="mt-3 grid gap-3 md:grid-cols-3">
+          <fieldset className="border border-border bg-background p-3">
+            <legend className="px-1 text-xs font-semibold uppercase tracking-wide text-muted">Normalization</legend>
+            <label className="mt-2 flex items-center gap-2 text-sm text-foreground">
+              <input
+                type="radio"
+                name="auto-normalization"
+                checked={automation.normalize_text}
+                onChange={() => onAutomationFlagChange("normalize_text", true)}
+              />
+              Enabled
+            </label>
+            <label className="mt-2 flex items-center gap-2 text-sm text-foreground">
+              <input
+                type="radio"
+                name="auto-normalization"
+                checked={!automation.normalize_text}
+                onChange={() => onAutomationFlagChange("normalize_text", false)}
+              />
+              Disabled
+            </label>
+          </fieldset>
+
+          <fieldset className="border border-border bg-background p-3">
+            <legend className="px-1 text-xs font-semibold uppercase tracking-wide text-muted">Chunk Mode</legend>
+            <label className="mt-2 flex items-center gap-2 text-sm text-foreground">
+              <input
+                type="radio"
+                name="auto-chunk-mode"
+                checked={chunkMode === "deterministic"}
+                onChange={() => onChunkModeChange("deterministic")}
+              />
+              Deterministic
+            </label>
+            <label className="mt-2 flex items-center gap-2 text-sm text-foreground">
+              <input
+                type="radio"
+                name="auto-chunk-mode"
+                checked={chunkMode === "agentic"}
+                onChange={() => onChunkModeChange("agentic")}
+              />
+              Agentic
+            </label>
+          </fieldset>
+
+          <fieldset className="border border-border bg-background p-3">
+            <legend className="px-1 text-xs font-semibold uppercase tracking-wide text-muted">Context Headers</legend>
+            <label className="mt-2 flex items-center gap-2 text-sm text-foreground">
+              <input
+                type="radio"
+                name="auto-context-mode"
+                checked={contextMode === "disabled"}
+                onChange={() => {
+                  onContextModeChange("disabled")
+                  onAutomationFlagChange("contextual_headers", false)
+                }}
+              />
+              Disabled
+            </label>
+            <label className="mt-2 flex items-center gap-2 text-sm text-foreground">
+              <input
+                type="radio"
+                name="auto-context-mode"
+                checked={contextMode === "template"}
+                onChange={() => {
+                  onContextModeChange("template")
+                  onAutomationFlagChange("contextual_headers", true)
+                }}
+              />
+              Template
+            </label>
+            <label className="mt-2 flex items-center gap-2 text-sm text-foreground">
+              <input
+                type="radio"
+                name="auto-context-mode"
+                checked={contextMode === "llm"}
+                onChange={() => {
+                  onContextModeChange("llm")
+                  onAutomationFlagChange("contextual_headers", true)
+                }}
+              />
+              LLM
+            </label>
+          </fieldset>
+        </section>
+
+        <button
+          type="button"
+          onClick={onAutomaticIngest}
+          disabled={isBusy || !canIngest}
+          className="mt-3 w-full bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-60"
+        >
+          Ingest
+        </button>
+
+        <div className="mt-3 border border-border bg-background px-3 py-2">
+          <p className="font-mono text-xs text-muted">{statusMessage}</p>
+          {errorMessage.length > 0 ? <p className="mt-1 font-mono text-xs text-danger">Error: {errorMessage}</p> : null}
+        </div>
       </SectionCard>
-
-      <ProjectPanel
-        projects={projects}
-        selectedProjectId={selectedProjectId}
-        projectNameDraft={projectNameDraft}
-        onProjectNameDraftChange={onProjectNameDraftChange}
-        onProjectCreate={onProjectCreate}
-        onProjectSelect={onProjectSelect}
-        disabled={isBusy}
-      />
-
-      <SourceEditorPanel
-        fileName={fileName}
-        rawText={rawText}
-        onRawTextChange={onRawTextChange}
-        onFileSelect={onFileSelect}
-        disabled={isBusy}
-        projectReady={projectReady}
-      />
-
-      <IngestionActionsPanel
-        automation={automation}
-        llmModel={llmModel}
-        embeddingModel={embeddingModel}
-        statusMessage={statusMessage}
-        errorMessage={errorMessage}
-        onAutomationFlagChange={onAutomationFlagChange}
-        onLlmModelChange={onLlmModelChange}
-        onEmbeddingModelChange={onEmbeddingModelChange}
-        onAutomaticPreview={onAutomaticPreview}
-        onManualIngest={onManualIngest}
-        onAutomaticIngest={onAutomaticIngest}
-        disabled={isBusy}
-        mode="automatic"
-        title="Auto Controls"
-        subtitle="Use automation flags, then preview or ingest directly."
-      />
     </section>
   )
 }

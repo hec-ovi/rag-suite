@@ -18,8 +18,8 @@ const modeCycle: Record<ThemeMode, ThemeMode> = {
 
 const menuLabels: Record<ViewId, string> = {
   start: "Start Here",
-  ingestion: "Ingest",
-  auto_ingest: "Auto-Ingest",
+  ingestion: "HITL",
+  auto_ingest: "AUTOMATED/CLASSIC",
   projects: "Projects",
 }
 

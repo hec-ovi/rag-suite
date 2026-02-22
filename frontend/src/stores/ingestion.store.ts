@@ -17,6 +17,7 @@ interface IngestionStore {
   fileName: string
   rawText: string
   normalizedText: string
+  normalizationEnabled: boolean
 
   chunkMode: ChunkModeSelection
   chunkOptions: {
@@ -42,6 +43,7 @@ interface IngestionStore {
   setFileName: (fileName: string) => void
   setRawText: (text: string) => void
   setNormalizedText: (text: string) => void
+  setNormalizationEnabled: (enabled: boolean) => void
   setChunkMode: (mode: ChunkModeSelection) => void
   setChunkOptions: (options: { maxChunkChars: number; minChunkChars: number; overlapChars: number }) => void
   setChunks: (chunks: ChunkProposal[]) => void
@@ -69,6 +71,7 @@ export const useIngestionStore = create<IngestionStore>((set) => ({
   fileName: "",
   rawText: "",
   normalizedText: "",
+  normalizationEnabled: false,
 
   chunkMode: "",
   chunkOptions: {
@@ -78,7 +81,7 @@ export const useIngestionStore = create<IngestionStore>((set) => ({
   },
   chunks: [],
 
-  contextMode: "",
+  contextMode: "disabled",
   contextualizedChunks: [],
 
   automation: defaultAutomation,
@@ -93,13 +96,14 @@ export const useIngestionStore = create<IngestionStore>((set) => ({
       projects,
       selectedProjectId: projects.some((project) => project.id === state.selectedProjectId)
         ? state.selectedProjectId
-        : projects.at(0)?.id || "",
+        : "",
     })),
   setSelectedProjectId: (selectedProjectId) => set({ selectedProjectId }),
   setProjectNameDraft: (projectNameDraft) => set({ projectNameDraft }),
   setFileName: (fileName) => set({ fileName }),
   setRawText: (rawText) => set({ rawText }),
   setNormalizedText: (normalizedText) => set({ normalizedText }),
+  setNormalizationEnabled: (normalizationEnabled) => set({ normalizationEnabled }),
   setChunkMode: (chunkMode) => set({ chunkMode }),
   setChunkOptions: (chunkOptions) => set({ chunkOptions }),
   setChunks: (chunks) => set({ chunks }),
@@ -114,6 +118,7 @@ export const useIngestionStore = create<IngestionStore>((set) => ({
     set({
       rawText: "",
       normalizedText: "",
+      normalizationEnabled: false,
       chunks: [],
       contextualizedChunks: [],
       fileName: "",

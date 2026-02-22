@@ -23,7 +23,7 @@ interface IngestionWorkbenchProps {
   projectNameDraft: string
   fileName: string
   rawText: string
-  normalizedText: string
+  normalizationEnabled: boolean
   chunks: ChunkProposal[]
   contextualizedChunks: ContextualizedChunk[]
   chunkMode: ChunkModeSelection
@@ -46,7 +46,7 @@ interface IngestionWorkbenchProps {
   onProjectSelect: (projectId: string) => void
   onRawTextChange: (value: string) => void
   onFileSelect: (file: File) => Promise<void>
-  onNormalize: () => Promise<void>
+  onToggleNormalization: () => Promise<void>
   onChunkModeChange: (mode: ChunkModeSelection) => void
   onChunkOptionsChange: (options: { maxChunkChars: number; minChunkChars: number; overlapChars: number }) => void
   onRunChunking: () => Promise<void>
@@ -69,7 +69,7 @@ const tabLabels: Record<IngestionTabId, string> = {
   normalize: "3. Normalize",
   chunk: "4. Chunk",
   context: "5. Contextual Retrieval",
-  manual: "6. Ingest Data",
+  manual: "6. HITL Ingest",
 }
 
 const tabHint: Record<IngestionTabId, string> = {
@@ -103,7 +103,7 @@ export function IngestionWorkbench({
   projectNameDraft,
   fileName,
   rawText,
-  normalizedText,
+  normalizationEnabled,
   chunks,
   contextualizedChunks,
   chunkMode,
@@ -122,7 +122,7 @@ export function IngestionWorkbench({
   onProjectSelect,
   onRawTextChange,
   onFileSelect,
-  onNormalize,
+  onToggleNormalization,
   onChunkModeChange,
   onChunkOptionsChange,
   onRunChunking,
@@ -141,9 +141,11 @@ export function IngestionWorkbench({
   const sourceReady = rawText.trim().length > 0
   const chunkModeSelected = chunkMode !== ""
   const contextModeSelected = contextMode !== ""
+  const contextDisabled = contextMode === "disabled"
+  const contextReady = contextDisabled ? chunks.length > 0 : contextModeSelected && contextualizedChunks.length > 0
 
   const progressLabel = useMemo(() => {
-    return "Flow: Project -> Source -> Normalize -> Chunk -> Contextual Retrieval -> Ingest Data"
+    return "Flow: Project -> Source -> Normalize -> Chunk -> Contextual Retrieval -> HITL Ingest"
   }, [])
 
   const hasPrevious = tabOrder.indexOf(activeTab) > 0
@@ -154,7 +156,7 @@ export function IngestionWorkbench({
     normalize: projectReady && sourceReady,
     chunk: projectReady && sourceReady,
     context: projectReady && sourceReady && chunkModeSelected && chunks.length > 0,
-    manual: projectReady && sourceReady && contextModeSelected && contextualizedChunks.length > 0,
+    manual: projectReady && sourceReady && chunkModeSelected && chunks.length > 0 && contextReady,
   }
   const canGoNext = useMemo(() => {
     if (activeTab === "project") {
@@ -170,10 +172,10 @@ export function IngestionWorkbench({
       return chunkModeSelected && chunks.length > 0
     }
     if (activeTab === "context") {
-      return contextModeSelected && contextualizedChunks.length > 0
+      return contextReady
     }
     return false
-  }, [activeTab, chunkModeSelected, chunks.length, contextModeSelected, contextualizedChunks.length, projectReady, sourceReady])
+  }, [activeTab, chunkModeSelected, chunks.length, contextReady, projectReady, sourceReady])
 
   return (
     <section className="space-y-4">
@@ -225,9 +227,9 @@ export function IngestionWorkbench({
       {activeTab === "normalize" ? (
         <NormalizationPanel
           rawText={rawText}
-          normalizedText={normalizedText}
+          normalizationEnabled={normalizationEnabled}
           diffLines={diffLines}
-          onNormalize={onNormalize}
+          onToggleNormalization={onToggleNormalization}
           disabled={isBusy}
         />
       ) : null}
@@ -248,8 +250,8 @@ export function IngestionWorkbench({
       {activeTab === "context" ? (
         <ContextReviewPanel
           contextMode={contextMode}
+          chunks={chunks}
           contextualizedChunks={contextualizedChunks}
-          hasChunkCandidates={chunks.length > 0}
           onContextModeChange={onContextModeChange}
           onContextualizedChunksChange={onContextualizedChunksChange}
           onRunContextualization={onRunContextualization}
@@ -272,7 +274,7 @@ export function IngestionWorkbench({
           onAutomaticIngest={onAutomaticIngest}
           disabled={isBusy}
           mode="manual"
-          title="STEP 6 - Ingest Data"
+          title="STEP 6 - HITL Ingest"
           subtitle="Persist reviewed chunks into Qdrant."
         />
       ) : null}

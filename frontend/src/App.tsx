@@ -23,7 +23,7 @@ function App() {
       projectNameDraft={state.projectNameDraft}
       fileName={state.fileName}
       rawText={state.rawText}
-      normalizedText={state.normalizedText}
+      normalizationEnabled={state.normalizationEnabled}
       chunks={state.chunks}
       contextualizedChunks={state.contextualizedChunks}
       chunkMode={state.chunkMode}
@@ -42,7 +42,7 @@ function App() {
       onProjectSelect={actions.setSelectedProjectId}
       onRawTextChange={actions.setRawText}
       onFileSelect={actions.handleFileSelected}
-      onNormalize={actions.runNormalize}
+      onToggleNormalization={actions.runNormalize}
       onChunkModeChange={actions.setChunkMode}
       onChunkOptionsChange={actions.setChunkOptions}
       onRunChunking={actions.runChunking}
@@ -66,8 +66,8 @@ function App() {
       fileName={state.fileName}
       rawText={state.rawText}
       automation={state.automation}
-      llmModel={state.llmModel}
-      embeddingModel={state.embeddingModel}
+      chunkMode={state.chunkMode}
+      contextMode={state.contextMode}
       statusMessage={state.statusMessage}
       errorMessage={state.errorMessage}
       isBusy={state.isBusy}
@@ -77,10 +77,8 @@ function App() {
       onRawTextChange={actions.setRawText}
       onFileSelect={actions.handleFileSelected}
       onAutomationFlagChange={actions.setAutomationFlag}
-      onLlmModelChange={actions.setLlmModel}
-      onEmbeddingModelChange={actions.setEmbeddingModel}
-      onAutomaticPreview={actions.runAutomaticPreview}
-      onManualIngest={actions.runManualIngest}
+      onChunkModeChange={actions.setChunkMode}
+      onContextModeChange={actions.setContextMode}
       onAutomaticIngest={actions.runAutomaticIngest}
     />
   )
