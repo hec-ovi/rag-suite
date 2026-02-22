@@ -15,3 +15,7 @@ class ValidationDomainError(DomainError):
 
 class ExternalServiceError(DomainError):
     """Raised when an external dependency fails."""
+
+
+class OperationCancelledError(DomainError):
+    """Raised when a long-running operation is cancelled by the client."""

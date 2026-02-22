@@ -6,6 +6,7 @@ from fastapi import Request
 from sqlalchemy.orm import Session, sessionmaker
 
 from src.core.config import Settings
+from src.services.operation_manager import OperationManager
 
 
 def get_settings(request: Request) -> Settings:
@@ -20,3 +21,9 @@ def get_db_session(request: Request) -> Iterator[Session]:
     session_factory: sessionmaker[Session] = request.app.state.session_factory
     with session_factory() as session:
         yield session
+
+
+def get_operation_manager(request: Request) -> OperationManager:
+    """Return app-scoped operation manager used for cancellation."""
+
+    return request.app.state.operation_manager

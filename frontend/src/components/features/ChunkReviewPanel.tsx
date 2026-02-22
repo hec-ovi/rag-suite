@@ -14,6 +14,9 @@ interface ChunkReviewPanelProps {
   onChunksChange: (chunks: ChunkProposal[]) => void
   onChunkOptionsChange: (options: { maxChunkChars: number; minChunkChars: number; overlapChars: number }) => void
   onRunChunking: (mode?: ChunkModeSelection) => Promise<void>
+  onInterruptChunking: () => Promise<void>
+  statusMessage: string
+  errorMessage: string
   disabled: boolean
   isChunking: boolean
 }
@@ -56,6 +59,9 @@ export function ChunkReviewPanel({
   onChunksChange,
   onChunkOptionsChange,
   onRunChunking,
+  onInterruptChunking,
+  statusMessage,
+  errorMessage,
   disabled,
   isChunking,
 }: ChunkReviewPanelProps) {
@@ -195,15 +201,33 @@ export function ChunkReviewPanel({
         <section className="max-w-full overflow-hidden border border-border bg-background p-3">
           {isChunking ? (
             <div>
-              <div className="mb-2 flex items-center gap-2">
+              <div className="mb-2 flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
                 <span
                   aria-hidden="true"
                   className="inline-block h-3 w-3 animate-spin border border-primary border-t-transparent"
                 />
                 <p className="text-sm font-semibold text-foreground">{loadingLabel}</p>
+                </div>
+                {chunkMode === "agentic" ? (
+                  <button
+                    type="button"
+                    onClick={() => void onInterruptChunking()}
+                    className="border border-danger/50 bg-danger/10 px-2 py-1 text-xs font-semibold text-danger"
+                  >
+                    Interrupt
+                  </button>
+                ) : null}
               </div>
               <p className="text-xs text-muted animate-pulse">Previous chunk results were cleared for this new run.</p>
             </div>
+          ) : null}
+
+          {!isChunking && statusMessage.toLowerCase().includes("chunk") ? (
+            <p className="mb-2 text-xs text-muted">{statusMessage}</p>
+          ) : null}
+          {errorMessage.toLowerCase().includes("chunk") ? (
+            <p className="mb-2 text-xs text-danger">Error: {errorMessage}</p>
           ) : null}
 
           <div className="grid min-w-0 gap-3">

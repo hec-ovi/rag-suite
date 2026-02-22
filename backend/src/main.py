@@ -11,10 +11,17 @@ from sqlalchemy import Engine
 
 from src.core.config import load_settings
 from src.core.database import build_engine, build_session_factory, initialize_database
-from src.core.exceptions import DomainError, ExternalServiceError, ResourceNotFoundError, ValidationDomainError
+from src.core.exceptions import (
+    DomainError,
+    ExternalServiceError,
+    OperationCancelledError,
+    ResourceNotFoundError,
+    ValidationDomainError,
+)
 from src.routes.health import router as health_router
 from src.routes.pipeline import router as pipeline_router
 from src.routes.projects import router as projects_router
+from src.services.operation_manager import OperationManager
 
 
 @asynccontextmanager
@@ -30,6 +37,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     app.state.settings = settings
     app.state.engine = engine
     app.state.session_factory = session_factory
+    app.state.operation_manager = OperationManager()
 
     yield
 
@@ -309,6 +317,13 @@ async def handle_external_service(_: Request, exc: ExternalServiceError) -> JSON
     """Map external service failures to HTTP 502."""
 
     return JSONResponse(status_code=502, content={"detail": str(exc)})
+
+
+@app.exception_handler(OperationCancelledError)
+async def handle_operation_cancelled(_: Request, exc: OperationCancelledError) -> JSONResponse:
+    """Map user-triggered cancellation to 499-style client-closed response."""
+
+    return JSONResponse(status_code=499, content={"detail": str(exc)})
 
 
 @app.exception_handler(DomainError)

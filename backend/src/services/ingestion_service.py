@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import logging
 import uuid
 
@@ -7,7 +8,12 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from src.core.config import Settings
-from src.core.exceptions import ExternalServiceError, ResourceNotFoundError, ValidationDomainError
+from src.core.exceptions import (
+    ExternalServiceError,
+    OperationCancelledError,
+    ResourceNotFoundError,
+    ValidationDomainError,
+)
 from src.models.api.pipeline import (
     AutomaticPipelinePreviewRequest,
     AutomaticPipelinePreviewResponse,
@@ -74,7 +80,11 @@ class IngestionService:
             collapsed_whitespace_count=result.collapsed_whitespace_count,
         )
 
-    async def chunk_text(self, request: ChunkTextRequest) -> ChunkTextResponse:
+    async def chunk_text(
+        self,
+        request: ChunkTextRequest,
+        cancel_event: asyncio.Event | None = None,
+    ) -> ChunkTextResponse:
         """Create chunk proposals using selected mode."""
 
         chunks = await self._chunk_runtime(
@@ -84,6 +94,7 @@ class IngestionService:
             min_chunk_chars=request.min_chunk_chars,
             overlap_chars=request.overlap_chars,
             llm_model=request.llm_model,
+            cancel_event=cancel_event,
         )
 
         return ChunkTextResponse(
@@ -100,7 +111,11 @@ class IngestionService:
             ],
         )
 
-    async def contextualize_chunks(self, request: ContextualizeChunksRequest) -> ContextualizeChunksResponse:
+    async def contextualize_chunks(
+        self,
+        request: ContextualizeChunksRequest,
+        cancel_event: asyncio.Event | None = None,
+    ) -> ContextualizeChunksResponse:
         """Contextualize chunk proposals with headers."""
 
         runtime_chunks = [
@@ -121,6 +136,7 @@ class IngestionService:
             chunks=runtime_chunks,
             mode=request.mode,
             model=model_name,
+            cancel_event=cancel_event,
         )
 
         return ContextualizeChunksResponse(
@@ -371,8 +387,12 @@ class IngestionService:
         min_chunk_chars: int,
         overlap_chars: int,
         llm_model: str | None,
+        cancel_event: asyncio.Event | None = None,
     ) -> list[ChunkCandidate]:
         """Execute deterministic or agentic chunk selection."""
+
+        if cancel_event is not None and cancel_event.is_set():
+            raise OperationCancelledError("Chunking interrupted by user request.")
 
         if mode == "deterministic":
             return self._deterministic_chunker.chunk(
@@ -389,6 +409,7 @@ class IngestionService:
                 model=model_name,
                 max_chunk_chars=max_chunk_chars,
                 min_chunk_chars=min_chunk_chars,
+                cancel_event=cancel_event,
             )
         except (ExternalServiceError, ValidationDomainError) as error:
             logger.warning(

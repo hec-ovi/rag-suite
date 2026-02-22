@@ -1,10 +1,11 @@
-import { useEffect, useMemo } from "react"
+import { useEffect, useMemo, useRef } from "react"
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 
 import { buildLineDiff } from "../lib/text-diff"
 import { extractTextFromFile } from "../services/document-parser.service"
 import {
+  cancelPipelineOperation,
   contextualizeChunks,
   createProject,
   ingestDocument,
@@ -45,6 +46,7 @@ interface WorkflowState {
   diffLines: ReturnType<typeof buildLineDiff>
   isBusy: boolean
   isChunking: boolean
+  isContextualizing: boolean
   isVectorizing: boolean
 }
 
@@ -66,13 +68,35 @@ interface WorkflowActions {
   handleFileSelected: (file: File) => Promise<void>
   runNormalize: () => Promise<void>
   runChunking: (mode?: ChunkModeSelection) => Promise<void>
+  interruptChunking: () => Promise<void>
   runContextualization: (mode?: ContextModeSelection) => Promise<void>
+  interruptContextualization: () => Promise<void>
   runAutomaticPreview: () => Promise<void>
   runManualIngest: () => Promise<void>
   runAutomaticIngest: () => Promise<void>
 }
 
 const DEFAULT_DOCUMENT_NAME = "Untitled Document"
+
+function createOperationId(prefix: string): string {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return `${prefix}-${crypto.randomUUID()}`
+  }
+  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
+}
+
+function isAbortError(error: unknown): boolean {
+  if (error instanceof DOMException && error.name === "AbortError") {
+    return true
+  }
+
+  if (typeof error === "object" && error !== null && "name" in error) {
+    const typed = error as { name?: unknown }
+    return typed.name === "AbortError"
+  }
+
+  return false
+}
 
 function extractApiErrorMessage(error: unknown): string {
   if (typeof error === "object" && error !== null && "message" in error) {
@@ -99,6 +123,10 @@ function buildDirectContextualizedChunks(chunks: ChunkProposal[]): Contextualize
 
 export function useIngestionWorkflow(): { state: WorkflowState; actions: WorkflowActions } {
   const queryClient = useQueryClient()
+  const chunkAbortControllerRef = useRef<AbortController | null>(null)
+  const contextAbortControllerRef = useRef<AbortController | null>(null)
+  const chunkOperationIdRef = useRef<string>("")
+  const contextOperationIdRef = useRef<string>("")
 
   const {
     projects,
@@ -157,11 +185,27 @@ export function useIngestionWorkflow(): { state: WorkflowState; actions: Workflo
   })
 
   const chunkMutation = useMutation({
-    mutationFn: proposeChunks,
+    mutationFn: ({
+      payload,
+      signal,
+      operationId,
+    }: {
+      payload: Parameters<typeof proposeChunks>[0]
+      signal?: AbortSignal
+      operationId?: string
+    }) => proposeChunks(payload, { signal, operationId }),
   })
 
   const contextualizeMutation = useMutation({
-    mutationFn: contextualizeChunks,
+    mutationFn: ({
+      payload,
+      signal,
+      operationId,
+    }: {
+      payload: Parameters<typeof contextualizeChunks>[0]
+      signal?: AbortSignal
+      operationId?: string
+    }) => contextualizeChunks(payload, { signal, operationId }),
   })
 
   const previewMutation = useMutation({
@@ -181,6 +225,7 @@ export function useIngestionWorkflow(): { state: WorkflowState; actions: Workflo
     previewMutation.isPending ||
     ingestMutation.isPending
   const isChunking = chunkMutation.isPending
+  const isContextualizing = contextualizeMutation.isPending
   const isVectorizing = ingestMutation.isPending
 
   const diffLines = useMemo(() => {
@@ -189,6 +234,13 @@ export function useIngestionWorkflow(): { state: WorkflowState; actions: Workflo
     }
     return buildLineDiff(rawText, normalizedText)
   }, [normalizationEnabled, normalizedText, rawText])
+
+  useEffect(() => {
+    return () => {
+      chunkAbortControllerRef.current?.abort()
+      contextAbortControllerRef.current?.abort()
+    }
+  }, [])
 
   async function refreshProjects(): Promise<void> {
     await queryClient.invalidateQueries({ queryKey: ["projects"] })
@@ -292,21 +344,63 @@ export function useIngestionWorkflow(): { state: WorkflowState; actions: Workflo
     setErrorMessage("")
     setStatusMessage(`Generating ${selectedChunkMode} chunks...`)
 
+    const abortController = new AbortController()
+    const operationId = createOperationId("chunk")
+    chunkAbortControllerRef.current = abortController
+    chunkOperationIdRef.current = operationId
+
     try {
       const response = await chunkMutation.mutateAsync({
-        text: source,
-        mode: selectedChunkMode,
-        max_chunk_chars: chunkOptions.maxChunkChars,
-        min_chunk_chars: chunkOptions.minChunkChars,
-        overlap_chars: chunkOptions.overlapChars,
-        llm_model: llmModel.trim() || undefined,
+        payload: {
+          text: source,
+          mode: selectedChunkMode,
+          max_chunk_chars: chunkOptions.maxChunkChars,
+          min_chunk_chars: chunkOptions.minChunkChars,
+          overlap_chars: chunkOptions.overlapChars,
+          llm_model: llmModel.trim() || undefined,
+        },
+        signal: abortController.signal,
+        operationId,
       })
       setChunks(response.chunks)
       setContextualizedChunks([])
       setStatusMessage(`Chunking completed. ${response.chunks.length} chunks proposed.`)
     } catch (error) {
-      setErrorMessage(extractApiErrorMessage(error))
+      if (isAbortError(error)) {
+        setStatusMessage("Chunking interrupted.")
+        setErrorMessage("")
+      } else {
+        setErrorMessage(`Chunking failed: ${extractApiErrorMessage(error)}`)
+      }
+    } finally {
+      if (chunkAbortControllerRef.current === abortController) {
+        chunkAbortControllerRef.current = null
+      }
+      if (chunkOperationIdRef.current === operationId) {
+        chunkOperationIdRef.current = ""
+      }
     }
+  }
+
+  async function interruptChunking(): Promise<void> {
+    const operationId = chunkOperationIdRef.current
+
+    chunkAbortControllerRef.current?.abort()
+    chunkAbortControllerRef.current = null
+    chunkOperationIdRef.current = ""
+
+    if (operationId.length > 0) {
+      try {
+        await cancelPipelineOperation(operationId)
+      } catch {
+        // Best-effort backend cleanup; local interruption already completed.
+      }
+    }
+
+    setChunks([])
+    setContextualizedChunks([])
+    setErrorMessage("")
+    setStatusMessage("Chunking interrupted and cleared.")
   }
 
   async function runContextualization(mode?: ContextModeSelection): Promise<void> {
@@ -338,19 +432,60 @@ export function useIngestionWorkflow(): { state: WorkflowState; actions: Workflo
     setErrorMessage("")
     setStatusMessage("Generating contextual headers...")
 
+    const abortController = new AbortController()
+    const operationId = createOperationId("context")
+    contextAbortControllerRef.current = abortController
+    contextOperationIdRef.current = operationId
+
     try {
       const response = await contextualizeMutation.mutateAsync({
-        document_name: fileName.trim().length > 0 ? fileName : DEFAULT_DOCUMENT_NAME,
-        full_document_text: source,
-        chunks,
-        mode: selectedContextMode,
-        llm_model: llmModel.trim() || undefined,
+        payload: {
+          document_name: fileName.trim().length > 0 ? fileName : DEFAULT_DOCUMENT_NAME,
+          full_document_text: source,
+          chunks,
+          mode: selectedContextMode,
+          llm_model: llmModel.trim() || undefined,
+        },
+        signal: abortController.signal,
+        operationId,
       })
       setContextualizedChunks(response.chunks)
       setStatusMessage(`Contextualization completed. ${response.chunks.length} chunks enriched.`)
     } catch (error) {
-      setErrorMessage(extractApiErrorMessage(error))
+      if (isAbortError(error)) {
+        setStatusMessage("Contextual retrieval interrupted.")
+        setErrorMessage("")
+      } else {
+        setErrorMessage(`Contextual retrieval failed: ${extractApiErrorMessage(error)}`)
+      }
+    } finally {
+      if (contextAbortControllerRef.current === abortController) {
+        contextAbortControllerRef.current = null
+      }
+      if (contextOperationIdRef.current === operationId) {
+        contextOperationIdRef.current = ""
+      }
     }
+  }
+
+  async function interruptContextualization(): Promise<void> {
+    const operationId = contextOperationIdRef.current
+
+    contextAbortControllerRef.current?.abort()
+    contextAbortControllerRef.current = null
+    contextOperationIdRef.current = ""
+
+    if (operationId.length > 0) {
+      try {
+        await cancelPipelineOperation(operationId)
+      } catch {
+        // Best-effort backend cleanup; local interruption already completed.
+      }
+    }
+
+    setContextualizedChunks([])
+    setErrorMessage("")
+    setStatusMessage("Contextual retrieval interrupted and cleared.")
   }
 
   async function runAutomaticPreview(): Promise<void> {
@@ -519,6 +654,7 @@ export function useIngestionWorkflow(): { state: WorkflowState; actions: Workflo
     diffLines,
     isBusy,
     isChunking,
+    isContextualizing,
     isVectorizing,
   }
 
@@ -555,7 +691,9 @@ export function useIngestionWorkflow(): { state: WorkflowState; actions: Workflo
     handleFileSelected,
     runNormalize,
     runChunking,
+    interruptChunking,
     runContextualization,
+    interruptContextualization,
     runAutomaticPreview,
     runManualIngest,
     runAutomaticIngest,

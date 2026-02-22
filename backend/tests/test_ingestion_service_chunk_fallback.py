@@ -13,7 +13,14 @@ from src.tools.normalize_text import DeterministicTextNormalizer
 
 
 class _FailingAgenticChunker:
-    async def chunk(self, text: str, model: str, max_chunk_chars: int, min_chunk_chars: int):  # noqa: ARG002
+    async def chunk(  # noqa: ARG002
+        self,
+        text: str,
+        model: str,
+        max_chunk_chars: int,
+        min_chunk_chars: int,
+        cancel_event: object | None = None,
+    ):
         raise ExternalServiceError("simulated agentic failure")
 
 

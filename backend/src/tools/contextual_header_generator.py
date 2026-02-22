@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import asyncio
+
+from src.core.exceptions import OperationCancelledError
 from src.models.runtime.pipeline import ChunkCandidate, ContextualizedChunkCandidate
 from src.tools.ollama_chat_client import OllamaChatClient
 from src.tools.prompt_loader import PromptLoader
@@ -19,18 +22,23 @@ class ContextualHeaderGenerator:
         chunks: list[ChunkCandidate],
         mode: str,
         model: str,
+        cancel_event: asyncio.Event | None = None,
     ) -> list[ContextualizedChunkCandidate]:
         """Contextualize chunks using llm or deterministic template mode."""
 
         contextualized: list[ContextualizedChunkCandidate] = []
 
         for chunk in chunks:
+            if cancel_event is not None and cancel_event.is_set():
+                raise OperationCancelledError("Contextual retrieval interrupted by user request.")
+
             if mode == "llm":
                 header = await self._generate_llm_header(
                     model=model,
                     document_name=document_name,
                     full_document_text=full_document_text,
                     chunk_text=chunk.text,
+                    cancel_event=cancel_event,
                 )
             else:
                 header = self._template_header(document_name=document_name, chunk_index=chunk.chunk_index)
@@ -56,6 +64,7 @@ class ContextualHeaderGenerator:
         document_name: str,
         full_document_text: str,
         chunk_text: str,
+        cancel_event: asyncio.Event | None = None,
     ) -> str:
         """Generate a concise chunk header with document-level awareness."""
 
@@ -66,7 +75,12 @@ class ContextualHeaderGenerator:
             f"TARGET CHUNK:\n{chunk_text}\n\n"
             "Return only the contextual header sentence(s)."
         )
-        response = await self._chat_client.complete(model=model, system_prompt=system_prompt, user_prompt=user_prompt)
+        response = await self._chat_client.complete(
+            model=model,
+            system_prompt=system_prompt,
+            user_prompt=user_prompt,
+            cancel_event=cancel_event,
+        )
         return response.strip()
 
     def _template_header(self, document_name: str, chunk_index: int) -> str:

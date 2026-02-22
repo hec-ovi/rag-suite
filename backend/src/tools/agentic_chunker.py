@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-from src.core.exceptions import ValidationDomainError
+import asyncio
+
+from src.core.exceptions import OperationCancelledError, ValidationDomainError
 from src.models.runtime.pipeline import ChunkCandidate
 from src.tools.json_response_parser import JsonResponseParser
 from src.tools.ollama_chat_client import OllamaChatClient
@@ -15,8 +17,18 @@ class AgenticChunker:
         self._prompt_loader = prompt_loader
         self._parser = parser
 
-    async def chunk(self, text: str, model: str, max_chunk_chars: int, min_chunk_chars: int) -> list[ChunkCandidate]:
+    async def chunk(
+        self,
+        text: str,
+        model: str,
+        max_chunk_chars: int,
+        min_chunk_chars: int,
+        cancel_event: asyncio.Event | None = None,
+    ) -> list[ChunkCandidate]:
         """Ask the model to propose chunks and return validated boundaries."""
+
+        if cancel_event is not None and cancel_event.is_set():
+            raise OperationCancelledError("Chunking interrupted by user request.")
 
         system_prompt = self._prompt_loader.load("agentic_chunk_selector.md")
         user_prompt = (
@@ -26,7 +38,12 @@ class AgenticChunker:
             f"TEXT:\n{text}"
         )
 
-        completion = await self._chat_client.complete(model=model, system_prompt=system_prompt, user_prompt=user_prompt)
+        completion = await self._chat_client.complete(
+            model=model,
+            system_prompt=system_prompt,
+            user_prompt=user_prompt,
+            cancel_event=cancel_event,
+        )
         payload = self._parser.parse(completion)
 
         raw_chunks = payload.get("chunks")

@@ -10,7 +10,11 @@ interface ContextReviewPanelProps {
   onChunksChange: (chunks: ChunkProposal[]) => void
   onContextualizedChunksChange: (chunks: ContextualizedChunk[]) => void
   onRunContextualization: (mode?: ContextModeSelection) => Promise<void>
+  onInterruptContextualization: () => Promise<void>
+  statusMessage: string
+  errorMessage: string
   disabled: boolean
+  isContextualizing: boolean
 }
 
 function modeCardClass(active: boolean): string {
@@ -63,7 +67,11 @@ export function ContextReviewPanel({
   onChunksChange,
   onContextualizedChunksChange,
   onRunContextualization,
+  onInterruptContextualization,
+  statusMessage,
+  errorMessage,
   disabled,
+  isContextualizing,
 }: ContextReviewPanelProps) {
   const [selectedChunkIndex, setSelectedChunkIndex] = useState(0)
   const [viewingChunkIndex, setViewingChunkIndex] = useState<number | null>(null)
@@ -163,6 +171,37 @@ export function ContextReviewPanel({
         </section>
 
         <section className="max-w-full overflow-hidden border border-border bg-background p-3">
+          {isContextualizing ? (
+            <div className="mb-3">
+              <div className="mb-2 flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <span
+                    aria-hidden="true"
+                    className="inline-block h-3 w-3 animate-spin border border-primary border-t-transparent"
+                  />
+                  <p className="text-sm font-semibold text-foreground">Generating contextual headers...</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => void onInterruptContextualization()}
+                  className="border border-danger/50 bg-danger/10 px-2 py-1 text-xs font-semibold text-danger"
+                >
+                  Interrupt
+                </button>
+              </div>
+              <p className="text-xs text-muted animate-pulse">
+                Previous contextualized results were cleared for this new run.
+              </p>
+            </div>
+          ) : null}
+
+          {!isContextualizing && statusMessage.toLowerCase().includes("context") ? (
+            <p className="mb-2 text-xs text-muted">{statusMessage}</p>
+          ) : null}
+          {errorMessage.toLowerCase().includes("context") ? (
+            <p className="mb-2 text-xs text-danger">Error: {errorMessage}</p>
+          ) : null}
+
           <div className="grid min-w-0 gap-3">
             <div className="flex min-w-0 flex-wrap items-center justify-between gap-2 border border-border bg-surface px-3 py-2">
               <button

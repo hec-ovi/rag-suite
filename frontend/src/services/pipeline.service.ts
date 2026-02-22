@@ -2,6 +2,7 @@ import { apiRequest } from "./api-client"
 import type {
   AutomaticPreviewRequest,
   AutomaticPreviewResponse,
+  CancelOperationResponse,
   ChunkSummaryRecord,
   ChunkTextRequest,
   ChunkTextResponse,
@@ -17,6 +18,20 @@ import type {
   ProjectListResponse,
   ProjectRecord,
 } from "../types/pipeline"
+
+interface PipelineRequestOptions {
+  signal?: AbortSignal
+  operationId?: string
+}
+
+function buildOperationHeaders(operationId?: string): HeadersInit | undefined {
+  if (!operationId) {
+    return undefined
+  }
+  return {
+    "X-Operation-Id": operationId,
+  }
+}
 
 export async function createProject(data: CreateProjectRequest): Promise<ProjectRecord> {
   return apiRequest<ProjectRecord>("/projects", {
@@ -57,19 +72,33 @@ export async function normalizeText(data: NormalizeTextRequest): Promise<Normali
   })
 }
 
-export async function proposeChunks(data: ChunkTextRequest): Promise<ChunkTextResponse> {
+export async function proposeChunks(
+  data: ChunkTextRequest,
+  options?: PipelineRequestOptions,
+): Promise<ChunkTextResponse> {
   return apiRequest<ChunkTextResponse>("/pipeline/chunk", {
     method: "POST",
     body: JSON.stringify(data),
+    signal: options?.signal,
+    headers: buildOperationHeaders(options?.operationId),
   })
 }
 
 export async function contextualizeChunks(
   data: ContextualizeChunksRequest,
+  options?: PipelineRequestOptions,
 ): Promise<ContextualizeChunksResponse> {
   return apiRequest<ContextualizeChunksResponse>("/pipeline/contextualize", {
     method: "POST",
     body: JSON.stringify(data),
+    signal: options?.signal,
+    headers: buildOperationHeaders(options?.operationId),
+  })
+}
+
+export async function cancelPipelineOperation(operationId: string): Promise<CancelOperationResponse> {
+  return apiRequest<CancelOperationResponse>(`/pipeline/operations/${operationId}/cancel`, {
+    method: "POST",
   })
 }
 

@@ -37,6 +37,7 @@ function App() {
       diffLines={state.diffLines}
       isBusy={state.isBusy}
       isChunking={state.isChunking}
+      isContextualizing={state.isContextualizing}
       isVectorizing={state.isVectorizing}
       onProjectNameDraftChange={actions.setProjectNameDraft}
       onProjectCreate={actions.createProject}
@@ -48,8 +49,10 @@ function App() {
       onChunksChange={actions.setChunks}
       onChunkOptionsChange={actions.setChunkOptions}
       onRunChunking={actions.runChunking}
+      onInterruptChunking={actions.interruptChunking}
       onContextualizedChunksChange={actions.setContextualizedChunks}
       onRunContextualization={actions.runContextualization}
+      onInterruptContextualization={actions.interruptContextualization}
       onAutomationFlagChange={actions.setAutomationFlag}
       onLlmModelChange={actions.setLlmModel}
       onEmbeddingModelChange={actions.setEmbeddingModel}

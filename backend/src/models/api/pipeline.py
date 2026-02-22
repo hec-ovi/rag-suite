@@ -91,6 +91,13 @@ class ContextualizeChunksResponse(BaseModel):
     chunks: Annotated[list[ContextualizedChunk], Field(description="Contextualized chunks")]
 
 
+class CancelOperationResponse(BaseModel):
+    """Acknowledgement payload for cancellation requests."""
+
+    operation_id: Annotated[str, Field(description="Operation identifier")]
+    cancelled: Annotated[bool, Field(description="Whether an active operation was found and signaled")]
+
+
 class AutomaticPipelinePreviewRequest(BaseModel):
     """Run full preprocessing pipeline without persistence or embedding."""
 

@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+import asyncio
+from contextlib import suppress
+
 import httpx
 
-from src.core.exceptions import ExternalServiceError
+from src.core.exceptions import ExternalServiceError, OperationCancelledError
 
 
 class OllamaChatClient:
@@ -12,7 +15,13 @@ class OllamaChatClient:
         self._base_url = base_url.rstrip("/")
         self._timeout_seconds = timeout_seconds
 
-    async def complete(self, model: str, system_prompt: str, user_prompt: str) -> str:
+    async def complete(
+        self,
+        model: str,
+        system_prompt: str,
+        user_prompt: str,
+        cancel_event: asyncio.Event | None = None,
+    ) -> str:
         """Generate a non-streamed completion from Ollama."""
 
         payload = {
@@ -27,10 +36,32 @@ class OllamaChatClient:
 
         async with httpx.AsyncClient(timeout=self._timeout_seconds) as client:
             try:
-                response = await client.post(f"{self._base_url}/api/chat", json=payload)
+                request_task = asyncio.create_task(client.post(f"{self._base_url}/api/chat", json=payload))
+
+                if cancel_event is not None:
+                    cancel_task = asyncio.create_task(cancel_event.wait())
+                    done, _ = await asyncio.wait(
+                        {request_task, cancel_task},
+                        return_when=asyncio.FIRST_COMPLETED,
+                    )
+
+                    if cancel_task in done and cancel_event.is_set():
+                        request_task.cancel()
+                        with suppress(asyncio.CancelledError):
+                            await request_task
+                        raise OperationCancelledError("Operation interrupted by user request.")
+
+                    cancel_task.cancel()
+                    with suppress(asyncio.CancelledError):
+                        await cancel_task
+
+                response = await request_task
                 response.raise_for_status()
             except httpx.HTTPError as error:
-                raise ExternalServiceError(f"Ollama chat request failed: {error}") from error
+                raise ExternalServiceError(
+                    "Ollama chat request failed. Check model health/GPU stability and retry with a smaller model. "
+                    f"Details: {error}"
+                ) from error
 
         parsed = response.json()
         message = parsed.get("message")

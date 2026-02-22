@@ -85,6 +85,11 @@ export interface ContextualizeChunksResponse {
   chunks: ContextualizedChunk[]
 }
 
+export interface CancelOperationResponse {
+  operation_id: string
+  cancelled: boolean
+}
+
 export interface PipelineAutomationFlags {
   normalize_text: boolean
   agentic_chunking: boolean

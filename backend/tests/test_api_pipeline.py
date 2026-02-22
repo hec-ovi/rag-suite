@@ -15,6 +15,7 @@ def test_openapi_contains_stage_zero_routes() -> None:
     assert "/v1/pipeline/normalize" in paths
     assert "/v1/pipeline/chunk" in paths
     assert "/v1/pipeline/contextualize" in paths
+    assert "/v1/pipeline/operations/{operation_id}/cancel" in paths
     assert "/v1/pipeline/preview-automatic" in paths
     assert "/v1/projects/{project_id}" in paths
     assert "/v1/projects/{project_id}/documents/ingest" in paths

@@ -41,6 +41,7 @@ interface IngestionWorkbenchProps {
   diffLines: Array<{ kind: "added" | "removed" | "unchanged"; text: string }>
   isBusy: boolean
   isChunking: boolean
+  isContextualizing: boolean
   isVectorizing: boolean
   onProjectNameDraftChange: (value: string) => void
   onProjectCreate: () => Promise<void>
@@ -52,8 +53,10 @@ interface IngestionWorkbenchProps {
   onChunksChange: (chunks: ChunkProposal[]) => void
   onChunkOptionsChange: (options: { maxChunkChars: number; minChunkChars: number; overlapChars: number }) => void
   onRunChunking: (mode?: ChunkModeSelection) => Promise<void>
+  onInterruptChunking: () => Promise<void>
   onContextualizedChunksChange: (chunks: ContextualizedChunk[]) => void
   onRunContextualization: (mode?: ContextModeSelection) => Promise<void>
+  onInterruptContextualization: () => Promise<void>
   onAutomationFlagChange: (key: "normalize_text" | "agentic_chunking" | "contextual_headers", value: boolean) => void
   onLlmModelChange: (value: string) => void
   onEmbeddingModelChange: (value: string) => void
@@ -109,6 +112,7 @@ export function IngestionWorkbench({
   diffLines,
   isBusy,
   isChunking,
+  isContextualizing,
   isVectorizing,
   onProjectNameDraftChange,
   onProjectCreate,
@@ -120,8 +124,10 @@ export function IngestionWorkbench({
   onChunksChange,
   onChunkOptionsChange,
   onRunChunking,
+  onInterruptChunking,
   onContextualizedChunksChange,
   onRunContextualization,
+  onInterruptContextualization,
   onAutomationFlagChange,
   onLlmModelChange,
   onEmbeddingModelChange,
@@ -230,6 +236,9 @@ export function IngestionWorkbench({
           onChunksChange={onChunksChange}
           onChunkOptionsChange={onChunkOptionsChange}
           onRunChunking={onRunChunking}
+          onInterruptChunking={onInterruptChunking}
+          statusMessage={statusMessage}
+          errorMessage={errorMessage}
           disabled={isBusy}
           isChunking={isChunking}
         />
@@ -243,7 +252,11 @@ export function IngestionWorkbench({
           onChunksChange={onChunksChange}
           onContextualizedChunksChange={onContextualizedChunksChange}
           onRunContextualization={onRunContextualization}
+          onInterruptContextualization={onInterruptContextualization}
+          statusMessage={statusMessage}
+          errorMessage={errorMessage}
           disabled={isBusy}
+          isContextualizing={isContextualizing}
         />
       ) : null}
 

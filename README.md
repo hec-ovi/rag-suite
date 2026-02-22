@@ -89,6 +89,7 @@ docker compose --env-file .env up -d --build
 - `POST /v1/pipeline/normalize`
 - `POST /v1/pipeline/chunk`
 - `POST /v1/pipeline/contextualize`
+- `POST /v1/pipeline/operations/{operation_id}/cancel`
 - `POST /v1/pipeline/preview-automatic`
 - `POST /v1/projects/{project_id}/documents/ingest`
 
@@ -149,3 +150,12 @@ UV_CACHE_DIR=/tmp/uv-cache uv run --directory backend ruff check src tests
 UV_CACHE_DIR=/tmp/uv-cache uv run --directory backend pytest -q
 UV_CACHE_DIR=/tmp/uv-cache uv run --directory backend python -c "from src.main import app; print(sorted(app.openapi()['paths'].keys()))"
 ```
+
+## ROCm Stability Notes
+
+If Ollama logs include messages like `Memory access fault by GPU` or the desktop briefly blanks:
+
+- Keep `OLLAMA_NUM_PARALLEL=1`.
+- Keep `OLLAMA_MAX_LOADED_MODELS=1`.
+- Use `Interrupt` in chunk/context steps to stop in-flight LLM work.
+- If failures persist, test a smaller chat model for chunk/context operations.
