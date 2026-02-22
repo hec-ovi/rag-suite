@@ -153,6 +153,9 @@ function ProjectExploreModal({ project, documents, onClose }: ExploreModalProps)
                         workflow={selectedDocument.workflow_mode} | chunking={selectedDocument.chunking_mode} |
                         contextualization={selectedDocument.contextualization_mode}
                       </p>
+                      <p className="font-mono text-xs text-muted">
+                        {chunksQuery.isFetching ? "Loading chunks..." : `${loadedChunks.length} chunks loaded`}
+                      </p>
                     </div>
                     <p className="font-mono text-xs text-muted">{selectedDocument.chunk_count} stored chunks</p>
                   </div>
@@ -165,39 +168,30 @@ function ProjectExploreModal({ project, documents, onClose }: ExploreModalProps)
                 </div>
 
                 <div className="border border-border bg-surface p-3">
-                  <div className="mb-3 grid gap-3 md:grid-cols-[320px_1fr]">
-                    <div className="grid gap-2 border border-border bg-background px-3 py-2">
-                      <div className="flex items-center justify-between gap-2">
-                        <button
-                          type="button"
-                          onClick={goToPreviousChunk}
-                          disabled={!canGoToPreviousChunk}
-                          className="border border-border bg-surface px-2 py-1 text-xs font-semibold text-foreground disabled:opacity-40"
-                        >
-                          Prev
-                        </button>
-                        <p className="font-mono text-xs text-muted">
-                          Chunk {selectedChunkIndex >= 0 ? selectedChunkIndex + 1 : 0} of {loadedChunks.length}
-                        </p>
-                        <button
-                          type="button"
-                          onClick={goToNextChunk}
-                          disabled={!canGoToNextChunk}
-                          className="border border-border bg-surface px-2 py-1 text-xs font-semibold text-foreground disabled:opacity-40"
-                        >
-                          Next
-                        </button>
-                      </div>
+                  <div className="mb-3 grid gap-2">
+                    <div className="flex items-center justify-between gap-2 border border-border bg-background px-3 py-2">
+                      <button
+                        type="button"
+                        onClick={goToPreviousChunk}
+                        disabled={!canGoToPreviousChunk}
+                        className="border border-border bg-surface px-2 py-1 text-xs font-semibold text-foreground disabled:opacity-40"
+                      >
+                        Prev
+                      </button>
                       <p className="font-mono text-xs text-muted">
-                        {selectedChunk === null
-                          ? "No chunk range"
-                          : `${selectedChunk.start_char}-${selectedChunk.end_char}`}
+                        Chunk {selectedChunkIndex >= 0 ? selectedChunkIndex + 1 : 0} of {loadedChunks.length} |{" "}
+                        {selectedChunk === null ? "No range" : `${selectedChunk.start_char}-${selectedChunk.end_char}`}
                       </p>
+                      <button
+                        type="button"
+                        onClick={goToNextChunk}
+                        disabled={!canGoToNextChunk}
+                        className="border border-border bg-surface px-2 py-1 text-xs font-semibold text-foreground disabled:opacity-40"
+                      >
+                        Next
+                      </button>
                     </div>
                     <div className="grid gap-1 border border-border bg-background px-3 py-2">
-                      <p className="font-mono text-xs text-muted">
-                        {chunksQuery.isFetching ? "Loading chunks..." : `${loadedChunks.length} chunks loaded`}
-                      </p>
                       {selectedChunk?.rationale ? (
                         <p className="text-sm text-foreground">Rationale: {selectedChunk.rationale}</p>
                       ) : (
@@ -210,40 +204,49 @@ function ProjectExploreModal({ project, documents, onClose }: ExploreModalProps)
                     <p className="text-sm text-muted">Select a chunk to inspect text variants.</p>
                   ) : (
                     <div className="grid gap-3">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => setSelectedChunkView("raw")}
-                          className={`border px-3 py-1 text-xs font-semibold ${
-                            selectedChunkView === "raw"
-                              ? "border-primary bg-primary/10 text-foreground"
-                              : "border-border bg-background text-muted"
-                          }`}
-                        >
-                          Raw
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setSelectedChunkView("normalized")}
-                          className={`border px-3 py-1 text-xs font-semibold ${
-                            selectedChunkView === "normalized"
-                              ? "border-primary bg-primary/10 text-foreground"
-                              : "border-border bg-background text-muted"
-                          }`}
-                        >
-                          Normalized
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setSelectedChunkView("final")}
-                          className={`border px-3 py-1 text-xs font-semibold ${
-                            selectedChunkView === "final"
-                              ? "border-primary bg-primary/10 text-foreground"
-                              : "border-border bg-background text-muted"
-                          }`}
-                        >
-                          Final Chunk
-                        </button>
+                      <div className="border border-border bg-background p-2">
+                        <p className="mb-2 font-mono text-xs uppercase tracking-wide text-muted">Chunk View Tabs</p>
+                        <div className="grid gap-2 md:grid-cols-3" role="tablist" aria-label="Chunk text variants">
+                          <button
+                            type="button"
+                            onClick={() => setSelectedChunkView("raw")}
+                            role="tab"
+                            aria-selected={selectedChunkView === "raw"}
+                            className={`border px-3 py-2 text-xs font-semibold uppercase tracking-wide ${
+                              selectedChunkView === "raw"
+                                ? "border-primary bg-primary text-primary-foreground"
+                                : "border-border bg-background text-muted"
+                            }`}
+                          >
+                            Raw
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setSelectedChunkView("normalized")}
+                            role="tab"
+                            aria-selected={selectedChunkView === "normalized"}
+                            className={`border px-3 py-2 text-xs font-semibold uppercase tracking-wide ${
+                              selectedChunkView === "normalized"
+                                ? "border-primary bg-primary text-primary-foreground"
+                                : "border-border bg-background text-muted"
+                            }`}
+                          >
+                            Normalized
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setSelectedChunkView("final")}
+                            role="tab"
+                            aria-selected={selectedChunkView === "final"}
+                            className={`border px-3 py-2 text-xs font-semibold uppercase tracking-wide ${
+                              selectedChunkView === "final"
+                                ? "border-primary bg-primary text-primary-foreground"
+                                : "border-border bg-background text-muted"
+                            }`}
+                          >
+                            Final Chunk
+                          </button>
+                        </div>
                       </div>
 
                       {selectedChunkView === "raw" ? (
