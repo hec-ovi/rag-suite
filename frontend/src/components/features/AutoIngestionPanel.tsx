@@ -174,22 +174,21 @@ export function AutoIngestionPanel({
               />
               Deterministic
             </label>
-            <div className="mt-2 border border-border bg-surface p-2">
-              <label className="flex items-center gap-2 text-sm text-foreground">
-                <input
-                  type="radio"
-                  name="auto-chunk-mode"
-                  checked={chunkMode === "agentic"}
-                  onChange={() => onChunkModeChange("agentic")}
-                />
-                Agentic
-              </label>
-              <p className="mt-1 text-xs text-muted">Drastically increases time on big data.</p>
-            </div>
+            <label className="mt-2 flex items-center gap-2 text-sm text-foreground">
+              <input
+                type="radio"
+                name="auto-chunk-mode"
+                checked={chunkMode === "agentic"}
+                onChange={() => onChunkModeChange("agentic")}
+              />
+              Agentic (drastically increases time on big data)
+            </label>
           </fieldset>
 
           <fieldset className="border border-border bg-background p-3">
-            <legend className="px-1 text-xs font-semibold uppercase tracking-wide text-muted">Context Headers</legend>
+            <legend className="px-1 text-xs font-semibold uppercase tracking-wide text-muted">
+              Context-Aware Retrieval
+            </legend>
             <label className="mt-2 flex items-center gap-2 text-sm text-foreground">
               <input
                 type="radio"
@@ -214,21 +213,18 @@ export function AutoIngestionPanel({
               />
               Template
             </label>
-            <div className="mt-2 border border-border bg-surface p-2">
-              <label className="flex items-center gap-2 text-sm text-foreground">
-                <input
-                  type="radio"
-                  name="auto-context-mode"
-                  checked={contextMode === "llm"}
-                  onChange={() => {
-                    onContextModeChange("llm")
-                    onAutomationFlagChange("contextual_headers", true)
-                  }}
-                />
-                LLM
-              </label>
-              <p className="mt-1 text-xs text-muted">Drastically increases time on big data.</p>
-            </div>
+            <label className="mt-2 flex items-center gap-2 text-sm text-foreground">
+              <input
+                type="radio"
+                name="auto-context-mode"
+                checked={contextMode === "llm"}
+                onChange={() => {
+                  onContextModeChange("llm")
+                  onAutomationFlagChange("contextual_headers", true)
+                }}
+              />
+              Agentic (drastically increases time on big data)
+            </label>
           </fieldset>
         </section>
 
