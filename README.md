@@ -149,6 +149,8 @@ docker compose --env-file .env up -d --build
 - `GET /v1/rag/status`
 - `POST /v1/rag/chat/stateless`
 - `POST /v1/rag/chat/session`
+- `POST /v1/rag/chat/stateless/stream` (SSE)
+- `POST /v1/rag/chat/session/stream` (SSE)
 
 ## OpenAI-Compatible Inference (Ollama-backed)
 
@@ -197,7 +199,7 @@ Hybrid RAG UI (`RAG Mode -> Hybrid`) now supports:
 
 - Stateless and session-memory chat modes
 - Project-scoped queries with optional per-document filter
-- Streaming answer rendering in chat panel
+- Transport streaming answer rendering (SSE from `backend_rag`) in chat panel
 - Separated source trace panel (citations, documents, ranked chunk bullets, and full source preview)
 
 ## Audit Example (PDF-Derived TXT)

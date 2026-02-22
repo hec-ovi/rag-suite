@@ -9,7 +9,10 @@ from src.models.api.rag import (
     RagSourceChunk,
     RagSourceDocument,
 )
-from src.routes.rag import rag_chat_session, rag_chat_stateless
+from src.routes.rag import (
+    rag_chat_session,
+    rag_chat_stateless,
+)
 
 
 class FakeRagChatService:
@@ -107,3 +110,4 @@ def test_session_route_returns_session_id() -> None:
     assert payload.mode == "session"
     assert payload.session_id == "session-abc"
     assert fake_service.last_mode == "session"
+

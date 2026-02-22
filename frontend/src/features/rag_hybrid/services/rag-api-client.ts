@@ -36,6 +36,19 @@ export class RagApiError extends Error {
   }
 }
 
+async function parseApiErrorMessage(response: Response): Promise<string> {
+  let message = `Request failed with status ${response.status}`
+  try {
+    const payload = (await response.json()) as RagApiErrorResponse
+    if (payload.detail !== undefined && payload.detail.length > 0) {
+      message = payload.detail
+    }
+  } catch {
+    message = `Request failed with status ${response.status}`
+  }
+  return message
+}
+
 function buildRequester(baseUrl: string) {
   return async function request<TResponse>(path: string, init: RequestInit = {}): Promise<TResponse> {
     const headers = new Headers(init.headers ?? undefined)
@@ -49,15 +62,7 @@ function buildRequester(baseUrl: string) {
     })
 
     if (!response.ok) {
-      let message = `Request failed with status ${response.status}`
-      try {
-        const payload = (await response.json()) as RagApiErrorResponse
-        if (payload.detail !== undefined && payload.detail.length > 0) {
-          message = payload.detail
-        }
-      } catch {
-        message = `Request failed with status ${response.status}`
-      }
+      const message = await parseApiErrorMessage(response)
       throw new RagApiError(message, response.status)
     }
 
@@ -70,3 +75,24 @@ const ragBaseUrl = resolveApiBaseUrl(import.meta.env.VITE_RAG_API_BASE_URL ?? "h
 
 export const ingestionRequest = buildRequester(ingestionBaseUrl)
 export const ragRequest = buildRequester(ragBaseUrl)
+export const ragApiBaseUrl = ragBaseUrl
+
+export async function ragStreamRequest(path: string, init: RequestInit = {}): Promise<Response> {
+  const headers = new Headers(init.headers ?? undefined)
+  if (!headers.has("content-type") && init.body !== undefined) {
+    headers.set("content-type", "application/json")
+  }
+  headers.set("accept", "text/event-stream")
+
+  const response = await fetch(`${ragApiBaseUrl}${path}`, {
+    ...init,
+    headers,
+  })
+
+  if (!response.ok) {
+    const message = await parseApiErrorMessage(response)
+    throw new RagApiError(message, response.status)
+  }
+
+  return response
+}

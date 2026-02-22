@@ -13,6 +13,9 @@ Implemented in this stage:
 - Two chat modes:
   - Stateless (`/v1/rag/chat/stateless`)
   - Session memory (`/v1/rag/chat/session`) with LangGraph checkpoint persistence
+- Transport streaming via Server-Sent Events:
+  - Stateless stream (`/v1/rag/chat/stateless/stream`)
+  - Session stream (`/v1/rag/chat/session/stream`)
 
 ## Run (local)
 
@@ -32,6 +35,8 @@ UV_CACHE_DIR=/tmp/uv-cache uv run --directory backend_rag uvicorn src.main:app -
 - `GET /v1/rag/status`
 - `POST /v1/rag/chat/stateless`
 - `POST /v1/rag/chat/session`
+- `POST /v1/rag/chat/stateless/stream` (SSE)
+- `POST /v1/rag/chat/session/stream` (SSE)
 
 ## Prompt Injection Strategy
 

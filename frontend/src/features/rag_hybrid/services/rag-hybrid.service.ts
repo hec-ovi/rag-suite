@@ -1,4 +1,4 @@
-import { ingestionRequest, ragRequest } from "./rag-api-client"
+import { ingestionRequest, ragRequest, ragStreamRequest, RagApiError } from "./rag-api-client"
 import type {
   RagChatResponse,
   RagDocumentSummary,
@@ -10,6 +10,12 @@ import type {
 
 interface RagRequestOptions {
   signal?: AbortSignal
+}
+
+export interface RagStreamHandlers {
+  onMeta?: (payload: Record<string, unknown>) => void
+  onDelta?: (payload: { content: string }) => void
+  onDone?: (payload: RagChatResponse) => void
 }
 
 export async function listRagProjects(): Promise<RagProjectRecord[]> {
@@ -45,4 +51,130 @@ export async function sendSessionHybridChat(
     body: JSON.stringify(payload),
     signal: options?.signal,
   })
+}
+
+function parseSseEventChunk(rawChunk: string): { eventName: string; dataPayload: unknown } | null {
+  const normalizedChunk = rawChunk.replace(/\r\n/g, "\n").trim()
+  if (normalizedChunk.length === 0) {
+    return null
+  }
+
+  let eventName = "message"
+  const dataLines: string[] = []
+
+  for (const line of normalizedChunk.split("\n")) {
+    if (line.startsWith("event:")) {
+      eventName = line.slice(6).trim()
+      continue
+    }
+
+    if (line.startsWith("data:")) {
+      dataLines.push(line.slice(5).trim())
+    }
+  }
+
+  const payloadText = dataLines.join("\n")
+  if (payloadText.length === 0) {
+    return {
+      eventName,
+      dataPayload: {},
+    }
+  }
+
+  try {
+    return {
+      eventName,
+      dataPayload: JSON.parse(payloadText) as unknown,
+    }
+  } catch {
+    throw new RagApiError("Malformed SSE payload from RAG backend.", 502)
+  }
+}
+
+async function runHybridStream(
+  path: string,
+  payload: RagStatelessChatRequest | RagSessionChatRequest,
+  handlers: RagStreamHandlers,
+  options?: RagRequestOptions,
+): Promise<RagChatResponse> {
+  const response = await ragStreamRequest(path, {
+    method: "POST",
+    body: JSON.stringify(payload),
+    signal: options?.signal,
+  })
+
+  if (response.body === null) {
+    throw new RagApiError("RAG backend did not return a stream body.", 502)
+  }
+
+  const reader = response.body.getReader()
+  const decoder = new TextDecoder()
+  let buffer = ""
+  let donePayload: RagChatResponse | null = null
+
+  while (true) {
+    const readResult = await reader.read()
+    if (readResult.done) {
+      break
+    }
+
+    buffer += decoder.decode(readResult.value, { stream: true })
+
+    let boundaryIndex = buffer.indexOf("\n\n")
+    while (boundaryIndex !== -1) {
+      const chunk = buffer.slice(0, boundaryIndex)
+      buffer = buffer.slice(boundaryIndex + 2)
+
+      const parsed = parseSseEventChunk(chunk)
+      if (parsed !== null) {
+        const { eventName, dataPayload } = parsed
+        if (eventName === "meta") {
+          if (typeof dataPayload === "object" && dataPayload !== null) {
+            handlers.onMeta?.(dataPayload as Record<string, unknown>)
+          }
+        } else if (eventName === "delta") {
+          if (typeof dataPayload === "object" && dataPayload !== null && "content" in dataPayload) {
+            const content = (dataPayload as { content?: unknown }).content
+            handlers.onDelta?.({ content: typeof content === "string" ? content : "" })
+          }
+        } else if (eventName === "done") {
+          donePayload = dataPayload as RagChatResponse
+          handlers.onDone?.(donePayload)
+        } else if (eventName === "error") {
+          const detail =
+            typeof dataPayload === "object" && dataPayload !== null && "detail" in dataPayload
+              ? (dataPayload as { detail?: unknown }).detail
+              : undefined
+          throw new RagApiError(
+            typeof detail === "string" && detail.trim().length > 0 ? detail : "Streaming request failed.",
+            502,
+          )
+        }
+      }
+
+      boundaryIndex = buffer.indexOf("\n\n")
+    }
+  }
+
+  if (donePayload === null) {
+    throw new RagApiError("RAG stream ended before completion payload.", 502)
+  }
+
+  return donePayload
+}
+
+export async function streamStatelessHybridChat(
+  payload: RagStatelessChatRequest,
+  handlers: RagStreamHandlers,
+  options?: RagRequestOptions,
+): Promise<RagChatResponse> {
+  return runHybridStream("/rag/chat/stateless/stream", payload, handlers, options)
+}
+
+export async function streamSessionHybridChat(
+  payload: RagSessionChatRequest,
+  handlers: RagStreamHandlers,
+  options?: RagRequestOptions,
+): Promise<RagChatResponse> {
+  return runHybridStream("/rag/chat/session/stream", payload, handlers, options)
 }

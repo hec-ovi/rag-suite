@@ -6,8 +6,8 @@ import { RagApiError } from "../services/rag-api-client"
 import {
   listRagProjectDocuments,
   listRagProjects,
-  sendSessionHybridChat,
-  sendStatelessHybridChat,
+  streamSessionHybridChat,
+  streamStatelessHybridChat,
 } from "../services/rag-hybrid.service"
 import type {
   RagChatMessage,
@@ -41,39 +41,6 @@ function isAbortError(error: unknown): boolean {
   }
 
   return false
-}
-
-function sleep(milliseconds: number): Promise<void> {
-  return new Promise((resolve) => {
-    window.setTimeout(resolve, milliseconds)
-  })
-}
-
-async function streamAnswerText(
-  answer: string,
-  signal: AbortSignal,
-  onPartial: (partial: string) => void,
-): Promise<string> {
-  if (answer.trim().length === 0) {
-    onPartial("")
-    return ""
-  }
-
-  const chunks = answer.match(/.{1,10}/gs) ?? [answer]
-  let assembled = ""
-
-  for (const chunk of chunks) {
-    if (signal.aborted) {
-      throw new DOMException("Aborted", "AbortError")
-    }
-
-    assembled += chunk
-    onPartial(assembled)
-    await sleep(14)
-  }
-
-  onPartial(answer)
-  return answer
 }
 
 function clampInteger(value: number, min: number, max: number): number {
@@ -338,16 +305,58 @@ export function useRagHybridWorkflow(): { state: RagHybridState; actions: RagHyb
         history_window_messages: historyWindowMessages,
       }
 
+      let assembledAnswer = ""
       let response: RagChatResponse
+      setIsRequesting(false)
+      setIsStreaming(true)
+
       if (chatMode === "session") {
         const payload: RagSessionChatRequest = {
           ...sharedPayload,
           session_id: sessionId.trim().length > 0 ? sessionId.trim() : undefined,
         }
-        response = await sendSessionHybridChat(payload, { signal: abortController.signal })
+        response = await streamSessionHybridChat(
+          payload,
+          {
+            onDelta: ({ content }) => {
+              assembledAnswer += content
+              setMessages((current) =>
+                current.map((message) =>
+                  message.id === assistantMessageId
+                    ? {
+                        ...message,
+                        content: assembledAnswer,
+                        isStreaming: true,
+                      }
+                    : message,
+                ),
+              )
+            },
+          },
+          { signal: abortController.signal },
+        )
       } else {
         const payload: RagStatelessChatRequest = sharedPayload
-        response = await sendStatelessHybridChat(payload, { signal: abortController.signal })
+        response = await streamStatelessHybridChat(
+          payload,
+          {
+            onDelta: ({ content }) => {
+              assembledAnswer += content
+              setMessages((current) =>
+                current.map((message) =>
+                  message.id === assistantMessageId
+                    ? {
+                        ...message,
+                        content: assembledAnswer,
+                        isStreaming: true,
+                      }
+                    : message,
+                ),
+              )
+            },
+          },
+          { signal: abortController.signal },
+        )
       }
 
       if (chatMode === "session" && response.session_id !== null && response.session_id.trim().length > 0) {
@@ -357,29 +366,12 @@ export function useRagHybridWorkflow(): { state: RagHybridState; actions: RagHyb
       setLatestResponse(response)
       setSelectedSourceId(response.sources[0]?.source_id ?? null)
 
-      setIsRequesting(false)
-      setIsStreaming(true)
-
-      const finalAnswer = await streamAnswerText(response.answer, abortController.signal, (partial) => {
-        setMessages((current) =>
-          current.map((message) =>
-            message.id === assistantMessageId
-              ? {
-                  ...message,
-                  content: partial,
-                  isStreaming: true,
-                }
-              : message,
-          ),
-        )
-      })
-
       setMessages((current) =>
         current.map((message) =>
           message.id === assistantMessageId
             ? {
                 ...message,
-                content: finalAnswer,
+                content: response.answer,
                 isStreaming: false,
               }
             : message,
