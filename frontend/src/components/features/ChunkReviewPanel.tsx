@@ -25,10 +25,12 @@ function modeCardClass(active: boolean): string {
   return "border-border bg-background"
 }
 
-function previewSentence(text: string): string {
+function compactPreview(text: string, maxChars = 120): string {
   const normalized = text.replace(/\s+/gu, " ").trim()
-  const sentence = normalized.split(/[.!?]\s/gu)[0] || normalized
-  return sentence
+  if (normalized.length <= maxChars) {
+    return normalized
+  }
+  return `${normalized.slice(0, maxChars - 3)}...`
 }
 
 export function ChunkReviewPanel({
@@ -165,7 +167,7 @@ export function ChunkReviewPanel({
           </div>
         </details>
 
-        <section className="border border-border bg-background p-3">
+        <section className="max-w-full overflow-hidden border border-border bg-background p-3">
           {isChunking ? (
             <div>
               <div className="mb-2 flex items-center gap-2">
@@ -179,8 +181,8 @@ export function ChunkReviewPanel({
             </div>
           ) : null}
 
-          <div className="grid gap-3">
-            <div className="flex flex-wrap items-center justify-between gap-2 border border-border bg-surface px-3 py-2">
+          <div className="grid min-w-0 gap-3">
+            <div className="flex min-w-0 flex-wrap items-center justify-between gap-2 border border-border bg-surface px-3 py-2">
               <button
                 type="button"
                 onClick={() => setSelectedChunkIndex((index) => Math.max(0, index - 1))}
@@ -204,16 +206,17 @@ export function ChunkReviewPanel({
 
             <p className="font-mono text-xs text-muted">Total chunks: {chunkTotal}</p>
 
-            <div className="border border-border bg-surface p-3">
+            <div className="min-w-0 max-w-full overflow-hidden border border-border bg-surface p-3">
               {selectedChunk === null ? (
                 <p className="text-sm text-muted">No chunk generated yet.</p>
               ) : (
                 <>
-                  <p className="mb-2 font-mono text-xs uppercase tracking-wide text-muted">
+                  <p className="mb-2 break-all font-mono text-xs uppercase tracking-wide text-muted">
                     Chunk {selectedChunk.chunk_index + 1} ({selectedChunk.start_char}-{selectedChunk.end_char})
                   </p>
-                  <p className="mb-2 text-xs text-muted">{selectedChunk.rationale ?? "No rationale provided."}</p>
-                  <p className="truncate text-sm text-foreground">{previewSentence(selectedChunk.text)}</p>
+                  <p className="w-full overflow-hidden text-ellipsis whitespace-nowrap text-sm text-foreground">
+                    {compactPreview(selectedChunk.text)}
+                  </p>
                   <button
                     type="button"
                     onClick={() => setViewingChunkIndex(selectedChunkIndex)}
