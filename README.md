@@ -130,7 +130,11 @@ curl -sS http://localhost:8000/v1/chat/completions \
 1. Stage 0: data preparation and indexing control plane (current)
 2. Stage 1: basic hybrid retrieval and grounded answer endpoint (current)
 3. Stage 2: reranking and quality benchmark harness (Recall@k, MRR, nDCG)
-4. Stage 3: graph-augmented retrieval branch
+4. Stage 3: graph-augmented retrieval branch (Knowledge Graph / LightRAG) - pending due to implementation complexity
+
+Load Data scope is complete for the current release. The remaining pending item is the Knowledge Graph-enhanced
+retrieval branch (LightRAG-style path), intentionally deferred because it requires a larger graph modeling and
+entity-linking layer.
 
 ## Frontend Workflow
 
