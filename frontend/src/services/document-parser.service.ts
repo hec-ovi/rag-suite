@@ -1,6 +1,6 @@
 import * as mammoth from "mammoth/mammoth.browser"
-import { getDocument, GlobalWorkerOptions } from "pdfjs-dist"
-import pdfWorkerSrc from "pdfjs-dist/build/pdf.worker.min.mjs?url"
+import { getDocument, GlobalWorkerOptions } from "pdfjs-dist/legacy/build/pdf.mjs"
+import pdfWorkerSrc from "pdfjs-dist/legacy/build/pdf.worker.min.mjs?url"
 
 GlobalWorkerOptions.workerSrc = pdfWorkerSrc
 
@@ -11,28 +11,41 @@ function isStringValue(value: unknown): value is string {
 async function extractTextFromPdf(file: File): Promise<string> {
   try {
     const buffer = await file.arrayBuffer()
-    const loadingTask = getDocument({ data: buffer })
+    const loadingTask = getDocument({
+      data: new Uint8Array(buffer),
+      isEvalSupported: false,
+    })
     const pdf = await loadingTask.promise
 
     const pageTexts: string[] = []
+    let failedPages = 0
     for (let pageIndex = 1; pageIndex <= pdf.numPages; pageIndex += 1) {
-      const page = await pdf.getPage(pageIndex)
-      const content = await page.getTextContent()
-      const strings: string[] = []
-      for (const item of content.items) {
-        if ("str" in item && isStringValue(item.str)) {
-          const value = item.str.trim()
-          if (value.length > 0) {
-            strings.push(value)
+      try {
+        const page = await pdf.getPage(pageIndex)
+        const content = await page.getTextContent()
+        const strings: string[] = []
+        for (const item of content.items) {
+          if ("str" in item && isStringValue(item.str)) {
+            const value = item.str.trim()
+            if (value.length > 0) {
+              strings.push(value)
+            }
           }
         }
+        pageTexts.push(strings.join(" "))
+      } catch (error) {
+        failedPages += 1
+        console.warn(`PDF page extraction failed on page ${pageIndex}.`, error)
       }
-      pageTexts.push(strings.join(" "))
     }
 
     const extracted = pageTexts.join("\n\n").trim()
     if (extracted.length === 0) {
       throw new Error("PDF has no extractable text. It may be scanned images or encrypted.")
+    }
+
+    if (failedPages > 0) {
+      console.warn(`PDF extracted with ${failedPages} page failure(s).`)
     }
 
     return extracted
