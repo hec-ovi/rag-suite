@@ -18,7 +18,7 @@ export function StartGuidePanel() {
               onClick={() => setView("ingestion")}
               className="border border-border bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground"
             >
-              Open HITL
+              START HITL INGESTION
             </button>
           </article>
 
@@ -32,7 +32,7 @@ export function StartGuidePanel() {
               onClick={() => setView("auto_ingest")}
               className="border border-border bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground"
             >
-              Open AUTOMATED/CLASSIC
+              START AUTOMATED INGESTION
             </button>
           </article>
         </div>
