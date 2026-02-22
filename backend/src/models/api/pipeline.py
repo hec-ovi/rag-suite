@@ -10,7 +10,7 @@ class NormalizeTextRequest(BaseModel):
     """Normalize source text with deterministic cleanup rules."""
 
     text: Annotated[str, Field(min_length=1, description="Raw text payload")]
-    max_blank_lines: Annotated[int, Field(default=1, ge=1, le=3, description="Maximum consecutive blank lines to keep")]
+    max_blank_lines: Annotated[int, Field(default=0, ge=0, le=3, description="Maximum consecutive blank lines to keep")]
     remove_repeated_short_lines: Annotated[
         bool,
         Field(default=True, description="Remove repeated short lines likely coming from headers or footers"),

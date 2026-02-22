@@ -149,7 +149,7 @@ class IngestionService:
         if request.automation.normalize_text:
             normalized = self._normalizer.normalize(
                 text=request.raw_text,
-                max_blank_lines=1,
+                max_blank_lines=0,
                 remove_repeated_short_lines=True,
             )
             normalized_text = normalized.normalized_text
@@ -357,7 +357,7 @@ class IngestionService:
         if request.automation.normalize_text:
             result = self._normalizer.normalize(
                 text=request.raw_text,
-                max_blank_lines=1,
+                max_blank_lines=0,
                 remove_repeated_short_lines=True,
             )
             return result.normalized_text

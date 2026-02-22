@@ -251,7 +251,7 @@ export function useIngestionWorkflow(): { state: WorkflowState; actions: Workflo
     try {
       const response = await normalizeMutation.mutateAsync({
         text: rawText,
-        max_blank_lines: 1,
+        max_blank_lines: 0,
         remove_repeated_short_lines: true,
       })
       setNormalizedText(response.normalized_text)

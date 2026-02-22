@@ -30,3 +30,12 @@ def test_normalizer_keeps_repeated_short_lines_when_disabled() -> None:
 
     assert result.normalized_text.startswith("Index")
     assert result.removed_repeated_line_count == 0
+
+
+def test_normalizer_can_remove_blank_lines_when_configured() -> None:
+    normalizer = DeterministicTextNormalizer()
+
+    text = "Paragraph A.\n\n\nParagraph B.\n\nParagraph C."
+    result = normalizer.normalize(text=text, max_blank_lines=0, remove_repeated_short_lines=False)
+
+    assert result.normalized_text == "Paragraph A.\nParagraph B.\nParagraph C."
