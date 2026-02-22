@@ -15,6 +15,30 @@ class OllamaChatClient:
         self._base_url = base_url.rstrip("/")
         self._timeout_seconds = timeout_seconds
 
+    def _format_http_error(self, error: httpx.HTTPError) -> str:
+        """Build a non-empty diagnostic string for chat request failures."""
+
+        parts: list[str] = [error.__class__.__name__]
+
+        message = str(error).strip()
+        if message:
+            parts.append(message)
+
+        if isinstance(error, httpx.HTTPStatusError):
+            response = error.response
+            parts.append(f"status={response.status_code}")
+            body = response.text.strip()
+            if body:
+                parts.append(f"response={body[:300]}")
+        elif isinstance(error, httpx.RequestError):
+            request = error.request
+            parts.append(f"request={request.method} {request.url}")
+
+        if len(parts) == 1:
+            parts.append(repr(error))
+
+        return " | ".join(parts)
+
     async def complete(
         self,
         model: str,
@@ -60,7 +84,7 @@ class OllamaChatClient:
             except httpx.HTTPError as error:
                 raise ExternalServiceError(
                     "Ollama chat request failed. Check model health/GPU stability and retry with a smaller model. "
-                    f"Details: {error}"
+                    f"Details: {self._format_http_error(error)}"
                 ) from error
 
         parsed = response.json()
