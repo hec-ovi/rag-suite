@@ -25,7 +25,7 @@ export function ProjectPanel({
   return (
     <SectionCard
       title="STEP 1 - Create Project"
-      subtitle="Choose an existing namespace or create a new one before ingestion."
+      subtitle="Choose an existing namespace or create a new one before vectorization."
     >
       <div className="grid gap-3 md:grid-cols-2">
         <section className="border border-border bg-background p-3">

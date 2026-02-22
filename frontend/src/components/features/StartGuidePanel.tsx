@@ -6,7 +6,7 @@ export function StartGuidePanel() {
 
   return (
     <section className="grid gap-4">
-      <SectionCard title="Start Here" subtitle="Choose your ingestion path and jump directly into execution mode.">
+      <SectionCard title="Start Here" subtitle="Choose your vectorization path and jump directly into execution mode.">
         <div className="grid gap-3 md:grid-cols-2">
           <article className="border border-border bg-background p-3">
             <p className="mb-2 font-mono text-xs uppercase tracking-wide text-muted">HITL</p>
@@ -18,21 +18,21 @@ export function StartGuidePanel() {
               onClick={() => setView("ingestion")}
               className="border border-border bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground"
             >
-              START HITL INGESTION
+              START HITL VECTORIZATION
             </button>
           </article>
 
           <article className="border border-border bg-background p-3">
             <p className="mb-2 font-mono text-xs uppercase tracking-wide text-muted">AUTOMATED/CLASSIC</p>
             <p className="mb-3 text-sm text-foreground">
-              Single-pass ingestion with compact mode selections and direct indexing.
+              Single-pass vectorization with compact mode selections and direct indexing.
             </p>
             <button
               type="button"
               onClick={() => setView("auto_ingest")}
               className="border border-border bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground"
             >
-              START AUTOMATED INGESTION
+              START AUTOMATED VECTORIZATION
             </button>
           </article>
         </div>
@@ -47,7 +47,7 @@ export function StartGuidePanel() {
               </div>
               <div className="border border-border bg-surface p-2">
                 <p className="font-mono text-xs text-foreground">STEP 02</p>
-                <p className="text-sm text-muted">Upload a document or paste raw text that you want to ingest.</p>
+                <p className="text-sm text-muted">Upload a document or paste raw text that you want to vectorize.</p>
               </div>
               <div className="border border-border bg-surface p-2">
                 <p className="font-mono text-xs text-foreground">STEP 03</p>
@@ -63,7 +63,7 @@ export function StartGuidePanel() {
               </div>
               <div className="border border-border bg-surface p-2">
                 <p className="font-mono text-xs text-foreground">STEP 06</p>
-                <p className="text-sm text-muted">Confirm and ingest reviewed data into Qdrant.</p>
+                <p className="text-sm text-muted">Confirm and vectorize reviewed data into Qdrant.</p>
               </div>
             </div>
           </article>
@@ -72,7 +72,7 @@ export function StartGuidePanel() {
             <div className="border border-border bg-surface p-3">
               <p className="mb-2 text-sm text-foreground">
                 This mode is a single compact form: select/create project, upload or paste source text, choose
-                normalization + chunk mode + context mode, then ingest directly.
+                normalization + chunk mode + context mode, then vectorize directly.
               </p>
               <p className="text-sm text-muted">No intermediate previews are shown before indexing.</p>
             </div>

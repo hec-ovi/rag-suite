@@ -114,7 +114,7 @@ export function IngestionActionsPanel({
             disabled={disabled}
             className="bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-60"
           >
-            Ingest data
+            Vectorize data
           </button>
         ) : null}
 
@@ -125,7 +125,7 @@ export function IngestionActionsPanel({
             disabled={disabled}
             className="border border-border bg-primary/10 px-3 py-2 text-sm font-semibold text-foreground disabled:opacity-60"
           >
-            Ingest full automatic mode
+            Vectorize full automatic mode
           </button>
         ) : null}
       </div>

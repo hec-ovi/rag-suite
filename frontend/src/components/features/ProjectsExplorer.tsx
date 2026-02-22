@@ -336,7 +336,7 @@ export function ProjectsExplorer({ projects, onProjectsRefresh }: ProjectsExplor
               {projects.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="px-3 py-6 text-center text-sm text-muted">
-                    No projects yet. Create one in Ingestion step 1 (Setup). Test runs do not auto-seed persistent
+                    No projects yet. Create one in Vectorization step 1 (Setup). Test runs do not auto-seed persistent
                     projects.
                   </td>
                 </tr>

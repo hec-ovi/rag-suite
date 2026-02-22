@@ -392,7 +392,7 @@ export function useIngestionWorkflow(): { state: WorkflowState; actions: Workflo
         : contextualizedChunks
 
     if (chunksForIngest.length === 0) {
-      setErrorMessage("Generate contextualized chunks before manual ingest.")
+      setErrorMessage("Generate contextualized chunks before manual vectorization.")
       return
     }
 
@@ -430,7 +430,7 @@ export function useIngestionWorkflow(): { state: WorkflowState; actions: Workflo
         },
       })
       setStatusMessage(
-        `Manual ingest complete. Stored ${response.embedded_chunk_count} chunks in ${response.qdrant_collection_name}.`,
+        `Manual vectorization complete. Stored ${response.embedded_chunk_count} chunks in ${response.qdrant_collection_name}.`,
       )
     } catch (error) {
       setErrorMessage(extractApiErrorMessage(error))
@@ -444,7 +444,7 @@ export function useIngestionWorkflow(): { state: WorkflowState; actions: Workflo
     }
 
     if (rawText.trim().length === 0) {
-      setErrorMessage("Provide raw text before automatic ingest.")
+      setErrorMessage("Provide raw text before automatic vectorization.")
       return
     }
 
@@ -452,7 +452,7 @@ export function useIngestionWorkflow(): { state: WorkflowState; actions: Workflo
     const contextModeForAutomatic: ContextMode = contextMode === "template" ? "template" : "llm"
 
     setErrorMessage("")
-    setStatusMessage("Running automatic ingest and indexing...")
+    setStatusMessage("Running automatic vectorization and indexing...")
 
     try {
       const response = await ingestMutation.mutateAsync({
@@ -475,7 +475,7 @@ export function useIngestionWorkflow(): { state: WorkflowState; actions: Workflo
         },
       })
       setStatusMessage(
-        `Automatic ingest complete. Stored ${response.embedded_chunk_count} chunks in ${response.qdrant_collection_name}.`,
+        `Automatic vectorization complete. Stored ${response.embedded_chunk_count} chunks in ${response.qdrant_collection_name}.`,
       )
     } catch (error) {
       setErrorMessage(extractApiErrorMessage(error))

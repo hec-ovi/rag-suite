@@ -68,7 +68,7 @@ const tabLabels: Record<IngestionTabId, string> = {
   normalize: "3. Normalize",
   chunk: "4. Chunk",
   context: "5. Contextual Retrieval",
-  manual: "6. HITL Ingest",
+  manual: "6. HITL Vectorize",
 }
 
 const tabHint: Record<IngestionTabId, string> = {
@@ -143,7 +143,7 @@ export function IngestionWorkbench({
   const contextReady = contextDisabled ? chunks.length > 0 : contextModeSelected && contextualizedChunks.length > 0
 
   const progressLabel = useMemo(() => {
-    return "Flow: Project -> Source -> Normalize -> Chunk -> Contextual Retrieval -> HITL Ingest"
+    return "Flow: Project -> Source -> Normalize -> Chunk -> Contextual Retrieval -> HITL Vectorize"
   }, [])
 
   const hasPrevious = tabOrder.indexOf(activeTab) > 0
@@ -271,7 +271,7 @@ export function IngestionWorkbench({
           onAutomaticIngest={onAutomaticIngest}
           disabled={isBusy}
           mode="manual"
-          title="STEP 6 - HITL Ingest"
+          title="STEP 6 - HITL Vectorize"
           subtitle="Persist reviewed chunks into Qdrant."
         />
       ) : null}

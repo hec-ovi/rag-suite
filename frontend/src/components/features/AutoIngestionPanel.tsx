@@ -225,7 +225,7 @@ export function AutoIngestionPanel({
           disabled={isBusy || !canIngest}
           className="mt-3 w-full bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-60"
         >
-          Ingest
+          Vectorize
         </button>
 
         <div className="mt-3 border border-border bg-background px-3 py-2">

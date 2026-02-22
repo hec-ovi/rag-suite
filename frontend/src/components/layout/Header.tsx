@@ -92,7 +92,7 @@ export function Header({ currentView, onViewChange, themeMode, onThemeModeChange
             aria-haspopup="menu"
             aria-expanded={isMenuOpen}
           >
-            Ingestion Mode: {menuLabels[currentView]}
+            Vectorization Mode: {menuLabels[currentView]}
           </button>
           {isMenuOpen ? (
             <div
