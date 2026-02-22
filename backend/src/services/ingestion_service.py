@@ -222,8 +222,15 @@ class IngestionService:
             ],
         )
 
-    async def ingest_document(self, project_id: str, request: IngestDocumentRequest) -> IngestedDocumentResponse:
+    async def ingest_document(
+        self,
+        project_id: str,
+        request: IngestDocumentRequest,
+        cancel_event: asyncio.Event | None = None,
+    ) -> IngestedDocumentResponse:
         """Persist document and index contextualized chunk vectors."""
+
+        self._raise_if_cancelled(cancel_event)
 
         project = self._session.scalar(select(ProjectORM).where(ProjectORM.id == project_id))
         if project is None:
@@ -242,11 +249,13 @@ class IngestionService:
                 min_chunk_chars=request.chunk_options.min_chunk_chars,
                 overlap_chars=request.chunk_options.overlap_chars,
                 llm_model=request.llm_model,
+                cancel_event=cancel_event,
             )
             contextualized_chunks = await self._automatic_contextualization(
                 request=request,
                 normalized_text=normalized_text,
                 runtime_chunks=runtime_chunks,
+                cancel_event=cancel_event,
             )
             chunking_mode = chunk_mode
             if request.automation.contextual_headers:
@@ -272,17 +281,26 @@ class IngestionService:
                 )
                 for chunk in request.approved_chunks
             ]
-            chunking_mode = "manual"
-            contextualization_mode = "manual"
+            chunking_mode = request.chunk_options.mode
+            contextualization_mode = (
+                request.contextualization_mode
+                if any((chunk.context_header or "").strip() for chunk in contextualized_chunks)
+                else "disabled"
+            )
 
         if not contextualized_chunks:
             raise ValidationDomainError("No chunks available for embedding")
+
+        self._raise_if_cancelled(cancel_event)
 
         embedding_model = request.embedding_model or self._settings.ollama_embedding_model
         vectors = await self._embedding_client.embed_texts(
             model=embedding_model,
             texts=[chunk.contextualized_text for chunk in contextualized_chunks],
+            cancel_event=cancel_event,
         )
+
+        self._raise_if_cancelled(cancel_event)
 
         vector_size = len(vectors[0])
         await self._qdrant_indexer.ensure_collection(project.qdrant_collection_name, vector_size)
@@ -344,6 +362,8 @@ class IngestionService:
                     payload=payload,
                 )
             )
+
+        self._raise_if_cancelled(cancel_event)
 
         await self._qdrant_indexer.upsert_chunks(
             collection_name=project.qdrant_collection_name,
@@ -440,6 +460,7 @@ class IngestionService:
         request: IngestDocumentRequest,
         normalized_text: str,
         runtime_chunks: list[ChunkCandidate],
+        cancel_event: asyncio.Event | None = None,
     ) -> list[ContextualizedChunkCandidate]:
         """Contextualize chunks for automatic mode when enabled."""
 
@@ -452,7 +473,10 @@ class IngestionService:
                 chunks=runtime_chunks,
                 mode=mode,
                 model=model_name,
+                cancel_event=cancel_event,
             )
+
+        self._raise_if_cancelled(cancel_event)
 
         return [
             ContextualizedChunkCandidate(
@@ -466,6 +490,13 @@ class IngestionService:
             )
             for chunk in runtime_chunks
         ]
+
+    @staticmethod
+    def _raise_if_cancelled(cancel_event: asyncio.Event | None) -> None:
+        """Raise a domain cancellation error when interrupt is signaled."""
+
+        if cancel_event is not None and cancel_event.is_set():
+            raise OperationCancelledError("Vectorization interrupted by user request.")
 
     def _extract_raw_chunk_snapshot(
         self,

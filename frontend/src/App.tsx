@@ -60,6 +60,7 @@ function App() {
       onAutomaticPreview={actions.runAutomaticPreview}
       onManualIngest={actions.runManualIngest}
       onAutomaticIngest={actions.runAutomaticIngest}
+      onInterruptVectorization={actions.interruptVectorization}
     />
   )
 
@@ -87,6 +88,7 @@ function App() {
       onChunkModeChange={actions.setChunkMode}
       onContextModeChange={actions.setContextMode}
       onAutomaticIngest={actions.runAutomaticIngest}
+      onInterruptVectorization={actions.interruptVectorization}
     />
   )
 

@@ -43,27 +43,39 @@ export function StartGuidePanel() {
             <div className="grid gap-2">
               <div className="border border-border bg-surface p-2">
                 <p className="font-mono text-xs text-foreground">STEP 01</p>
-                <p className="text-sm text-muted">Select an existing project or create a new namespace for this corpus.</p>
+                <p className="text-sm text-muted">
+                  Select an existing project or create a new namespace that will own documents, chunks, and vectors.
+                </p>
               </div>
               <div className="border border-border bg-surface p-2">
                 <p className="font-mono text-xs text-foreground">STEP 02</p>
-                <p className="text-sm text-muted">Upload a document or paste raw text that you want to vectorize.</p>
+                <p className="text-sm text-muted">
+                  Upload a file or paste raw text. This is the source used for all following review steps.
+                </p>
               </div>
               <div className="border border-border bg-surface p-2">
                 <p className="font-mono text-xs text-foreground">STEP 03</p>
-                <p className="text-sm text-muted">Toggle normalization ON/OFF to decide whether cleanup is applied.</p>
+                <p className="text-sm text-muted">
+                  Toggle normalization ON/OFF to control deterministic cleanup (spacing, blank lines, repeated short lines).
+                </p>
               </div>
               <div className="border border-border bg-surface p-2">
                 <p className="font-mono text-xs text-foreground">STEP 04</p>
-                <p className="text-sm text-muted">Choose deterministic or agentic chunking, then generate chunk candidates.</p>
+                <p className="text-sm text-muted">
+                  Choose chunk generation mode: deterministic (rule-based) or agentic (slower, better boundary judgment).
+                </p>
               </div>
               <div className="border border-border bg-surface p-2">
                 <p className="font-mono text-xs text-foreground">STEP 05</p>
-                <p className="text-sm text-muted">Pick context mode (LLM, template, or disabled) and review chunk output.</p>
+                <p className="text-sm text-muted">
+                  Select Context Retrieval Mode: Disabled, Template header, or Agent-generated header for each chunk.
+                </p>
               </div>
               <div className="border border-border bg-surface p-2">
                 <p className="font-mono text-xs text-foreground">STEP 06</p>
-                <p className="text-sm text-muted">Confirm and vectorize reviewed data into Qdrant.</p>
+                <p className="text-sm text-muted">
+                  Confirm settings and vectorize. Embeddings are generated and indexed into the project collection.
+                </p>
               </div>
             </div>
           </article>
@@ -72,7 +84,7 @@ export function StartGuidePanel() {
             <div className="border border-border bg-surface p-3">
               <p className="mb-2 text-sm text-foreground">
                 This mode is a single compact form: select/create project, upload or paste source text, choose
-                normalization + chunk mode + context mode, then vectorize directly.
+                normalization + chunk generation mode + context retrieval mode, then vectorize directly.
               </p>
               <p className="text-sm text-muted">No intermediate previews are shown before indexing.</p>
             </div>

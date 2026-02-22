@@ -116,11 +116,11 @@ export function ContextReviewPanel({
   return (
     <>
       <SectionCard
-        title="STEP 5 - Contextual Retrieval"
-        subtitle="Default is No context header. Generate context headers only when needed."
+        title="STEP 5 - Context Retrieval Mode"
+        subtitle="Default is No context header. Use Template for speed or Agentic header for stronger retrieval cues."
       >
         <section className="mb-3 border border-border bg-background p-3">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">Context Option</p>
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">Context Retrieval Mode</p>
           <div className="grid gap-3 md:grid-cols-3">
             <div className={`flex h-full flex-col border p-3 text-left ${modeCardClass(contextMode === "llm")}`}>
               <p className="mb-1 font-semibold text-foreground">Agentic header</p>

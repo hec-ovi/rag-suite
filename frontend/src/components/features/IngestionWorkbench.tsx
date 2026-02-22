@@ -63,6 +63,7 @@ interface IngestionWorkbenchProps {
   onAutomaticPreview: () => Promise<void>
   onManualIngest: () => Promise<void>
   onAutomaticIngest: () => Promise<void>
+  onInterruptVectorization: () => Promise<void>
 }
 
 const tabOrder: IngestionTabId[] = ["project", "source", "normalize", "chunk", "context", "manual"]
@@ -72,7 +73,7 @@ const tabLabels: Record<IngestionTabId, string> = {
   source: "2. Source",
   normalize: "3. Normalize",
   chunk: "4. Chunk",
-  context: "5. Contextual Retrieval",
+  context: "5. Context Retrieval Mode",
   manual: "6. HITL Vectorize",
 }
 
@@ -134,6 +135,7 @@ export function IngestionWorkbench({
   onAutomaticPreview,
   onManualIngest,
   onAutomaticIngest,
+  onInterruptVectorization,
 }: IngestionWorkbenchProps) {
   const [activeTab, setActiveTab] = useState<IngestionTabId>("project")
   const projectReady = selectedProjectId.length > 0
@@ -197,11 +199,9 @@ export function IngestionWorkbench({
             ))}
           </div>
 
-          {activeTab !== "project" ? (
-            <p className="border border-border bg-background px-3 py-2 font-mono text-xs text-foreground">
-              Project: {projectReady ? selectedProjectName : "Not selected"}
-            </p>
-          ) : null}
+          <p className="border border-border bg-background px-3 py-2 font-mono text-xs text-foreground">
+            Project: {projectReady ? selectedProjectName : "Not selected"}
+          </p>
         </div>
       </section>
 
@@ -286,6 +286,7 @@ export function IngestionWorkbench({
           onAutomaticPreview={onAutomaticPreview}
           onManualIngest={onManualIngest}
           onAutomaticIngest={onAutomaticIngest}
+          onInterruptVectorization={onInterruptVectorization}
           disabled={isBusy}
           isVectorizing={isVectorizing}
           mode="manual"

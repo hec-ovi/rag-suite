@@ -13,6 +13,7 @@ interface IngestionActionsPanelProps {
   onAutomaticPreview: () => Promise<void>
   onManualIngest: () => Promise<void>
   onAutomaticIngest: () => Promise<void>
+  onInterruptVectorization: () => Promise<void>
   disabled: boolean
   isVectorizing: boolean
   mode?: "all" | "manual" | "automatic"
@@ -32,6 +33,7 @@ export function IngestionActionsPanel({
   onAutomaticPreview,
   onManualIngest,
   onAutomaticIngest,
+  onInterruptVectorization,
   disabled,
   isVectorizing,
   mode = "all",
@@ -79,7 +81,7 @@ export function IngestionActionsPanel({
       <div className={`mb-4 grid gap-3 ${showLlmOverride ? "md:grid-cols-2" : "md:grid-cols-1"}`}>
         {showLlmOverride ? (
           <label className="flex flex-col gap-1 text-sm text-muted">
-            LLM model override
+            Agent model override
             <input
               value={llmModel}
               onChange={(event) => onLlmModelChange(event.target.value)}
@@ -137,12 +139,21 @@ export function IngestionActionsPanel({
 
       {isVectorizing ? (
         <div className="mb-3 border border-border bg-background px-3 py-2">
-          <div className="flex items-center gap-2">
-            <span
-              aria-hidden="true"
-              className="inline-block h-3 w-3 animate-spin border border-primary border-t-transparent"
-            />
-            <p className="text-sm font-semibold text-foreground">Vectorization in progress...</p>
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <span
+                aria-hidden="true"
+                className="inline-block h-3 w-3 animate-spin border border-primary border-t-transparent"
+              />
+              <p className="text-sm font-semibold text-foreground">Vectorization in progress...</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => void onInterruptVectorization()}
+              className="border border-danger/50 bg-danger/10 px-2 py-1 text-xs font-semibold text-danger"
+            >
+              Interrupt
+            </button>
           </div>
         </div>
       ) : null}

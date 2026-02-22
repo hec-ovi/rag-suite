@@ -24,6 +24,7 @@ interface AutoIngestionPanelProps {
   onChunkModeChange: (mode: ChunkModeSelection) => void
   onContextModeChange: (mode: ContextModeSelection) => void
   onAutomaticIngest: () => Promise<void>
+  onInterruptVectorization: () => Promise<void>
 }
 
 export function AutoIngestionPanel({
@@ -49,6 +50,7 @@ export function AutoIngestionPanel({
   onChunkModeChange,
   onContextModeChange,
   onAutomaticIngest,
+  onInterruptVectorization,
 }: AutoIngestionPanelProps) {
   const projectReady = selectedProjectId.length > 0
   const sourceReady = rawText.trim().length > 0
@@ -186,9 +188,7 @@ export function AutoIngestionPanel({
           </fieldset>
 
           <fieldset className="border border-border bg-background p-3">
-            <legend className="px-1 text-xs font-semibold uppercase tracking-wide text-muted">
-              Context-Aware Retrieval
-            </legend>
+            <legend className="px-1 text-xs font-semibold uppercase tracking-wide text-muted">Context Retrieval Mode</legend>
             <label className="mt-2 flex items-center gap-2 text-sm text-foreground">
               <input
                 type="radio"
@@ -223,7 +223,7 @@ export function AutoIngestionPanel({
                   onAutomationFlagChange("contextual_headers", true)
                 }}
               />
-              Agentic (drastically increases time on big data)
+              Agent-generated header (drastically increases time on big data)
             </label>
           </fieldset>
         </section>
@@ -239,12 +239,21 @@ export function AutoIngestionPanel({
 
         {isVectorizing ? (
           <div className="mt-3 border border-border bg-background px-3 py-2">
-            <div className="flex items-center gap-2">
-              <span
-                aria-hidden="true"
-                className="inline-block h-3 w-3 animate-spin border border-primary border-t-transparent"
-              />
-              <p className="text-sm font-semibold text-foreground">Vectorization in progress...</p>
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <span
+                  aria-hidden="true"
+                  className="inline-block h-3 w-3 animate-spin border border-primary border-t-transparent"
+                />
+                <p className="text-sm font-semibold text-foreground">Vectorization in progress...</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => void onInterruptVectorization()}
+                className="border border-danger/50 bg-danger/10 px-2 py-1 text-xs font-semibold text-danger"
+              >
+                Interrupt
+              </button>
             </div>
           </div>
         ) : null}

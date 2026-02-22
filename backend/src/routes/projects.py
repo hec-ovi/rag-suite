@@ -2,11 +2,11 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Header
 from sqlalchemy.orm import Session
 
 from src.core.config import Settings
-from src.core.dependencies import get_db_session, get_settings
+from src.core.dependencies import get_db_session, get_operation_manager, get_settings
 from src.models.api.pipeline import IngestDocumentRequest, IngestedDocumentResponse
 from src.models.api.project import (
     ChunkSummaryResponse,
@@ -16,6 +16,7 @@ from src.models.api.project import (
     ProjectListResponse,
     ProjectResponse,
 )
+from src.services.operation_manager import OperationManager
 from src.services.service_factory import build_ingestion_service, build_project_service
 
 router = APIRouter(prefix="/projects", tags=["Projects"])
@@ -86,8 +87,14 @@ async def ingest_document(
     data: IngestDocumentRequest,
     session: Annotated[Session, Depends(get_db_session)],
     settings: Annotated[Settings, Depends(get_settings)],
+    operation_manager: Annotated[OperationManager, Depends(get_operation_manager)],
+    operation_id: Annotated[str | None, Header(alias="X-Operation-Id")] = None,
 ) -> IngestedDocumentResponse:
     """Persist and index approved chunks in Qdrant."""
 
     service = build_ingestion_service(session=session, settings=settings)
-    return await service.ingest_document(project_id=project_id, request=data)
+    if not operation_id:
+        return await service.ingest_document(project_id=project_id, request=data)
+
+    async with operation_manager.track(operation_id) as cancel_event:
+        return await service.ingest_document(project_id=project_id, request=data, cancel_event=cancel_event)

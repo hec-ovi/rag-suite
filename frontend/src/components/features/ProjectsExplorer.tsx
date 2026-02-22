@@ -81,28 +81,47 @@ function summarizeNormalization(documents: DocumentSummaryRecord[]): string {
 
 function summarizeChunking(documents: DocumentSummaryRecord[]): string {
   if (documents.length === 0) {
-    return "No chunking data"
+    return "No chunk generation data"
   }
   if (documents.every((document) => document.used_agentic_chunking)) {
-    return "Agentic chunking (LLM boundaries)"
+    return "Chunk generation mode: Agentic"
   }
   if (documents.every((document) => !document.used_agentic_chunking)) {
-    return "Deterministic chunking (rule-based)"
+    return "Chunk generation mode: Deterministic"
   }
-  return "Mixed chunking modes"
+  return "Chunk generation mode: Mixed"
 }
 
-function summarizeContextualHeaders(documents: DocumentSummaryRecord[]): string {
+type ContextModeDisplay = "disabled" | "template" | "agent"
+
+function resolveContextModeForDocument(document: DocumentSummaryRecord): ContextModeDisplay {
+  if (!document.has_contextual_headers || document.contextualization_mode === "disabled") {
+    return "disabled"
+  }
+  if (document.contextualization_mode === "template") {
+    return "template"
+  }
+  return "agent"
+}
+
+function summarizeContextRetrievalMode(documents: DocumentSummaryRecord[]): string {
   if (documents.length === 0) {
-    return "No context data"
+    return "No context retrieval data"
   }
-  if (documents.every((document) => document.has_contextual_headers)) {
-    return "Context headers enabled"
+
+  const modes = new Set<ContextModeDisplay>(documents.map(resolveContextModeForDocument))
+  if (modes.size === 1) {
+    const [mode] = Array.from(modes)
+    if (mode === "disabled") {
+      return "Context retrieval mode: Disabled"
+    }
+    if (mode === "template") {
+      return "Context retrieval mode: Template"
+    }
+    return "Context retrieval mode: Agent"
   }
-  if (documents.every((document) => !document.has_contextual_headers)) {
-    return "Context headers disabled"
-  }
-  return "Mixed context headers"
+
+  return "Context retrieval mode: Mixed"
 }
 
 interface ExploreModalProps {
@@ -137,11 +156,7 @@ function ProjectExploreModal({ project, documents, onClose }: ExploreModalProps)
   const selectedChunk: ChunkSummaryRecord | null =
     loadedChunks.find((chunk) => chunk.id === effectiveSelectedChunkId) ?? null
 
-  const contextModeForDisplay = !selectedDocument?.has_contextual_headers
-    ? "disabled"
-    : selectedDocument.contextualization_mode === "template"
-      ? "template"
-      : "llm"
+  const contextModeForDisplay = selectedDocument ? resolveContextModeForDocument(selectedDocument) : "disabled"
 
   function goToPreviousChunk(): void {
     if (!canGoToPreviousChunk) {
@@ -225,18 +240,18 @@ function ProjectExploreModal({ project, documents, onClose }: ExploreModalProps)
                       ]}
                     />
                     <ModeGroup
-                      label="Chunk"
+                      label="Chunk Generation Mode"
                       options={[
                         { label: "Deterministic", selected: selectedDocument.chunking_mode === "deterministic" },
                         { label: "Agentic", selected: selectedDocument.chunking_mode === "agentic" },
                       ]}
                     />
                     <ModeGroup
-                      label="Context"
+                      label="Context Retrieval Mode"
                       options={[
                         { label: "Disabled", selected: contextModeForDisplay === "disabled" },
                         { label: "Template", selected: contextModeForDisplay === "template" },
-                        { label: "LLM", selected: contextModeForDisplay === "llm" },
+                        { label: "Agent", selected: contextModeForDisplay === "agent" },
                       ]}
                     />
                     <ModeGroup
@@ -244,13 +259,6 @@ function ProjectExploreModal({ project, documents, onClose }: ExploreModalProps)
                       options={[
                         { label: "Off", selected: !selectedDocument.used_normalization },
                         { label: "On", selected: selectedDocument.used_normalization },
-                      ]}
-                    />
-                    <ModeGroup
-                      label="Contextual Retrieval"
-                      options={[
-                        { label: "Off", selected: !selectedDocument.has_contextual_headers },
-                        { label: "On", selected: selectedDocument.has_contextual_headers },
                       ]}
                     />
                   </div>
@@ -506,7 +514,7 @@ export function ProjectsExplorer({ projects, onProjectsRefresh }: ProjectsExplor
                 const configurationKeywords = [
                   summarizeNormalization(documents),
                   summarizeChunking(documents),
-                  summarizeContextualHeaders(documents),
+                  summarizeContextRetrievalMode(documents),
                 ]
 
                 return (

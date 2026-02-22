@@ -114,9 +114,12 @@ export async function previewAutomaticPipeline(
 export async function ingestDocument(
   projectId: string,
   data: IngestDocumentRequest,
+  options?: PipelineRequestOptions,
 ): Promise<IngestedDocumentResponse> {
   return apiRequest<IngestedDocumentResponse>(`/projects/${projectId}/documents/ingest`, {
     method: "POST",
     body: JSON.stringify(data),
+    signal: options?.signal,
+    headers: buildOperationHeaders(options?.operationId),
   })
 }

@@ -74,6 +74,7 @@ interface WorkflowActions {
   runAutomaticPreview: () => Promise<void>
   runManualIngest: () => Promise<void>
   runAutomaticIngest: () => Promise<void>
+  interruptVectorization: () => Promise<void>
 }
 
 const DEFAULT_DOCUMENT_NAME = "Untitled Document"
@@ -93,6 +94,33 @@ function isAbortError(error: unknown): boolean {
   if (typeof error === "object" && error !== null && "name" in error) {
     const typed = error as { name?: unknown }
     return typed.name === "AbortError"
+  }
+
+  return false
+}
+
+function isOperationCancelled(error: unknown): boolean {
+  if (isAbortError(error)) {
+    return true
+  }
+
+  if (typeof error === "object" && error !== null) {
+    if ("status" in error) {
+      const typed = error as { status?: unknown }
+      if (typed.status === 499) {
+        return true
+      }
+    }
+
+    if ("message" in error) {
+      const typed = error as { message?: unknown }
+      if (typeof typed.message === "string") {
+        const message = typed.message.toLowerCase()
+        if (message.includes("interrupted") || message.includes("cancel")) {
+          return true
+        }
+      }
+    }
   }
 
   return false
@@ -125,8 +153,10 @@ export function useIngestionWorkflow(): { state: WorkflowState; actions: Workflo
   const queryClient = useQueryClient()
   const chunkAbortControllerRef = useRef<AbortController | null>(null)
   const contextAbortControllerRef = useRef<AbortController | null>(null)
+  const vectorizeAbortControllerRef = useRef<AbortController | null>(null)
   const chunkOperationIdRef = useRef<string>("")
   const contextOperationIdRef = useRef<string>("")
+  const vectorizeOperationIdRef = useRef<string>("")
 
   const {
     projects,
@@ -213,8 +243,17 @@ export function useIngestionWorkflow(): { state: WorkflowState; actions: Workflo
   })
 
   const ingestMutation = useMutation({
-    mutationFn: ({ projectId, payload }: { projectId: string; payload: Parameters<typeof ingestDocument>[1] }) =>
-      ingestDocument(projectId, payload),
+    mutationFn: ({
+      projectId,
+      payload,
+      signal,
+      operationId,
+    }: {
+      projectId: string
+      payload: Parameters<typeof ingestDocument>[1]
+      signal?: AbortSignal
+      operationId?: string
+    }) => ingestDocument(projectId, payload, { signal, operationId }),
   })
 
   const isBusy =
@@ -239,6 +278,7 @@ export function useIngestionWorkflow(): { state: WorkflowState; actions: Workflo
     return () => {
       chunkAbortControllerRef.current?.abort()
       contextAbortControllerRef.current?.abort()
+      vectorizeAbortControllerRef.current?.abort()
     }
   }, [])
 
@@ -371,7 +411,7 @@ export function useIngestionWorkflow(): { state: WorkflowState; actions: Workflo
       setContextualizedChunks([])
       setStatusMessage(`Chunking completed. ${response.chunks.length} chunks proposed.`)
     } catch (error) {
-      if (isAbortError(error)) {
+      if (isOperationCancelled(error)) {
         setStatusMessage("Chunking interrupted.")
         setErrorMessage("")
       } else {
@@ -457,7 +497,7 @@ export function useIngestionWorkflow(): { state: WorkflowState; actions: Workflo
       setContextualizedChunks(response.chunks)
       setStatusMessage(`Contextualization completed. ${response.chunks.length} chunks enriched.`)
     } catch (error) {
-      if (isAbortError(error)) {
+      if (isOperationCancelled(error)) {
         setStatusMessage("Contextual retrieval interrupted.")
         setErrorMessage("")
       } else {
@@ -542,6 +582,11 @@ export function useIngestionWorkflow(): { state: WorkflowState; actions: Workflo
       contextMode === "disabled"
         ? buildDirectContextualizedChunks(chunks)
         : contextualizedChunks
+    const manualAutomation = {
+      normalize_text: normalizationEnabled,
+      agentic_chunking: chunkModeForPersist === "agentic",
+      contextual_headers: contextMode !== "disabled",
+    }
 
     if (chunksForIngest.length === 0) {
       setErrorMessage("Generate contextualized chunks before manual vectorization.")
@@ -550,16 +595,22 @@ export function useIngestionWorkflow(): { state: WorkflowState; actions: Workflo
 
     setErrorMessage("")
     setStatusMessage("Persisting approved manual chunks...")
+    const abortController = new AbortController()
+    const operationId = createOperationId("ingest")
+    vectorizeAbortControllerRef.current = abortController
+    vectorizeOperationIdRef.current = operationId
 
     try {
       const response = await ingestMutation.mutateAsync({
         projectId: selectedProjectId,
+        signal: abortController.signal,
+        operationId,
         payload: {
           document_name: fileName.trim().length > 0 ? fileName : DEFAULT_DOCUMENT_NAME,
           source_type: "text",
           raw_text: rawText,
           workflow_mode: "manual",
-          automation,
+          automation: manualAutomation,
           chunk_options: {
             mode: chunkModeForPersist,
             max_chunk_chars: chunkOptions.maxChunkChars,
@@ -587,7 +638,19 @@ export function useIngestionWorkflow(): { state: WorkflowState; actions: Workflo
       await queryClient.invalidateQueries({ queryKey: ["project-documents"] })
       useNavigationStore.getState().setView("projects")
     } catch (error) {
-      setErrorMessage(extractApiErrorMessage(error))
+      if (isOperationCancelled(error)) {
+        setStatusMessage("Vectorization interrupted.")
+        setErrorMessage("")
+      } else {
+        setErrorMessage(extractApiErrorMessage(error))
+      }
+    } finally {
+      if (vectorizeAbortControllerRef.current === abortController) {
+        vectorizeAbortControllerRef.current = null
+      }
+      if (vectorizeOperationIdRef.current === operationId) {
+        vectorizeOperationIdRef.current = ""
+      }
     }
   }
 
@@ -607,10 +670,16 @@ export function useIngestionWorkflow(): { state: WorkflowState; actions: Workflo
 
     setErrorMessage("")
     setStatusMessage("Running automatic vectorization and indexing...")
+    const abortController = new AbortController()
+    const operationId = createOperationId("ingest")
+    vectorizeAbortControllerRef.current = abortController
+    vectorizeOperationIdRef.current = operationId
 
     try {
       const response = await ingestMutation.mutateAsync({
         projectId: selectedProjectId,
+        signal: abortController.signal,
+        operationId,
         payload: {
           document_name: fileName.trim().length > 0 ? fileName : DEFAULT_DOCUMENT_NAME,
           source_type: "text",
@@ -634,8 +703,39 @@ export function useIngestionWorkflow(): { state: WorkflowState; actions: Workflo
       await queryClient.invalidateQueries({ queryKey: ["project-documents"] })
       useNavigationStore.getState().setView("projects")
     } catch (error) {
-      setErrorMessage(extractApiErrorMessage(error))
+      if (isOperationCancelled(error)) {
+        setStatusMessage("Vectorization interrupted.")
+        setErrorMessage("")
+      } else {
+        setErrorMessage(extractApiErrorMessage(error))
+      }
+    } finally {
+      if (vectorizeAbortControllerRef.current === abortController) {
+        vectorizeAbortControllerRef.current = null
+      }
+      if (vectorizeOperationIdRef.current === operationId) {
+        vectorizeOperationIdRef.current = ""
+      }
     }
+  }
+
+  async function interruptVectorization(): Promise<void> {
+    const operationId = vectorizeOperationIdRef.current
+
+    vectorizeAbortControllerRef.current?.abort()
+    vectorizeAbortControllerRef.current = null
+    vectorizeOperationIdRef.current = ""
+
+    if (operationId.length > 0) {
+      try {
+        await cancelPipelineOperation(operationId)
+      } catch {
+        // Best-effort backend cleanup; local interruption already completed.
+      }
+    }
+
+    setErrorMessage("")
+    setStatusMessage("Vectorization interrupted.")
   }
 
   const state: WorkflowState = {
@@ -702,6 +802,7 @@ export function useIngestionWorkflow(): { state: WorkflowState; actions: Workflo
     runAutomaticPreview,
     runManualIngest,
     runAutomaticIngest,
+    interruptVectorization,
   }
 
   return { state, actions }
