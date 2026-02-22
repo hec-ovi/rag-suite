@@ -37,6 +37,7 @@ function App() {
       diffLines={state.diffLines}
       isBusy={state.isBusy}
       isChunking={state.isChunking}
+      isVectorizing={state.isVectorizing}
       onProjectNameDraftChange={actions.setProjectNameDraft}
       onProjectCreate={actions.createProject}
       onProjectSelect={actions.setSelectedProjectId}
@@ -70,6 +71,7 @@ function App() {
       statusMessage={state.statusMessage}
       errorMessage={state.errorMessage}
       isBusy={state.isBusy}
+      isVectorizing={state.isVectorizing}
       onProjectNameDraftChange={actions.setProjectNameDraft}
       onProjectCreate={actions.createProject}
       onProjectSelect={actions.setSelectedProjectId}

@@ -14,6 +14,7 @@ interface IngestionActionsPanelProps {
   onManualIngest: () => Promise<void>
   onAutomaticIngest: () => Promise<void>
   disabled: boolean
+  isVectorizing: boolean
   mode?: "all" | "manual" | "automatic"
   title?: string
   subtitle?: string
@@ -32,6 +33,7 @@ export function IngestionActionsPanel({
   onManualIngest,
   onAutomaticIngest,
   disabled,
+  isVectorizing,
   mode = "all",
   title = "Execution Controls",
   subtitle = "Run preview or persist chunks into Qdrant using manual or full-auto mode.",
@@ -132,6 +134,18 @@ export function IngestionActionsPanel({
           </button>
         ) : null}
       </div>
+
+      {isVectorizing ? (
+        <div className="mb-3 border border-border bg-background px-3 py-2">
+          <div className="flex items-center gap-2">
+            <span
+              aria-hidden="true"
+              className="inline-block h-3 w-3 animate-spin border border-primary border-t-transparent"
+            />
+            <p className="text-sm font-semibold text-foreground">Vectorization in progress...</p>
+          </div>
+        </div>
+      ) : null}
 
       <div className="border border-border bg-background px-3 py-2">
         <p className="font-mono text-xs text-muted">{statusMessage}</p>

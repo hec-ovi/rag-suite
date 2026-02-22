@@ -41,6 +41,7 @@ interface IngestionWorkbenchProps {
   diffLines: Array<{ kind: "added" | "removed" | "unchanged"; text: string }>
   isBusy: boolean
   isChunking: boolean
+  isVectorizing: boolean
   onProjectNameDraftChange: (value: string) => void
   onProjectCreate: () => Promise<void>
   onProjectSelect: (projectId: string) => void
@@ -107,6 +108,7 @@ export function IngestionWorkbench({
   diffLines,
   isBusy,
   isChunking,
+  isVectorizing,
   onProjectNameDraftChange,
   onProjectCreate,
   onProjectSelect,
@@ -256,6 +258,7 @@ export function IngestionWorkbench({
           onManualIngest={onManualIngest}
           onAutomaticIngest={onAutomaticIngest}
           disabled={isBusy}
+          isVectorizing={isVectorizing}
           mode="manual"
           title="STEP 6 - HITL Vectorize"
           subtitle="Persist reviewed chunks into Qdrant."

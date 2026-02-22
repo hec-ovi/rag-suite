@@ -13,6 +13,7 @@ interface AutoIngestionPanelProps {
   statusMessage: string
   errorMessage: string
   isBusy: boolean
+  isVectorizing: boolean
   onProjectNameDraftChange: (value: string) => void
   onProjectCreate: () => Promise<void>
   onProjectSelect: (projectId: string) => void
@@ -36,6 +37,7 @@ export function AutoIngestionPanel({
   statusMessage,
   errorMessage,
   isBusy,
+  isVectorizing,
   onProjectNameDraftChange,
   onProjectCreate,
   onProjectSelect,
@@ -227,6 +229,18 @@ export function AutoIngestionPanel({
         >
           Vectorize
         </button>
+
+        {isVectorizing ? (
+          <div className="mt-3 border border-border bg-background px-3 py-2">
+            <div className="flex items-center gap-2">
+              <span
+                aria-hidden="true"
+                className="inline-block h-3 w-3 animate-spin border border-primary border-t-transparent"
+              />
+              <p className="text-sm font-semibold text-foreground">Vectorization in progress...</p>
+            </div>
+          </div>
+        ) : null}
 
         <div className="mt-3 border border-border bg-background px-3 py-2">
           <p className="font-mono text-xs text-muted">{statusMessage}</p>

@@ -44,18 +44,6 @@ function formatShortTimestamp(value: string): string {
   return `${month}/${day}/${year} ${hours}:${minutes}`
 }
 
-function summarizeChunksByDocument(documents: DocumentSummaryRecord[]): string {
-  if (documents.length === 0) {
-    return "0 documents"
-  }
-
-  const slices = documents.slice(0, 3).map((document) => `${document.name} (${document.chunk_count})`)
-  if (documents.length > 3) {
-    slices.push(`+${documents.length - 3} more`)
-  }
-  return slices.join(" | ")
-}
-
 function totalChunks(documents: DocumentSummaryRecord[]): number {
   return documents.reduce((accumulator, document) => accumulator + document.chunk_count, 0)
 }
@@ -319,14 +307,12 @@ export function ProjectsExplorer({ projects, onProjectsRefresh }: ProjectsExplor
         subtitle="Operational table for project namespaces, document/chunk stats, and storage lifecycle actions."
       >
         <div className="overflow-x-auto border border-border bg-background">
-          <table className="min-w-[1100px] w-full border-collapse text-sm">
+          <table className="min-w-[820px] w-full border-collapse text-sm">
             <thead>
               <tr className="border-b border-border bg-surface text-left">
                 <th className="px-3 py-2 font-semibold text-foreground">Project</th>
-                <th className="px-3 py-2 font-semibold text-foreground">Collection</th>
                 <th className="px-3 py-2 font-semibold text-foreground">Documents</th>
                 <th className="px-3 py-2 font-semibold text-foreground">Total Chunks</th>
-                <th className="px-3 py-2 font-semibold text-foreground">Chunks / Document</th>
                 <th className="px-3 py-2 font-semibold text-foreground">Flags Summary</th>
                 <th className="px-3 py-2 font-semibold text-foreground">Created</th>
                 <th className="px-3 py-2 font-semibold text-foreground">Actions</th>
@@ -335,7 +321,7 @@ export function ProjectsExplorer({ projects, onProjectsRefresh }: ProjectsExplor
             <tbody>
               {projects.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-3 py-6 text-center text-sm text-muted">
+                  <td colSpan={6} className="px-3 py-6 text-center text-sm text-muted">
                     No projects yet. Create one in Vectorization step 1 (Setup). Test runs do not auto-seed persistent
                     projects.
                   </td>
@@ -362,15 +348,11 @@ export function ProjectsExplorer({ projects, onProjectsRefresh }: ProjectsExplor
                         {project.name}
                       </button>
                     </td>
-                    <td className="px-3 py-3 font-mono text-xs text-foreground">{project.qdrant_collection_name}</td>
                     <td className="px-3 py-3 font-mono text-xs text-foreground">
                       {documentQuery?.isFetching ? "..." : documentCount}
                     </td>
                     <td className="px-3 py-3 font-mono text-xs text-foreground">
                       {documentQuery?.isFetching ? "..." : chunkCount}
-                    </td>
-                    <td className="px-3 py-3 text-xs text-muted">
-                      {documentQuery?.isFetching ? "Loading document stats..." : summarizeChunksByDocument(documents)}
                     </td>
                     <td className="px-3 py-3">
                       <div className="grid gap-1">

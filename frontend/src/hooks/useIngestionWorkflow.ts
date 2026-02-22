@@ -14,6 +14,7 @@ import {
   proposeChunks,
 } from "../services/pipeline.service"
 import { useIngestionStore } from "../stores/ingestion.store"
+import { useNavigationStore } from "../stores/navigation.store"
 import type {
   ChunkMode,
   ChunkModeSelection,
@@ -44,6 +45,7 @@ interface WorkflowState {
   diffLines: ReturnType<typeof buildLineDiff>
   isBusy: boolean
   isChunking: boolean
+  isVectorizing: boolean
 }
 
 interface WorkflowActions {
@@ -176,6 +178,7 @@ export function useIngestionWorkflow(): { state: WorkflowState; actions: Workflo
     previewMutation.isPending ||
     ingestMutation.isPending
   const isChunking = chunkMutation.isPending
+  const isVectorizing = ingestMutation.isPending
 
   const diffLines = useMemo(() => {
     if (!normalizationEnabled || normalizedText.trim().length === 0) {
@@ -438,6 +441,8 @@ export function useIngestionWorkflow(): { state: WorkflowState; actions: Workflo
       setStatusMessage(
         `Manual vectorization complete. Stored ${response.embedded_chunk_count} chunks in ${response.qdrant_collection_name}.`,
       )
+      await queryClient.invalidateQueries({ queryKey: ["project-documents"] })
+      useNavigationStore.getState().setView("projects")
     } catch (error) {
       setErrorMessage(extractApiErrorMessage(error))
     }
@@ -483,6 +488,8 @@ export function useIngestionWorkflow(): { state: WorkflowState; actions: Workflo
       setStatusMessage(
         `Automatic vectorization complete. Stored ${response.embedded_chunk_count} chunks in ${response.qdrant_collection_name}.`,
       )
+      await queryClient.invalidateQueries({ queryKey: ["project-documents"] })
+      useNavigationStore.getState().setView("projects")
     } catch (error) {
       setErrorMessage(extractApiErrorMessage(error))
     }
@@ -509,6 +516,7 @@ export function useIngestionWorkflow(): { state: WorkflowState; actions: Workflo
     diffLines,
     isBusy,
     isChunking,
+    isVectorizing,
   }
 
   const actions: WorkflowActions = {
