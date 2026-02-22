@@ -1,3 +1,4 @@
+import { AutoIngestionPanel } from "./components/features/AutoIngestionPanel"
 import { Footer } from "./components/layout/Footer"
 import { Header } from "./components/layout/Header"
 import { MainContent } from "./components/layout/MainContent"
@@ -56,13 +57,46 @@ function App() {
     />
   )
 
+  const autoIngestView = (
+    <AutoIngestionPanel
+      projects={state.projects}
+      selectedProjectId={state.selectedProjectId}
+      projectNameDraft={state.projectNameDraft}
+      fileName={state.fileName}
+      rawText={state.rawText}
+      automation={state.automation}
+      llmModel={state.llmModel}
+      embeddingModel={state.embeddingModel}
+      statusMessage={state.statusMessage}
+      errorMessage={state.errorMessage}
+      isBusy={state.isBusy}
+      onProjectNameDraftChange={actions.setProjectNameDraft}
+      onProjectCreate={actions.createProject}
+      onProjectSelect={actions.setSelectedProjectId}
+      onRawTextChange={actions.setRawText}
+      onFileSelect={actions.handleFileSelected}
+      onAutomationFlagChange={actions.setAutomationFlag}
+      onLlmModelChange={actions.setLlmModel}
+      onEmbeddingModelChange={actions.setEmbeddingModel}
+      onAutomaticPreview={actions.runAutomaticPreview}
+      onManualIngest={actions.runManualIngest}
+      onAutomaticIngest={actions.runAutomaticIngest}
+    />
+  )
+
   const startView = <StartGuidePanel />
   const projectsView = <ProjectsExplorer projects={state.projects} onProjectsRefresh={actions.refreshProjects} />
 
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-grid-gradient text-foreground">
       <Header currentView={currentView} onViewChange={setView} themeMode={mode} onThemeModeChange={setMode} />
-      <MainContent currentView={currentView} startView={startView} ingestionView={ingestionView} projectsView={projectsView} />
+      <MainContent
+        currentView={currentView}
+        startView={startView}
+        ingestionView={ingestionView}
+        autoIngestView={autoIngestView}
+        projectsView={projectsView}
+      />
       <Footer />
     </div>
   )

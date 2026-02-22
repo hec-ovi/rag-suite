@@ -15,7 +15,7 @@ import { NormalizationPanel } from "./NormalizationPanel"
 import { ProjectPanel } from "./ProjectPanel"
 import { SourceEditorPanel } from "./SourceEditorPanel"
 
-type IngestionTabId = "project" | "source" | "normalize" | "chunk" | "context" | "manual" | "auto"
+type IngestionTabId = "project" | "source" | "normalize" | "chunk" | "context" | "manual"
 
 interface IngestionWorkbenchProps {
   projects: ProjectRecord[]
@@ -60,7 +60,7 @@ interface IngestionWorkbenchProps {
   onAutomaticIngest: () => Promise<void>
 }
 
-const tabOrder: IngestionTabId[] = ["project", "source", "normalize", "chunk", "context", "manual", "auto"]
+const tabOrder: IngestionTabId[] = ["project", "source", "normalize", "chunk", "context", "manual"]
 
 const tabLabels: Record<IngestionTabId, string> = {
   project: "1. Project",
@@ -69,7 +69,6 @@ const tabLabels: Record<IngestionTabId, string> = {
   chunk: "4. Chunk",
   context: "5. Context",
   manual: "6. Manual Ingest",
-  auto: "7. Auto",
 }
 
 const tabHint: Record<IngestionTabId, string> = {
@@ -79,7 +78,6 @@ const tabHint: Record<IngestionTabId, string> = {
   chunk: "Set boundaries and review chunk rationale.",
   context: "Add context headers before embedding.",
   manual: "Persist reviewed chunks manually.",
-  auto: "Separate automatic section for one-shot pipeline.",
 }
 
 function nextTab(current: IngestionTabId): IngestionTabId {
@@ -140,11 +138,8 @@ export function IngestionWorkbench({
   const projectReady = selectedProjectId.length > 0
 
   const progressLabel = useMemo(() => {
-    if (activeTab === "auto") {
-      return "Automatic section selected."
-    }
     return "Flow: Project -> Source -> Normalize -> Chunk -> Context -> Manual Ingest"
-  }, [activeTab])
+  }, [])
 
   const hasPrevious = tabOrder.indexOf(activeTab) > 0
   const hasNext = tabOrder.indexOf(activeTab) < tabOrder.length - 1
@@ -239,26 +234,6 @@ export function IngestionWorkbench({
           mode="manual"
           title="Manual Ingestion"
           subtitle="Approve and persist reviewed chunks into Qdrant."
-        />
-      ) : null}
-
-      {activeTab === "auto" ? (
-        <IngestionActionsPanel
-          automation={automation}
-          llmModel={llmModel}
-          embeddingModel={embeddingModel}
-          statusMessage={statusMessage}
-          errorMessage={errorMessage}
-          onAutomationFlagChange={onAutomationFlagChange}
-          onLlmModelChange={onLlmModelChange}
-          onEmbeddingModelChange={onEmbeddingModelChange}
-          onAutomaticPreview={onAutomaticPreview}
-          onManualIngest={onManualIngest}
-          onAutomaticIngest={onAutomaticIngest}
-          disabled={isBusy}
-          mode="automatic"
-          title="Automatic Ingestion"
-          subtitle="Set automation flags and run preview or one-shot ingestion."
         />
       ) : null}
 

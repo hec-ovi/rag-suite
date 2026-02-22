@@ -17,9 +17,10 @@ const modeCycle: Record<ThemeMode, ThemeMode> = {
 }
 
 const menuLabels: Record<ViewId, string> = {
-  start: "1. Start",
-  ingestion: "2. Ingestion",
-  projects: "3. Projects",
+  start: "Start Here",
+  ingestion: "Ingest",
+  auto_ingest: "Auto-Ingest",
+  projects: "Projects",
 }
 
 export function Header({ currentView, onViewChange, themeMode, onThemeModeChange }: HeaderProps) {
@@ -60,7 +61,7 @@ export function Header({ currentView, onViewChange, themeMode, onThemeModeChange
             aria-haspopup="menu"
             aria-expanded={isMenuOpen}
           >
-            Menu: {menuLabels[currentView]}
+            Ingestion Mode: {menuLabels[currentView]}
           </button>
           {isMenuOpen ? (
             <div

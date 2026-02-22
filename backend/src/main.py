@@ -54,6 +54,43 @@ SWAGGER_NOWRAP_CSS = """
 """
 
 REDOC_NOWRAP_CSS = """
+.ragsuite-content-type-bar {
+  width: 100% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 12px !important;
+  box-sizing: border-box !important;
+  padding: 8px 10px !important;
+  background: rgba(255, 255, 255, 0.04) !important;
+}
+
+.ragsuite-content-type-text {
+  white-space: nowrap !important;
+  font-weight: 600 !important;
+}
+
+.ragsuite-content-type-actions {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  margin-left: auto !important;
+}
+
+.ragsuite-content-type-action {
+  white-space: nowrap !important;
+  border: 0 !important;
+  background: transparent !important;
+  color: inherit !important;
+  cursor: pointer !important;
+  padding: 0 !important;
+  font: inherit !important;
+}
+
+.ragsuite-content-type-action:hover {
+  opacity: 0.85;
+}
+
 .ragsuite-inline-content-type {
   white-space: nowrap !important;
 }
@@ -63,6 +100,7 @@ REDOC_CONTENT_TYPE_FIX_SCRIPT = """
 <script>
 (function () {
   const MIME_RE = /^[A-Za-z0-9!#$&^_.+-]+\\/[A-Za-z0-9!#$&^_.+-]+$/i;
+  const ACTION_TEXTS = new Set(["copy", "expand all", "collapse all"]);
 
   function findMimeNode(container, labelNode) {
     const tags = "div, span, code, p, strong, label";
@@ -96,6 +134,64 @@ REDOC_CONTENT_TYPE_FIX_SCRIPT = """
     }
 
     return null;
+  }
+
+  function findActionButtons(scope) {
+    const nodes = Array.from(scope.querySelectorAll("button, [role='button']"));
+    return nodes.filter((node) => {
+      const text = (node.textContent || "").trim().toLowerCase();
+      if (!ACTION_TEXTS.has(text)) {
+        return false;
+      }
+      if (node.closest(".ragsuite-content-type-bar")) {
+        return false;
+      }
+      return true;
+    });
+  }
+
+  function findActionScope(startNode) {
+    let scope = startNode;
+    for (let depth = 0; depth < 8 && scope; depth += 1) {
+      const actions = findActionButtons(scope);
+      if (actions.length > 0) {
+        return { scope, actions };
+      }
+      scope = scope.parentElement;
+    }
+    return { scope: startNode, actions: [] };
+  }
+
+  function mountActionToolbar(parent, labelText, actionNodes) {
+    const textNode = document.createElement("span");
+    textNode.className = "ragsuite-content-type-text ragsuite-inline-content-type";
+    textNode.textContent = labelText;
+
+    const actionsWrap = document.createElement("div");
+    actionsWrap.className = "ragsuite-content-type-actions";
+
+    for (const actionNode of actionNodes) {
+      const label = (actionNode.textContent || "").trim();
+      if (!label) {
+        continue;
+      }
+      const proxy = document.createElement("button");
+      proxy.type = "button";
+      proxy.className = "ragsuite-content-type-action";
+      proxy.textContent = label;
+      proxy.addEventListener("click", function () {
+        actionNode.click();
+      });
+      actionsWrap.appendChild(proxy);
+      actionNode.style.display = "none";
+    }
+
+    parent.textContent = "";
+    parent.classList.add("ragsuite-content-type-bar");
+    parent.appendChild(textNode);
+    if (actionsWrap.childElementCount > 0) {
+      parent.appendChild(actionsWrap);
+    }
   }
 
   function fixContentTypeRows() {
@@ -132,7 +228,10 @@ REDOC_CONTENT_TYPE_FIX_SCRIPT = """
         continue;
       }
 
-      node.textContent = `Content type: ${mimeValue}`;
+      const labelText = `Content type: ${mimeValue}`;
+      const { actions } = findActionScope(parent);
+      mountActionToolbar(parent, labelText, actions);
+      node.textContent = labelText;
       node.classList.add("ragsuite-inline-content-type");
       node.setAttribute("data-ragsuite-content-type-patched", "1");
       valueNode.style.display = "none";

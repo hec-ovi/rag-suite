@@ -1,6 +1,6 @@
 import { create } from "zustand"
 
-export type ViewId = "start" | "ingestion" | "projects"
+export type ViewId = "start" | "ingestion" | "auto_ingest" | "projects"
 
 interface NavigationStore {
   currentView: ViewId
