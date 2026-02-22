@@ -6,4 +6,12 @@ class DomainError(Exception):
 
 
 class ValidationDomainError(DomainError):
-    """Raised when business validation fails."""
+    """Raised when request data violates business rules."""
+
+
+class ResourceNotFoundError(DomainError):
+    """Raised when a requested record cannot be found."""
+
+
+class ExternalServiceError(DomainError):
+    """Raised when upstream service integrations fail."""

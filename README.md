@@ -11,7 +11,7 @@ Production-focused RAG platform with a quality-first ingestion + retrieval pipel
 
 ## Current Scope
 
-Stage 0 implements the data preparation control plane (complete):
+Stage 0 data preparation control plane (complete):
 
 - Deterministic text normalization (no model rewriting)
 - Deterministic chunking and experimental agentic chunk boundary proposals
@@ -22,11 +22,17 @@ Stage 0 implements the data preparation control plane (complete):
 - Automatic pipeline preview endpoint for human review before persistence
 - Frontend ingestion shell with PDF/DOCX/TXT extraction, diff review, and manual or automatic execution controls
 
-Service split in progress:
+Stage 1 baseline RAG (implemented):
+
+- Hybrid retrieval (`dense + sparse/BM25`) on project-scoped data
+- Stateless and session-memory chat endpoints in `backend_rag`
+- Ordered source tracing (`document + chunk + score`) in every chat response
+
+Service split (active):
 
 - `backend_inference`: OpenAI-compatible inference API (the only service that calls Ollama directly)
 - `backend_ingestion`: ingestion/vectorization API
-- `backend_rag`: dedicated RAG API scaffold (implementation pending)
+- `backend_rag`: hybrid RAG chat API (stateless + session memory)
 
 ## Why Qdrant (and not FAISS-only)
 
@@ -38,7 +44,7 @@ FAISS is kept as a future benchmark/tuning path, not as the primary persistence 
 
 Current runtime chain:
 
-- `ollama` -> `backend_inference` -> (`backend_ingestion` and future `backend_rag`)
+- `ollama` -> `backend_inference` -> (`backend_ingestion` and `backend_rag`)
 
 This keeps model access centralized behind one inference API so cloud model providers can be swapped later without
 rewiring ingestion/RAG business logic.
@@ -57,7 +63,7 @@ rewiring ingestion/RAG business logic.
 ```text
 backend_ingestion/  FastAPI ingestion API + SQLite control plane + Qdrant adapters
 backend_inference/  FastAPI OpenAI-compatible inference API (Ollama gateway)
-backend_rag/        FastAPI RAG API scaffold (under construction)
+backend_rag/        FastAPI hybrid RAG API (stateless + session memory)
 frontend/           React ingestion UI shell
 ollama/             ROCm Ollama startup scripts
 qdrant/             Local persistent Qdrant storage mount point (`qdrant/storage`)
@@ -137,10 +143,12 @@ docker compose --env-file .env up -d --build
 - `POST /v1/pipeline/preview-automatic`
 - `POST /v1/projects/{project_id}/documents/ingest`
 
-`backend_rag` (port `8020`, scaffold):
+`backend_rag` (port `8020`):
 
 - `GET /v1/health`
 - `GET /v1/rag/status`
+- `POST /v1/rag/chat/stateless`
+- `POST /v1/rag/chat/session`
 
 ## OpenAI-Compatible Inference (Ollama-backed)
 
@@ -165,13 +173,10 @@ curl -sS http://localhost:8010/v1/chat/completions \
 
 ## Incremental Roadmap
 
-1. Stage 0: data preparation and indexing control plane (current)
-2. Stage 1: dedicated RAG backend implementation (next)
-3. Stage 2: reranking and quality benchmark harness (Recall@k, MRR, nDCG)
+1. Stage 0: data preparation and indexing control plane (complete)
+2. Stage 1: hybrid RAG baseline backend (complete)
+3. Stage 2: reranked retrieval branch + quality benchmark harness (Recall@k, MRR, nDCG)
 4. Stage 3: graph-augmented retrieval branch (Knowledge Graph / LightRAG)
-
-Load Data scope is complete. `backend_rag` is intentionally scaffold-only right now while the service split and
-inference-gateway architecture are finalized.
 
 ## Frontend Workflow
 

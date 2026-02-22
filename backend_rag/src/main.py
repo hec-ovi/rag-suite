@@ -8,17 +8,31 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from src.core.config import load_settings
-from src.core.exceptions import DomainError, ValidationDomainError
+from src.core.exceptions import (
+    DomainError,
+    ExternalServiceError,
+    ResourceNotFoundError,
+    ValidationDomainError,
+)
+from src.core.runtime import RuntimeContainer
 from src.routes.health import router as health_router
 from src.routes.rag import router as rag_router
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-    """Initialize settings at startup."""
+    """Initialize settings and runtime dependencies at startup."""
 
-    app.state.settings = load_settings()
-    yield
+    settings = load_settings()
+    runtime = RuntimeContainer(settings)
+
+    app.state.settings = settings
+    app.state.runtime = runtime
+
+    try:
+        yield
+    finally:
+        runtime.close()
 
 
 app = FastAPI(
@@ -44,9 +58,23 @@ app.add_middleware(
 
 @app.exception_handler(ValidationDomainError)
 async def handle_validation(_: Request, exc: ValidationDomainError) -> JSONResponse:
-    """Map domain validation errors to HTTP 400."""
+    """Map validation-domain errors to HTTP 400."""
 
     return JSONResponse(status_code=400, content={"detail": str(exc)})
+
+
+@app.exception_handler(ResourceNotFoundError)
+async def handle_not_found(_: Request, exc: ResourceNotFoundError) -> JSONResponse:
+    """Map missing-resource domain errors to HTTP 404."""
+
+    return JSONResponse(status_code=404, content={"detail": str(exc)})
+
+
+@app.exception_handler(ExternalServiceError)
+async def handle_external(_: Request, exc: ExternalServiceError) -> JSONResponse:
+    """Map external-service failures to HTTP 502."""
+
+    return JSONResponse(status_code=502, content={"detail": str(exc)})
 
 
 @app.exception_handler(DomainError)

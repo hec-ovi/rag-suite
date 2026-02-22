@@ -1,13 +1,19 @@
 [project]
 name = "backend-rag"
 version = "0.1.0"
-description = "RAG Suite dedicated RAG API (scaffold)"
+description = "RAG Suite dedicated hybrid RAG API"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "fastapi[standard]>=0.129.2",
+    "httpx>=0.28.1",
+    "langchain-core>=1.2.14",
+    "langgraph>=1.0.9",
+    "langgraph-checkpoint-sqlite>=3.0.3",
     "pydantic-settings>=2.13.1",
     "python-dotenv>=1.2.1",
+    "qdrant-client>=1.17.0",
+    "sqlalchemy>=2.0.46",
 ]
 
 [dependency-groups]
