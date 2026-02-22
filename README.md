@@ -61,9 +61,24 @@ backend_rag/        FastAPI RAG API scaffold (under construction)
 frontend/           React ingestion UI shell
 ollama/             ROCm Ollama startup scripts
 qdrant/             Local persistent Qdrant storage mount point (`qdrant/storage`)
+samples/            Sample PDF/TXT files for ingestion and extraction tests
 docker-compose.yml  Local stack orchestration
 .env.template       Environment and host-path template
 ```
+
+## Sample Data
+
+`samples/` contains small real files used to test source loading and extraction paths:
+
+- PDF load/extraction behavior (`.pdf`)
+- Plain text load behavior (`.txt`)
+- Formatting cleanup behavior in normalization (PDF-derived noisy text patterns)
+
+Current included samples:
+
+- `samples/andersen_little_match_girl.pdf`
+- `samples/the_tell-tale_heart_0.pdf`
+- `samples/the_gift_of_the_magi.txt`
 
 ## Quick Start
 
