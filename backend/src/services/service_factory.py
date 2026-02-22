@@ -3,6 +3,7 @@ from __future__ import annotations
 from sqlalchemy.orm import Session
 
 from src.core.config import Settings
+from src.services.inference_service import InferenceService
 from src.services.ingestion_service import IngestionService
 from src.services.project_service import ProjectService
 from src.services.retrieval_service import RetrievalService
@@ -14,6 +15,7 @@ from src.tools.json_response_parser import JsonResponseParser
 from src.tools.normalize_text import DeterministicTextNormalizer
 from src.tools.ollama_chat_client import OllamaChatClient
 from src.tools.ollama_embedding_client import OllamaEmbeddingClient
+from src.tools.ollama_inference_client import OllamaInferenceClient
 from src.tools.prompt_loader import PromptLoader
 from src.tools.qdrant_indexer import QdrantIndexer
 
@@ -88,4 +90,15 @@ def build_retrieval_service(session: Session, settings: Settings) -> RetrievalSe
             timeout_seconds=settings.qdrant_timeout_seconds,
         ),
         hybrid_ranker=HybridRanker(),
+    )
+
+
+def build_inference_service(settings: Settings) -> InferenceService:
+    """Build OpenAI-compatible inference service backed by Ollama."""
+
+    return InferenceService(
+        ollama_client=OllamaInferenceClient(
+            base_url=settings.ollama_url,
+            timeout_seconds=settings.ollama_timeout_seconds,
+        )
     )

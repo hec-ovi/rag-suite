@@ -87,6 +87,9 @@ docker compose --env-file .env up -d --build
 ## Backend Endpoints
 
 - `GET /v1/health`
+- `POST /v1/chat/completions` (OpenAI-compatible, Ollama-backed)
+- `POST /v1/completions` (OpenAI-compatible, Ollama-backed)
+- `POST /v1/embeddings` (OpenAI-compatible, Ollama-backed)
 - `POST /v1/projects`
 - `GET /v1/projects`
 - `DELETE /v1/projects/{project_id}`
@@ -100,6 +103,27 @@ docker compose --env-file .env up -d --build
 - `POST /v1/projects/{project_id}/documents/ingest`
 - `POST /v1/projects/{project_id}/rag/search`
 - `POST /v1/projects/{project_id}/rag/answer`
+
+## OpenAI-Compatible Inference (Ollama-backed)
+
+These endpoints follow OpenAI-style request/response shapes for local testing with existing client tooling:
+
+- `POST /v1/chat/completions`
+- `POST /v1/completions`
+- `POST /v1/embeddings`
+
+Example:
+
+```bash
+curl -sS http://localhost:8000/v1/chat/completions \
+  -H "content-type: application/json" \
+  -d '{
+    "model":"gpt-oss:20b",
+    "messages":[{"role":"user","content":"Reply with one word: hello"}],
+    "temperature":0,
+    "stream":false
+  }'
+```
 
 ## Incremental Roadmap
 

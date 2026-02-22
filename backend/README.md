@@ -14,6 +14,17 @@ UV_CACHE_DIR=/tmp/uv-cache uv run --directory backend uvicorn src.main:app --hos
 - Swagger UI: `http://localhost:8000/docs`
 - OpenAPI JSON: `http://localhost:8000/openapi.json`
 
+## OpenAI-Compatible Inference Endpoints
+
+- `POST /v1/chat/completions`
+- `POST /v1/completions`
+- `POST /v1/embeddings`
+
+Notes:
+
+- `stream=true` is currently not supported (non-streamed responses only).
+- These routes are compatibility wrappers over Ollama `/api/chat` and `/api/embed`.
+
 ## Hybrid RAG Endpoints
 
 - `POST /v1/projects/{project_id}/rag/search`

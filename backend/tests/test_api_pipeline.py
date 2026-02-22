@@ -19,6 +19,9 @@ def test_openapi_contains_stage_zero_routes() -> None:
     assert "/v1/pipeline/preview-automatic" in paths
     assert "/v1/projects/{project_id}" in paths
     assert "/v1/projects/{project_id}/documents/ingest" in paths
+    assert "/v1/chat/completions" in paths
+    assert "/v1/completions" in paths
+    assert "/v1/embeddings" in paths
 
 
 def test_preview_request_defaults_are_stable() -> None:
