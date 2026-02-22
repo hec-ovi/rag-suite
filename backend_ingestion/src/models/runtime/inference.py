@@ -1,0 +1,21 @@
+from __future__ import annotations
+
+from dataclasses import dataclass
+
+
+@dataclass(slots=True)
+class ChatGenerationResult:
+    """Normalized chat generation output from Ollama."""
+
+    content: str
+    prompt_tokens: int
+    completion_tokens: int
+    finish_reason: str
+
+
+@dataclass(slots=True)
+class EmbeddingGenerationResult:
+    """Normalized embedding output from Ollama."""
+
+    embeddings: list[list[float]]
+    prompt_tokens: int

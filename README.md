@@ -11,7 +11,7 @@ Production-focused RAG platform with a quality-first ingestion + retrieval pipel
 
 ## Current Scope
 
-Stage 0 implements the data preparation control plane:
+Stage 0 implements the data preparation control plane (complete):
 
 - Deterministic text normalization (no model rewriting)
 - Deterministic chunking and experimental agentic chunk boundary proposals
@@ -22,16 +22,26 @@ Stage 0 implements the data preparation control plane:
 - Automatic pipeline preview endpoint for human review before persistence
 - Frontend ingestion shell with PDF/DOCX/TXT extraction, diff review, and manual or automatic execution controls
 
-Stage 1 (basic) now adds hybrid RAG retrieval:
+Service split in progress:
 
-- Hybrid search combining Qdrant dense similarity + sparse BM25 lexical scoring
-- Grounded answer endpoint with inline chunk citations
+- `backend_inference`: OpenAI-compatible inference API (the only service that calls Ollama directly)
+- `backend_ingestion`: ingestion/vectorization API
+- `backend_rag`: dedicated RAG API scaffold (implementation pending)
 
 ## Why Qdrant (and not FAISS-only)
 
 FAISS is an excellent vector search library, but this project needs production database capabilities from day one (metadata filtering, persistence, API layer, and operational controls). Qdrant provides those as a full open-source vector database while still supporting high-performance ANN retrieval.
 
 FAISS is kept as a future benchmark/tuning path, not as the primary persistence and API layer.
+
+## Service Topology
+
+Current runtime chain:
+
+- `ollama` -> `backend_inference` -> (`backend_ingestion` and future `backend_rag`)
+
+This keeps model access centralized behind one inference API so cloud model providers can be swapped later without
+rewiring ingestion/RAG business logic.
 
 ## Architecture Rationale (Stage 0)
 
@@ -45,11 +55,13 @@ FAISS is kept as a future benchmark/tuning path, not as the primary persistence 
 ## Repository Layout
 
 ```text
-backend/            FastAPI ingestion API + SQLite control plane + Qdrant/Ollama adapters
+backend_ingestion/  FastAPI ingestion API + SQLite control plane + Qdrant adapters
+backend_inference/  FastAPI OpenAI-compatible inference API (Ollama gateway)
+backend_rag/        FastAPI RAG API scaffold (under construction)
 frontend/           React ingestion UI shell
 ollama/             ROCm Ollama startup scripts
 qdrant/             Local persistent Qdrant storage mount point (`qdrant/storage`)
-docker-compose.yml  Local stack orchestration (frontend, backend, qdrant, ollama)
+docker-compose.yml  Local stack orchestration
 .env.template       Environment and host-path template
 ```
 
@@ -75,7 +87,9 @@ docker compose --env-file .env up -d --build
 4. Open:
 
 - Frontend: `http://localhost:5173`
-- Backend docs: `http://localhost:8000/docs`
+- Ingestion backend docs: `http://localhost:8000/docs`
+- Inference backend docs: `http://localhost:8010/docs`
+- RAG backend docs: `http://localhost:8020/docs`
 - Qdrant: `http://localhost:6333/dashboard`
 
 ## Persistent Paths
@@ -86,10 +100,16 @@ docker compose --env-file .env up -d --build
 
 ## Backend Endpoints
 
+`backend_inference` (port `8010`):
+
 - `GET /v1/health`
-- `POST /v1/chat/completions` (OpenAI-compatible, Ollama-backed)
-- `POST /v1/completions` (OpenAI-compatible, Ollama-backed)
-- `POST /v1/embeddings` (OpenAI-compatible, Ollama-backed)
+- `POST /v1/chat/completions`
+- `POST /v1/completions`
+- `POST /v1/embeddings`
+
+`backend_ingestion` (port `8000`):
+
+- `GET /v1/health`
 - `POST /v1/projects`
 - `GET /v1/projects`
 - `DELETE /v1/projects/{project_id}`
@@ -101,12 +121,15 @@ docker compose --env-file .env up -d --build
 - `POST /v1/pipeline/operations/{operation_id}/cancel`
 - `POST /v1/pipeline/preview-automatic`
 - `POST /v1/projects/{project_id}/documents/ingest`
-- `POST /v1/projects/{project_id}/rag/search`
-- `POST /v1/projects/{project_id}/rag/answer`
+
+`backend_rag` (port `8020`, scaffold):
+
+- `GET /v1/health`
+- `GET /v1/rag/status`
 
 ## OpenAI-Compatible Inference (Ollama-backed)
 
-These endpoints follow OpenAI-style request/response shapes for local testing with existing client tooling:
+These endpoints are exposed by `backend_inference` and follow OpenAI-style request/response shapes:
 
 - `POST /v1/chat/completions`
 - `POST /v1/completions`
@@ -115,7 +138,7 @@ These endpoints follow OpenAI-style request/response shapes for local testing wi
 Example:
 
 ```bash
-curl -sS http://localhost:8000/v1/chat/completions \
+curl -sS http://localhost:8010/v1/chat/completions \
   -H "content-type: application/json" \
   -d '{
     "model":"gpt-oss:20b",
@@ -128,13 +151,12 @@ curl -sS http://localhost:8000/v1/chat/completions \
 ## Incremental Roadmap
 
 1. Stage 0: data preparation and indexing control plane (current)
-2. Stage 1: basic hybrid retrieval and grounded answer endpoint (current)
+2. Stage 1: dedicated RAG backend implementation (next)
 3. Stage 2: reranking and quality benchmark harness (Recall@k, MRR, nDCG)
-4. Stage 3: graph-augmented retrieval branch (Knowledge Graph / LightRAG) - pending due to implementation complexity
+4. Stage 3: graph-augmented retrieval branch (Knowledge Graph / LightRAG)
 
-Load Data scope is complete for the current release. The remaining pending item is the Knowledge Graph-enhanced
-retrieval branch (LightRAG-style path), intentionally deferred because it requires a larger graph modeling and
-entity-linking layer.
+Load Data scope is complete. `backend_rag` is intentionally scaffold-only right now while the service split and
+inference-gateway architecture are finalized.
 
 ## Frontend Workflow
 
@@ -172,7 +194,7 @@ Key results from the 2026-02-21 run:
 Reproduce the deterministic audit:
 
 ```bash
-UV_CACHE_DIR=/tmp/uv-cache uv run --directory backend python -m scripts.run_section_audit \
+UV_CACHE_DIR=/tmp/uv-cache uv run --directory backend_ingestion python -m scripts.run_section_audit \
   --input-file data/2512.10398v6.txt \
   --section-anchor Introduction \
   --section-length 1200 \
@@ -184,19 +206,10 @@ UV_CACHE_DIR=/tmp/uv-cache uv run --directory backend python -m scripts.run_sect
 ## Backend Verification
 
 ```bash
-UV_CACHE_DIR=/tmp/uv-cache uv run --directory backend ruff check src tests
-UV_CACHE_DIR=/tmp/uv-cache uv run --directory backend pytest -q
-UV_CACHE_DIR=/tmp/uv-cache uv run --directory backend python -c "from src.main import app; print(sorted(app.openapi()['paths'].keys()))"
+PYTHONPATH=backend_ingestion backend/.venv/bin/pytest -q backend_ingestion/tests
+PYTHONPATH=backend_inference backend/.venv/bin/pytest -q backend_inference/tests
+PYTHONPATH=backend_rag backend/.venv/bin/pytest -q backend_rag/tests
 ```
-
-## Hybrid Smoke Check (Tiny)
-
-Validated against a tiny synthetic document (`Paris/Berlin/Madrid capitals`) with live Docker services:
-
-- `POST /v1/projects` -> project created
-- `POST /v1/projects/{project_id}/documents/ingest` -> `embedded_chunk_count=1`
-- `POST /v1/projects/{project_id}/rag/search` -> one ranked chunk returned
-- `POST /v1/projects/{project_id}/rag/answer` -> grounded answer with citation format `[document_id:chunk_index]`
 
 ## ROCm Stability Notes
 
