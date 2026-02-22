@@ -15,7 +15,7 @@ import { NormalizationPanel } from "./NormalizationPanel"
 import { ProjectPanel } from "./ProjectPanel"
 import { SourceEditorPanel } from "./SourceEditorPanel"
 
-type IngestionTabId = "setup" | "normalize" | "chunk" | "context" | "manual" | "auto"
+type IngestionTabId = "project" | "source" | "normalize" | "chunk" | "context" | "manual" | "auto"
 
 interface IngestionWorkbenchProps {
   projects: ProjectRecord[]
@@ -60,24 +60,26 @@ interface IngestionWorkbenchProps {
   onAutomaticIngest: () => Promise<void>
 }
 
-const tabOrder: IngestionTabId[] = ["setup", "normalize", "chunk", "context", "manual", "auto"]
+const tabOrder: IngestionTabId[] = ["project", "source", "normalize", "chunk", "context", "manual", "auto"]
 
 const tabLabels: Record<IngestionTabId, string> = {
-  setup: "1. Setup",
-  normalize: "2. Normalize",
-  chunk: "3. Chunk",
-  context: "4. Context",
-  manual: "5. Manual Ingest",
-  auto: "Auto",
+  project: "1. Project",
+  source: "2. Source",
+  normalize: "3. Normalize",
+  chunk: "4. Chunk",
+  context: "5. Context",
+  manual: "6. Manual Ingest",
+  auto: "7. Auto",
 }
 
 const tabHint: Record<IngestionTabId, string> = {
-  setup: "Create/select project and load raw text.",
+  project: "Create or select project namespace first.",
+  source: "Load source file/text only after project setup.",
   normalize: "Clean text deterministically before splitting.",
   chunk: "Set boundaries and review chunk rationale.",
   context: "Add context headers before embedding.",
   manual: "Persist reviewed chunks manually.",
-  auto: "Run full automatic pipeline in one shot.",
+  auto: "Separate automatic section for one-shot pipeline.",
 }
 
 function nextTab(current: IngestionTabId): IngestionTabId {
@@ -134,13 +136,14 @@ export function IngestionWorkbench({
   onManualIngest,
   onAutomaticIngest,
 }: IngestionWorkbenchProps) {
-  const [activeTab, setActiveTab] = useState<IngestionTabId>("setup")
+  const [activeTab, setActiveTab] = useState<IngestionTabId>("project")
+  const projectReady = selectedProjectId.length > 0
 
   const progressLabel = useMemo(() => {
     if (activeTab === "auto") {
-      return "Auto mode selected."
+      return "Automatic section selected."
     }
-    return "Flow: Setup -> Normalize -> Chunk -> Context -> Manual Ingest"
+    return "Flow: Project -> Source -> Normalize -> Chunk -> Context -> Manual Ingest"
   }, [activeTab])
 
   const hasPrevious = tabOrder.indexOf(activeTab) > 0
@@ -169,25 +172,27 @@ export function IngestionWorkbench({
         <p className="text-sm text-foreground">{tabHint[activeTab]}</p>
       </section>
 
-      {activeTab === "setup" ? (
-        <>
-          <ProjectPanel
-            projects={projects}
-            selectedProjectId={selectedProjectId}
-            projectNameDraft={projectNameDraft}
-            onProjectNameDraftChange={onProjectNameDraftChange}
-            onProjectCreate={onProjectCreate}
-            onProjectSelect={onProjectSelect}
-            disabled={isBusy}
-          />
-          <SourceEditorPanel
-            fileName={fileName}
-            rawText={rawText}
-            onRawTextChange={onRawTextChange}
-            onFileSelect={onFileSelect}
-            disabled={isBusy}
-          />
-        </>
+      {activeTab === "project" ? (
+        <ProjectPanel
+          projects={projects}
+          selectedProjectId={selectedProjectId}
+          projectNameDraft={projectNameDraft}
+          onProjectNameDraftChange={onProjectNameDraftChange}
+          onProjectCreate={onProjectCreate}
+          onProjectSelect={onProjectSelect}
+          disabled={isBusy}
+        />
+      ) : null}
+
+      {activeTab === "source" ? (
+        <SourceEditorPanel
+          fileName={fileName}
+          rawText={rawText}
+          onRawTextChange={onRawTextChange}
+          onFileSelect={onFileSelect}
+          disabled={isBusy}
+          projectReady={projectReady}
+        />
       ) : null}
 
       {activeTab === "normalize" ? (

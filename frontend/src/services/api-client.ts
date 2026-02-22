@@ -1,6 +1,31 @@
 import type { ApiErrorResponse } from "../types/pipeline"
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000/v1"
+function stripTrailingSlash(value: string): string {
+  return value.endsWith("/") ? value.slice(0, -1) : value
+}
+
+function resolveApiBaseUrl(): string {
+  const configured = stripTrailingSlash(import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000/v1")
+
+  if (typeof window === "undefined") {
+    return configured
+  }
+
+  try {
+    const parsed = new URL(configured)
+    if (parsed.hostname !== "backend") {
+      return configured
+    }
+
+    const runtimeHost = window.location.hostname || "localhost"
+    parsed.hostname = runtimeHost
+    return stripTrailingSlash(parsed.toString())
+  } catch {
+    return configured
+  }
+}
+
+const API_BASE_URL = resolveApiBaseUrl()
 
 export class ApiError extends Error {
   status: number
