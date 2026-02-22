@@ -23,6 +23,32 @@ const menuLabels: Record<ViewId, string> = {
   projects: "Projects",
 }
 
+function ThemeModeIcon({ mode }: { mode: ThemeMode }) {
+  if (mode === "light") {
+    return (
+      <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+        <circle cx="12" cy="12" r="4" />
+        <path d="M12 2v3M12 19v3M4.93 4.93l2.12 2.12M16.95 16.95l2.12 2.12M2 12h3M19 12h3M4.93 19.07l2.12-2.12M16.95 7.05l2.12-2.12" />
+      </svg>
+    )
+  }
+
+  if (mode === "dark") {
+    return (
+      <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+        <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z" />
+      </svg>
+    )
+  }
+
+  return (
+    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+      <rect x="3" y="4" width="18" height="13" />
+      <path d="M8 20h8M12 17v3" />
+    </svg>
+  )
+}
+
 export function Header({ currentView, onViewChange, themeMode, onThemeModeChange }: HeaderProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement | null>(null)
@@ -96,10 +122,11 @@ export function Header({ currentView, onViewChange, themeMode, onThemeModeChange
         <button
           type="button"
           onClick={() => onThemeModeChange(modeCycle[themeMode])}
-          className="border border-border bg-surface px-3 py-2 text-sm font-medium text-foreground hover:bg-background"
-          aria-label="Toggle theme mode"
+          className="inline-flex h-10 w-10 items-center justify-center border border-border bg-surface text-foreground hover:bg-background"
+          aria-label={`Theme mode: ${themeMode}. Click to switch.`}
+          title={`Theme mode: ${themeMode}`}
         >
-          Theme: {themeMode}
+          <ThemeModeIcon mode={themeMode} />
         </button>
       </nav>
     </header>
