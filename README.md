@@ -81,6 +81,7 @@ docker compose --env-file .env up -d --build
 
 ## Stage 0 Backend Endpoints
 
+- `GET /v1/health`
 - `POST /v1/projects`
 - `GET /v1/projects`
 - `DELETE /v1/projects/{project_id}`
