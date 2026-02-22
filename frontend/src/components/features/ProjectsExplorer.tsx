@@ -19,13 +19,29 @@ interface FlagPillProps {
 function FlagPill({ label, enabled }: FlagPillProps) {
   return (
     <span
-      className={`inline-flex border px-2 py-1 text-[11px] font-semibold uppercase tracking-wide ${
+      className={`flex w-full items-center justify-between border px-2 py-1 text-[11px] font-semibold uppercase tracking-wide ${
         enabled ? "border-primary/40 bg-primary/15 text-foreground" : "border-border bg-surface text-muted"
       }`}
     >
-      {label}: {enabled ? "On" : "Off"}
+      <span>{label}</span>
+      <span>{enabled ? "On" : "Off"}</span>
     </span>
   )
+}
+
+function formatShortTimestamp(value: string): string {
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) {
+    return value
+  }
+
+  const month = String(date.getMonth() + 1).padStart(2, "0")
+  const day = String(date.getDate()).padStart(2, "0")
+  const year = String(date.getFullYear() % 100).padStart(2, "0")
+  const hours = String(date.getHours()).padStart(2, "0")
+  const minutes = String(date.getMinutes()).padStart(2, "0")
+
+  return `${month}/${day}/${year} ${hours}:${minutes}`
 }
 
 function summarizeChunksByDocument(documents: DocumentSummaryRecord[]): string {
@@ -109,7 +125,7 @@ function ProjectExploreModal({ project, documents, onClose }: ExploreModalProps)
                 >
                   <p className="mb-1 text-sm font-semibold">{document.name}</p>
                   <p className="font-mono text-xs text-muted">{document.chunk_count} chunks</p>
-                  <p className="font-mono text-xs text-muted">{new Date(document.created_at).toLocaleString()}</p>
+                  <p className="font-mono text-xs text-muted">{formatShortTimestamp(document.created_at)}</p>
                 </button>
               ))}
             </div>
@@ -132,7 +148,7 @@ function ProjectExploreModal({ project, documents, onClose }: ExploreModalProps)
                     <p className="font-mono text-xs text-muted">{selectedDocument.chunk_count} stored chunks</p>
                   </div>
 
-                  <div className="flex flex-wrap gap-2">
+                  <div className="grid gap-2 md:grid-cols-3">
                     <FlagPill label="Normalized" enabled={selectedDocument.used_normalization} />
                     <FlagPill label="Agentic Chunking" enabled={selectedDocument.used_agentic_chunking} />
                     <FlagPill label="Context Headers" enabled={selectedDocument.has_contextual_headers} />
@@ -209,8 +225,56 @@ function ProjectExploreModal({ project, documents, onClose }: ExploreModalProps)
   )
 }
 
+interface DeleteConfirmModalProps {
+  project: ProjectRecord
+  deleting: boolean
+  onCancel: () => void
+  onConfirm: () => Promise<void>
+}
+
+function DeleteConfirmModal({ project, deleting, onCancel, onConfirm }: DeleteConfirmModalProps) {
+  return (
+    <div className="fixed inset-0 z-[95] flex items-center justify-center bg-black/50 p-4">
+      <section className="w-full max-w-md border border-border bg-background shadow-2xl shadow-black/30">
+        <header className="border-b border-border bg-surface px-4 py-3">
+          <h3 className="font-display text-lg font-semibold text-foreground">Delete Project</h3>
+          <p className="mt-1 text-sm text-muted">This action removes all project documents, chunks, and collection data.</p>
+        </header>
+
+        <div className="px-4 py-4">
+          <p className="text-sm text-foreground">
+            Confirm deletion of <span className="font-semibold">{project.name}</span>?
+          </p>
+        </div>
+
+        <footer className="flex justify-end gap-2 border-t border-border bg-surface px-4 py-3">
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={deleting}
+            className="border border-border bg-background px-3 py-2 text-sm font-semibold text-foreground disabled:opacity-60"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              void onConfirm()
+            }}
+            disabled={deleting}
+            className="border border-danger/50 bg-danger/10 px-3 py-2 text-sm font-semibold text-danger disabled:opacity-60"
+          >
+            {deleting ? "Deleting..." : "Delete"}
+          </button>
+        </footer>
+      </section>
+    </div>
+  )
+}
+
 export function ProjectsExplorer({ projects, onProjectsRefresh }: ProjectsExplorerProps) {
   const [exploreProjectId, setExploreProjectId] = useState<string>("")
+  const [deleteProjectId, setDeleteProjectId] = useState<string>("")
   const deleteProjectMutation = useMutation({
     mutationFn: deleteProject,
   })
@@ -233,19 +297,18 @@ export function ProjectsExplorer({ projects, onProjectsRefresh }: ProjectsExplor
 
   const activeProject = projects.find((project) => project.id === exploreProjectId) ?? null
   const activeDocuments = activeProject === null ? [] : documentsByProject.get(activeProject.id) ?? []
+  const pendingDeleteProject = projects.find((project) => project.id === deleteProjectId) ?? null
 
-  async function handleProjectDelete(project: ProjectRecord): Promise<void> {
-    const answer = window.confirm(
-      `Delete project '${project.name}'?\n\nThis removes all documents, chunks, and the Qdrant collection.`,
-    )
-    if (!answer) {
+  async function handleProjectDeleteConfirm(): Promise<void> {
+    if (pendingDeleteProject === null) {
       return
     }
 
-    await deleteProjectMutation.mutateAsync(project.id)
-    if (exploreProjectId === project.id) {
+    await deleteProjectMutation.mutateAsync(pendingDeleteProject.id)
+    if (exploreProjectId === pendingDeleteProject.id) {
       setExploreProjectId("")
     }
+    setDeleteProjectId("")
     await onProjectsRefresh()
   }
 
@@ -290,9 +353,14 @@ export function ProjectsExplorer({ projects, onProjectsRefresh }: ProjectsExplor
 
                 return (
                   <tr key={project.id} className="border-b border-border align-top">
-                    <td className="px-3 py-3">
-                      <p className="font-semibold text-foreground">{project.name}</p>
-                      <p className="font-mono text-xs text-muted">{project.id}</p>
+                  <td className="px-3 py-3">
+                      <button
+                        type="button"
+                        onClick={() => setExploreProjectId(project.id)}
+                        className="font-semibold text-foreground underline decoration-border/80 underline-offset-4 hover:text-primary"
+                      >
+                        {project.name}
+                      </button>
                     </td>
                     <td className="px-3 py-3 font-mono text-xs text-foreground">{project.qdrant_collection_name}</td>
                     <td className="px-3 py-3 font-mono text-xs text-foreground">
@@ -305,35 +373,28 @@ export function ProjectsExplorer({ projects, onProjectsRefresh }: ProjectsExplor
                       {documentQuery?.isFetching ? "Loading document stats..." : summarizeChunksByDocument(documents)}
                     </td>
                     <td className="px-3 py-3">
-                      <div className="flex flex-wrap gap-1">
+                      <div className="grid gap-1">
                         <FlagPill label="Norm" enabled={anyNormalized} />
                         <FlagPill label="Agentic" enabled={anyAgentic} />
                         <FlagPill label="Context" enabled={anyContext} />
                       </div>
                     </td>
                     <td className="px-3 py-3 font-mono text-xs text-muted">
-                      {new Date(project.created_at).toLocaleString()}
+                      {formatShortTimestamp(project.created_at)}
                     </td>
                     <td className="px-3 py-3">
-                      <div className="flex gap-2">
-                        <button
-                          type="button"
-                          onClick={() => setExploreProjectId(project.id)}
-                          className="border border-border bg-surface px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-background"
-                        >
-                          Explore
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            void handleProjectDelete(project)
-                          }}
-                          disabled={deleteProjectMutation.isPending}
-                          className="border border-danger/50 bg-danger/10 px-3 py-1.5 text-xs font-semibold text-danger disabled:opacity-60"
-                        >
-                          Delete
-                        </button>
-                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setDeleteProjectId(project.id)}
+                        disabled={deleteProjectMutation.isPending}
+                        className="inline-flex items-center justify-center border border-danger/50 bg-danger/10 p-2 text-danger disabled:opacity-60"
+                        aria-label={`Delete ${project.name}`}
+                        title={`Delete ${project.name}`}
+                      >
+                        <svg viewBox="0 0 24 24" className="h-4 w-4" aria-hidden="true" fill="currentColor">
+                          <path d="M9 3h6l1 2h4v2H4V5h4l1-2Zm-2 6h2v9H7V9Zm4 0h2v9h-2V9Zm4 0h2v9h-2V9ZM6 21h12a1 1 0 0 0 1-1V8H5v12a1 1 0 0 0 1 1Z" />
+                        </svg>
+                      </button>
                     </td>
                   </tr>
                 )
@@ -348,6 +409,15 @@ export function ProjectsExplorer({ projects, onProjectsRefresh }: ProjectsExplor
           project={activeProject}
           documents={activeDocuments}
           onClose={() => setExploreProjectId("")}
+        />
+      ) : null}
+
+      {pendingDeleteProject !== null ? (
+        <DeleteConfirmModal
+          project={pendingDeleteProject}
+          deleting={deleteProjectMutation.isPending}
+          onCancel={() => setDeleteProjectId("")}
+          onConfirm={handleProjectDeleteConfirm}
         />
       ) : null}
     </>
