@@ -23,7 +23,7 @@ export function StartGuidePanel() {
           </article>
 
           <article className="border border-border bg-background p-3">
-            <p className="mb-2 font-mono text-xs uppercase tracking-wide text-muted">AUTOMATED/CLASSIC</p>
+            <p className="mb-2 font-mono text-xs uppercase tracking-wide text-muted">AUTOMATED</p>
             <p className="mb-3 text-sm text-foreground">
               Single-pass vectorization with compact mode selections and direct indexing.
             </p>
@@ -80,7 +80,7 @@ export function StartGuidePanel() {
             </div>
           </article>
           <article className="border border-border bg-background p-3">
-            <p className="mb-2 font-mono text-xs uppercase tracking-wide text-muted">AUTOMATED/CLASSIC Form</p>
+            <p className="mb-2 font-mono text-xs uppercase tracking-wide text-muted">AUTOMATED Form</p>
             <div className="border border-border bg-surface p-3">
               <p className="mb-2 text-sm text-foreground">
                 This mode is a single compact form: select/create project, upload or paste source text, choose

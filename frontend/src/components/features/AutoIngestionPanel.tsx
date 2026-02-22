@@ -54,12 +54,14 @@ export function AutoIngestionPanel({
 }: AutoIngestionPanelProps) {
   const projectReady = selectedProjectId.length > 0
   const sourceReady = rawText.trim().length > 0
+  const inputsDisabled = isBusy || !projectReady
+  const effectiveChunkMode: ChunkModeSelection = chunkMode === "" ? "deterministic" : chunkMode
   const canCreate = projectNameDraft.trim().length >= 2
-  const canIngest = projectReady && sourceReady && chunkMode !== "" && contextMode !== ""
+  const canIngest = projectReady && sourceReady && contextMode !== ""
 
   return (
     <section className="space-y-4">
-      <SectionCard title="AUTOMATED/CLASSIC" subtitle="">
+      <SectionCard title="AUTOMATED" subtitle="">
         <div className="grid gap-3 md:grid-cols-2">
           <section className="border border-border bg-background p-3">
             <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">Existing Project</p>
@@ -100,43 +102,57 @@ export function AutoIngestionPanel({
 
         <section className="mt-3 border border-border bg-background p-3">
           <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">Source</p>
-          <div className="mb-2 flex flex-wrap items-center gap-3">
-            <label
-              className={`inline-flex items-center gap-2 border border-border px-3 py-2 text-sm font-medium ${
-                isBusy || !projectReady
-                  ? "cursor-not-allowed bg-background text-muted"
-                  : "cursor-pointer bg-surface text-foreground"
-              }`}
-            >
-              <input
-                type="file"
-                accept=".pdf,.docx,.txt,text/plain,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                onChange={(event) => {
-                  const file = event.target.files?.[0]
-                  if (file !== undefined) {
-                    void onFileSelect(file)
-                  }
-                }}
-                disabled={isBusy || !projectReady}
-                className="hidden"
-              />
-              Upload
-            </label>
-            <label className="flex min-w-[260px] flex-1 flex-col gap-1 text-sm text-muted">
-              Source name
+          <div className="mb-2 grid gap-1">
+            <p className="text-sm text-muted">Source name</p>
+            <div className="flex items-center gap-2">
               <input
                 value={fileName}
                 onChange={(event) => onFileNameChange(event.target.value)}
-                disabled={isBusy || !projectReady}
-                className="border border-border bg-background px-3 py-2 text-foreground"
+                disabled={inputsDisabled}
+                className="min-w-0 flex-1 border border-border bg-background px-3 py-2 text-foreground"
                 placeholder="Untitled Document"
               />
-            </label>
+              <label
+                className={`inline-flex h-10 w-10 items-center justify-center border px-2 py-2 ${
+                  inputsDisabled
+                    ? "cursor-not-allowed border-border bg-background text-muted"
+                    : "cursor-pointer border-border bg-primary text-primary-foreground"
+                }`}
+                aria-label="Upload document"
+                title="Upload document"
+              >
+                <input
+                  type="file"
+                  accept=".pdf,.docx,.txt,text/plain,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0]
+                    if (file !== undefined) {
+                      void onFileSelect(file)
+                    }
+                    event.currentTarget.value = ""
+                  }}
+                  disabled={inputsDisabled}
+                  className="hidden"
+                />
+                <svg
+                  viewBox="0 0 24 24"
+                  className="h-5 w-5"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  aria-hidden="true"
+                >
+                  <path d="M6 2h8l4 4v16H6z" />
+                  <path d="M14 2v4h4" />
+                  <path d="M8 14h8M8 18h8" />
+                </svg>
+              </label>
+            </div>
           </div>
           <textarea
             value={rawText}
             onChange={(event) => onRawTextChange(event.target.value)}
-            disabled={isBusy || !projectReady}
+            disabled={inputsDisabled}
             className="h-40 w-full border border-border bg-background p-3 font-mono text-sm text-foreground"
             placeholder="Paste source text..."
           />
@@ -171,7 +187,7 @@ export function AutoIngestionPanel({
               <input
                 type="radio"
                 name="auto-chunk-mode"
-                checked={chunkMode === "deterministic"}
+                checked={effectiveChunkMode === "deterministic"}
                 onChange={() => onChunkModeChange("deterministic")}
               />
               Deterministic
@@ -180,7 +196,7 @@ export function AutoIngestionPanel({
               <input
                 type="radio"
                 name="auto-chunk-mode"
-                checked={chunkMode === "agentic"}
+                checked={effectiveChunkMode === "agentic"}
                 onChange={() => onChunkModeChange("agentic")}
               />
               Agentic (drastically increases time on big data)

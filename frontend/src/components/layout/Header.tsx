@@ -20,7 +20,7 @@ const themeModes: ThemeMode[] = ["system", "light", "dark"]
 const loadDataMenuLabels: Record<LoadDataViewId, string> = {
   start: "Start Here",
   ingestion: "HITL",
-  auto_ingest: "AUTOMATED/CLASSIC",
+  auto_ingest: "AUTOMATED",
   projects: "Projects",
 }
 
