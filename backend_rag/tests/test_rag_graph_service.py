@@ -56,6 +56,10 @@ class FakeInferenceClient:
         self.calls.append(messages)
         return "Grounded answer [S1]"
 
+    def stream_chat_deltas(self, model: str, messages: list[dict[str, str]]):  # noqa: ARG002, ANN201
+        yield "Grounded "
+        yield "answer [S1]"
+
 
 def _write_test_prompts(directory: Path) -> None:
     (directory / "hybrid_rag_system.md").write_text("You are grounded.", encoding="utf-8")
@@ -139,3 +143,29 @@ def test_stateless_graph_keeps_calls_isolated() -> None:
     second_call = inference.calls[1]
     roles = [item["role"] for item in second_call]
     assert roles == ["system", "user"]
+
+
+def test_prepare_stream_stateless_accepts_raw_dict_messages() -> None:
+    retrieval = FakeRetrievalService()
+    inference = FakeInferenceClient()
+
+    with TemporaryDirectory() as tmp_dir_raw:
+        tmp_dir = Path(tmp_dir_raw)
+        prompts_dir = tmp_dir / "prompts"
+        prompts_dir.mkdir(parents=True, exist_ok=True)
+        _write_test_prompts(prompts_dir)
+
+        service = RagGraphService(
+            retrieval_service=retrieval,  # type: ignore[arg-type]
+            inference_client=inference,  # type: ignore[arg-type]
+            prompt_loader=PromptLoader(prompts_dir=prompts_dir),
+            checkpoint_path=str(tmp_dir / "rag-checkpoints.db"),
+            default_history_window_messages=8,
+        )
+        try:
+            stream_state, llm_messages = service.prepare_stream_stateless(_base_state("raw dict question"))  # type: ignore[arg-type]
+        finally:
+            service.close()
+
+    assert stream_state["query"] == "raw dict question"
+    assert "raw dict question" in llm_messages[-1]["content"]

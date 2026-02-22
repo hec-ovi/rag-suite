@@ -16,6 +16,7 @@ Implemented in this stage:
 - Transport streaming via Server-Sent Events:
   - Stateless stream (`/v1/rag/chat/stateless/stream`)
   - Session stream (`/v1/rag/chat/session/stream`)
+  - Stream `delta` events are forwarded from true inference-token streaming (not synthetic chunk splitting)
 
 ## Run (local)
 

@@ -20,7 +20,7 @@ class ChatCompletionsRequest(BaseModel):
     messages: Annotated[list[ChatMessage], Field(min_length=1, description="Conversation messages")]
     temperature: Annotated[float, Field(default=0.0, ge=0.0, le=2.0, description="Sampling temperature")]
     max_tokens: Annotated[int | None, Field(default=None, ge=1, le=16384, description="Maximum output tokens")]
-    stream: Annotated[bool, Field(default=False, description="Streaming flag (currently unsupported)")]
+    stream: Annotated[bool, Field(default=False, description="Return SSE stream when true")]
 
 
 class CompletionUsage(BaseModel):

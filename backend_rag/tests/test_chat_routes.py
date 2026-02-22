@@ -110,4 +110,3 @@ def test_session_route_returns_session_id() -> None:
     assert payload.mode == "session"
     assert payload.session_id == "session-abc"
     assert fake_service.last_mode == "session"
-

@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Annotated
 
 from fastapi import APIRouter, Depends
+from fastapi.responses import StreamingResponse
 
 from src.core.config import Settings
 from src.core.dependencies import get_settings
@@ -27,6 +28,17 @@ async def chat_completions(
     """OpenAI-compatible chat completion endpoint backed by Ollama."""
 
     service = build_inference_service(settings=settings)
+    if data.stream:
+        return StreamingResponse(
+            service.chat_completions_stream(data),
+            media_type="text/event-stream",
+            headers={
+                "Cache-Control": "no-cache",
+                "Connection": "keep-alive",
+                "X-Accel-Buffering": "no",
+            },
+        )
+
     return await service.chat_completions(data)
 
 

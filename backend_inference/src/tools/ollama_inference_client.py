@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+import json
+from collections.abc import AsyncIterator
+
 import httpx
 
 from src.core.exceptions import ExternalServiceError
-from src.models.runtime.inference import ChatGenerationResult, EmbeddingGenerationResult
+from src.models.runtime.inference import ChatGenerationResult, ChatStreamChunk, EmbeddingGenerationResult
 
 
 class OllamaInferenceClient:
@@ -73,6 +76,41 @@ class OllamaInferenceClient:
             finish_reason=finish_reason,
         )
 
+    async def chat_stream(
+        self,
+        model: str,
+        messages: list[dict[str, str]],
+        temperature: float,
+        max_tokens: int | None,
+    ) -> AsyncIterator[ChatStreamChunk]:
+        """Run a streamed chat completion and yield normalized deltas."""
+
+        options: dict[str, int | float] = {"temperature": temperature}
+        if max_tokens is not None:
+            options["num_predict"] = max_tokens
+
+        payload = {
+            "model": model,
+            "stream": True,
+            "messages": messages,
+            "options": options,
+        }
+
+        try:
+            async with httpx.AsyncClient(timeout=self._timeout_seconds) as client:
+                async with client.stream("POST", f"{self._base_url}/api/chat", json=payload) as response:
+                    response.raise_for_status()
+                    async for line in response.aiter_lines():
+                        raw_line = line.strip()
+                        if not raw_line:
+                            continue
+
+                        chunk = self._parse_chat_stream_line(raw_line)
+                        if chunk.content_delta or chunk.done:
+                            yield chunk
+        except httpx.HTTPError as error:
+            raise ExternalServiceError(f"Ollama chat stream request failed: {error}") from error
+
     async def embed(self, model: str, texts: list[str]) -> EmbeddingGenerationResult:
         """Generate embeddings for one or more texts."""
 
@@ -107,3 +145,46 @@ class OllamaInferenceClient:
         prompt_tokens = int(prompt_tokens_raw) if isinstance(prompt_tokens_raw, int | float) else 0
 
         return EmbeddingGenerationResult(embeddings=embeddings, prompt_tokens=max(prompt_tokens, 0))
+
+    def _parse_chat_stream_line(self, raw_line: str) -> ChatStreamChunk:
+        """Parse one NDJSON chat stream line from Ollama."""
+
+        try:
+            parsed = json.loads(raw_line)
+        except json.JSONDecodeError as error:
+            raise ExternalServiceError("Ollama chat stream returned malformed JSON payload") from error
+
+        if not isinstance(parsed, dict):
+            raise ExternalServiceError("Ollama chat stream payload is not an object")
+
+        done_raw = parsed.get("done", False)
+        done = bool(done_raw) if isinstance(done_raw, bool) else False
+
+        content_delta = ""
+        message_raw = parsed.get("message")
+        if isinstance(message_raw, dict):
+            content_raw = message_raw.get("content")
+            if isinstance(content_raw, str):
+                content_delta = content_raw
+
+            if not content_delta:
+                thinking_raw = message_raw.get("thinking")
+                if isinstance(thinking_raw, str):
+                    content_delta = thinking_raw
+
+        finish_reason_raw = parsed.get("done_reason")
+        finish_reason = finish_reason_raw if isinstance(finish_reason_raw, str) and finish_reason_raw else None
+
+        prompt_tokens_raw = parsed.get("prompt_eval_count")
+        prompt_tokens = int(prompt_tokens_raw) if isinstance(prompt_tokens_raw, int | float) else None
+
+        completion_tokens_raw = parsed.get("eval_count")
+        completion_tokens = int(completion_tokens_raw) if isinstance(completion_tokens_raw, int | float) else None
+
+        return ChatStreamChunk(
+            content_delta=content_delta,
+            done=done,
+            finish_reason=finish_reason,
+            prompt_tokens=prompt_tokens,
+            completion_tokens=completion_tokens,
+        )

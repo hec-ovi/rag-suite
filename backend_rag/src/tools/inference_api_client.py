@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import json
+from collections.abc import Iterator
+
 import httpx
 
 from src.core.exceptions import ExternalServiceError
@@ -101,6 +104,44 @@ class InferenceApiClient:
 
         return content.strip()
 
+    def stream_chat_deltas(self, model: str, messages: list[dict[str, str]]) -> Iterator[str]:
+        """Generate streamed chat deltas from inference backend SSE."""
+
+        payload = {
+            "model": model,
+            "stream": True,
+            "temperature": 0.0,
+            "messages": messages,
+        }
+
+        try:
+            with self._client.stream(
+                "POST",
+                f"{self._base_url}/chat/completions",
+                json=payload,
+                headers={"Accept": "text/event-stream"},
+            ) as response:
+                response.raise_for_status()
+
+                for raw_line in response.iter_lines():
+                    line = raw_line.decode("utf-8", errors="ignore") if isinstance(raw_line, bytes) else raw_line
+                    line = line.strip()
+                    if not line or not line.startswith("data:"):
+                        continue
+
+                    body = line.removeprefix("data:").strip()
+                    if body == "[DONE]":
+                        break
+
+                    content = self._extract_delta_content(body)
+                    if content:
+                        yield content
+        except httpx.HTTPError as error:
+            raise ExternalServiceError(
+                "Inference chat stream request failed. "
+                f"Details: {self._format_http_error(error)}"
+            ) from error
+
     def _format_http_error(self, error: httpx.HTTPError) -> str:
         """Build a concise, non-empty diagnostic for HTTP failures."""
 
@@ -124,3 +165,32 @@ class InferenceApiClient:
             parts.append(repr(error))
 
         return " | ".join(parts)
+
+    def _extract_delta_content(self, raw_payload: str) -> str:
+        """Extract assistant delta text from one OpenAI-style SSE payload."""
+
+        try:
+            parsed = json.loads(raw_payload)
+        except json.JSONDecodeError as error:
+            raise ExternalServiceError("Inference chat stream emitted malformed JSON payload") from error
+
+        if not isinstance(parsed, dict):
+            raise ExternalServiceError("Inference chat stream emitted non-object payload")
+
+        choices = parsed.get("choices")
+        if not isinstance(choices, list) or not choices:
+            return ""
+
+        first_choice = choices[0]
+        if not isinstance(first_choice, dict):
+            return ""
+
+        delta = first_choice.get("delta")
+        if not isinstance(delta, dict):
+            return ""
+
+        content = delta.get("content")
+        if isinstance(content, str):
+            return content
+
+        return ""

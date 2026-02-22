@@ -14,6 +14,17 @@ class ChatGenerationResult:
 
 
 @dataclass(slots=True)
+class ChatStreamChunk:
+    """Normalized streamed chat delta payload from Ollama."""
+
+    content_delta: str
+    done: bool
+    finish_reason: str | None
+    prompt_tokens: int | None
+    completion_tokens: int | None
+
+
+@dataclass(slots=True)
 class EmbeddingGenerationResult:
     """Normalized embedding output from Ollama."""
 

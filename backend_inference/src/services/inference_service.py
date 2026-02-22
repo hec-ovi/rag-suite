@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+from collections.abc import AsyncIterator
 from datetime import datetime, timezone
 from uuid import uuid4
 
@@ -31,7 +33,7 @@ class InferenceService:
         """Run chat completions compatible with `/v1/chat/completions`."""
 
         if request.stream:
-            raise ValidationDomainError("stream=true is not supported yet for chat completions")
+            raise ValidationDomainError("stream=true must be sent to the streaming route response path")
 
         result = await self._ollama_client.chat(
             model=request.model,
@@ -62,6 +64,88 @@ class InferenceService:
             usage=usage,
             created_at=datetime.now(timezone.utc),
         )
+
+    async def chat_completions_stream(self, request: ChatCompletionsRequest) -> AsyncIterator[str]:
+        """Run streamed chat completions compatible with OpenAI SSE transport."""
+
+        completion_id = f"chatcmpl-{uuid4().hex[:24]}"
+        created = int(datetime.now(timezone.utc).timestamp())
+
+        # Emit assistant role first so clients can initialize choice/message state.
+        yield self._to_sse_data(
+            {
+                "id": completion_id,
+                "object": "chat.completion.chunk",
+                "created": created,
+                "model": request.model,
+                "choices": [
+                    {
+                        "index": 0,
+                        "delta": {"role": "assistant"},
+                        "finish_reason": None,
+                    }
+                ],
+            }
+        )
+
+        prompt_tokens = 0
+        completion_tokens = 0
+        finish_reason = "stop"
+
+        async for chunk in self._ollama_client.chat_stream(
+            model=request.model,
+            messages=[{"role": item.role, "content": item.content} for item in request.messages],
+            temperature=request.temperature,
+            max_tokens=request.max_tokens,
+        ):
+            if chunk.content_delta:
+                yield self._to_sse_data(
+                    {
+                        "id": completion_id,
+                        "object": "chat.completion.chunk",
+                        "created": created,
+                        "model": request.model,
+                        "choices": [
+                            {
+                                "index": 0,
+                                "delta": {"content": chunk.content_delta},
+                                "finish_reason": None,
+                            }
+                        ],
+                    }
+                )
+
+            if chunk.done:
+                if chunk.finish_reason:
+                    finish_reason = chunk.finish_reason
+                if isinstance(chunk.prompt_tokens, int):
+                    prompt_tokens = max(chunk.prompt_tokens, 0)
+                if isinstance(chunk.completion_tokens, int):
+                    completion_tokens = max(chunk.completion_tokens, 0)
+
+        usage = {
+            "prompt_tokens": prompt_tokens,
+            "completion_tokens": completion_tokens,
+            "total_tokens": prompt_tokens + completion_tokens,
+        }
+
+        yield self._to_sse_data(
+            {
+                "id": completion_id,
+                "object": "chat.completion.chunk",
+                "created": created,
+                "model": request.model,
+                "choices": [
+                    {
+                        "index": 0,
+                        "delta": {},
+                        "finish_reason": finish_reason,
+                    }
+                ],
+                "usage": usage,
+            }
+        )
+        yield "data: [DONE]\n\n"
 
     async def completions(self, request: CompletionsRequest) -> CompletionsResponse:
         """Run text completions compatible with `/v1/completions`."""
@@ -152,3 +236,8 @@ class InferenceService:
             raise ValidationDomainError("input list must contain at least one non-empty item")
 
         return texts
+
+    def _to_sse_data(self, payload: dict[str, object]) -> str:
+        """Encode an SSE data frame."""
+
+        return f"data: {json.dumps(payload, ensure_ascii=False)}\n\n"

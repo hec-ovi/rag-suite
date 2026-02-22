@@ -13,7 +13,6 @@ from src.models.api.rag import RagHybridChatRequest, RagHybridChatResponse, RagS
 from src.services.rag_chat_service import RagChatService
 
 router = APIRouter(prefix="/rag", tags=["RAG"])
-_STREAM_CHUNK_SIZE = 20
 
 
 def _sse_event(event_name: str, payload: dict[str, object]) -> str:
@@ -69,24 +68,8 @@ def rag_chat_stateless_stream(
 
     def event_stream() -> Iterator[str]:
         try:
-            response = service.chat_stateless(data)
-            payload = response.model_dump(mode="json")
-
-            meta_payload: dict[str, object] = {
-                "mode": payload["mode"],
-                "session_id": payload["session_id"],
-                "project_id": payload["project_id"],
-                "query": payload["query"],
-                "chat_model": payload["chat_model"],
-                "embedding_model": payload["embedding_model"],
-            }
-            yield _sse_event("meta", meta_payload)
-
-            answer = str(payload["answer"])
-            for piece in _chunk_text(answer, _STREAM_CHUNK_SIZE):
-                yield _sse_event("delta", {"content": piece})
-
-            yield _sse_event("done", payload)
+            for event_name, payload in service.stream_chat_stateless(data):
+                yield _sse_event(event_name, payload)
         except DomainError as error:
             yield _sse_event("error", {"detail": str(error)})
         except Exception:  # noqa: BLE001
@@ -112,24 +95,8 @@ def rag_chat_session_stream(
 
     def event_stream() -> Iterator[str]:
         try:
-            response = service.chat_session(data)
-            payload = response.model_dump(mode="json")
-
-            meta_payload: dict[str, object] = {
-                "mode": payload["mode"],
-                "session_id": payload["session_id"],
-                "project_id": payload["project_id"],
-                "query": payload["query"],
-                "chat_model": payload["chat_model"],
-                "embedding_model": payload["embedding_model"],
-            }
-            yield _sse_event("meta", meta_payload)
-
-            answer = str(payload["answer"])
-            for piece in _chunk_text(answer, _STREAM_CHUNK_SIZE):
-                yield _sse_event("delta", {"content": piece})
-
-            yield _sse_event("done", payload)
+            for event_name, payload in service.stream_chat_session(data):
+                yield _sse_event(event_name, payload)
         except DomainError as error:
             yield _sse_event("error", {"detail": str(error)})
         except Exception:  # noqa: BLE001

@@ -30,6 +30,38 @@ class _FakeAsyncClient:
         return _FakeResponse(self._payload)
 
 
+class _FakeStreamResponse:
+    def __init__(self, lines: list[str]) -> None:
+        self._lines = lines
+
+    async def __aenter__(self) -> "_FakeStreamResponse":
+        return self
+
+    async def __aexit__(self, exc_type, exc, tb) -> bool:  # noqa: ANN001
+        return False
+
+    def raise_for_status(self) -> None:
+        return None
+
+    async def aiter_lines(self):  # noqa: ANN201
+        for line in self._lines:
+            yield line
+
+
+class _FakeAsyncStreamClient:
+    def __init__(self, lines: list[str]) -> None:
+        self._lines = lines
+
+    async def __aenter__(self) -> "_FakeAsyncStreamClient":
+        return self
+
+    async def __aexit__(self, exc_type, exc, tb) -> bool:  # noqa: ANN001
+        return False
+
+    def stream(self, method: str, url: str, json: dict[str, object]) -> _FakeStreamResponse:  # noqa: A002, ARG002
+        return _FakeStreamResponse(self._lines)
+
+
 async def test_chat_uses_thinking_field_when_content_is_empty(monkeypatch) -> None:  # noqa: ANN001
     payload = {
         "message": {
@@ -59,3 +91,34 @@ async def test_chat_uses_thinking_field_when_content_is_empty(monkeypatch) -> No
     assert result.content == "Useful fallback output"
     assert result.prompt_tokens == 10
     assert result.completion_tokens == 5
+
+
+async def test_chat_stream_returns_content_and_final_usage(monkeypatch) -> None:  # noqa: ANN001
+    lines = [
+        '{"message":{"role":"assistant","content":"Hello "},"done":false}',
+        '{"message":{"role":"assistant","content":"world"},"done":false}',
+        '{"done":true,"done_reason":"stop","prompt_eval_count":11,"eval_count":4}',
+    ]
+
+    monkeypatch.setattr(
+        httpx,
+        "AsyncClient",
+        lambda timeout: _FakeAsyncStreamClient(lines),  # noqa: ARG005
+    )
+
+    client = OllamaInferenceClient(base_url="http://ollama:11434", timeout_seconds=5.0)
+    chunks = [
+        chunk
+        async for chunk in client.chat_stream(
+            model="gpt-oss:20b",
+            messages=[{"role": "user", "content": "test"}],
+            temperature=0.0,
+            max_tokens=32,
+        )
+    ]
+
+    assert "".join(chunk.content_delta for chunk in chunks) == "Hello world"
+    assert chunks[-1].done is True
+    assert chunks[-1].finish_reason == "stop"
+    assert chunks[-1].prompt_tokens == 11
+    assert chunks[-1].completion_tokens == 4

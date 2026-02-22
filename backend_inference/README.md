@@ -10,6 +10,7 @@ Scope:
 - `GET /v1/health`
 
 This service is the only component that talks directly to Ollama.
+`POST /v1/chat/completions` supports OpenAI-style SSE when `stream=true`.
 
 ## Run (local)
 

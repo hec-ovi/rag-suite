@@ -199,7 +199,7 @@ Hybrid RAG UI (`RAG Mode -> Hybrid`) now supports:
 
 - Stateless and session-memory chat modes
 - Project-scoped queries with optional per-document filter
-- Transport streaming answer rendering (SSE from `backend_rag`) in chat panel
+- True token streaming path (`backend_inference` SSE -> `backend_rag` SSE -> frontend chat panel)
 - Separated source trace panel (citations, documents, ranked chunk bullets, and full source preview)
 
 ## Audit Example (PDF-Derived TXT)

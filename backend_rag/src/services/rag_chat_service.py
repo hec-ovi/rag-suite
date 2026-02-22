@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Iterator
 from datetime import datetime, timezone
 from uuid import uuid4
 
@@ -66,6 +67,89 @@ class RagChatService:
             session_id=session_id,
         )
 
+    def stream_chat_stateless(
+        self,
+        request: RagHybridChatRequest,
+    ) -> Iterator[tuple[str, dict[str, object]]]:
+        """Execute one-shot hybrid RAG and yield SSE event payloads."""
+
+        graph_state = self._build_graph_state(
+            request=request,
+            mode="stateless",
+            session_id=None,
+        )
+        stream_state, llm_messages = self._graph_service.prepare_stream_stateless(graph_state)
+
+        yield ("meta", self._build_meta_payload(stream_state, mode="stateless", session_id=None))
+
+        answer_parts: list[str] = []
+        for delta in self._graph_service.stream_generation(
+            model=stream_state["chat_model"],
+            messages=llm_messages,
+        ):
+            if not delta:
+                continue
+
+            answer_parts.append(delta)
+            yield ("delta", {"content": delta})
+
+        response = self._build_stream_response(
+            stream_state=stream_state,
+            mode="stateless",
+            session_id=None,
+            answer="".join(answer_parts),
+        )
+        yield ("done", response.model_dump(mode="json"))
+
+    def stream_chat_session(
+        self,
+        request: RagSessionChatRequest,
+    ) -> Iterator[tuple[str, dict[str, object]]]:
+        """Execute session-memory hybrid RAG and yield SSE event payloads."""
+
+        session_id = request.session_id.strip() if isinstance(request.session_id, str) else ""
+        if not session_id:
+            session_id = str(uuid4())
+
+        graph_state = self._build_graph_state(
+            request=request,
+            mode="session",
+            session_id=session_id,
+        )
+        stream_state, llm_messages = self._graph_service.prepare_stream_session(
+            graph_state,
+            session_id=session_id,
+        )
+
+        yield ("meta", self._build_meta_payload(stream_state, mode="session", session_id=session_id))
+
+        answer_parts: list[str] = []
+        for delta in self._graph_service.stream_generation(
+            model=stream_state["chat_model"],
+            messages=llm_messages,
+        ):
+            if not delta:
+                continue
+
+            answer_parts.append(delta)
+            yield ("delta", {"content": delta})
+
+        answer = "".join(answer_parts)
+        self._graph_service.persist_session_turn(
+            project_id=request.project_id,
+            session_id=session_id,
+            user_message=request.message,
+            assistant_message=answer,
+        )
+
+        response = self._build_stream_response(
+            stream_state=stream_state,
+            mode="session",
+            session_id=session_id,
+            answer=answer,
+        )
+        yield ("done", response.model_dump(mode="json"))
+
     def close(self) -> None:
         """Release graph/checkpoint resources."""
 
@@ -126,4 +210,38 @@ class RagChatService:
             documents=documents,
             citations_used=citations_used,
             created_at=datetime.now(timezone.utc),
+        )
+
+    def _build_meta_payload(
+        self,
+        stream_state: RagGraphState,
+        mode: str,
+        session_id: str | None,
+    ) -> dict[str, object]:
+        """Build stream metadata event payload."""
+
+        return {
+            "mode": "session" if mode == "session" else "stateless",
+            "session_id": session_id,
+            "project_id": stream_state.get("project_id", ""),
+            "query": stream_state.get("query", ""),
+            "chat_model": stream_state.get("chat_model", ""),
+            "embedding_model": stream_state.get("embedding_model", ""),
+        }
+
+    def _build_stream_response(
+        self,
+        stream_state: RagGraphState,
+        mode: str,
+        session_id: str | None,
+        answer: str,
+    ) -> RagHybridChatResponse:
+        """Build final response object for stream endpoints."""
+
+        output: RagGraphState = dict(stream_state)
+        output["answer"] = answer
+        return self._build_response(
+            output=output,
+            mode=mode,
+            session_id=session_id,
         )

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+
 import pytest
 
 from src.core.exceptions import ValidationDomainError
@@ -26,6 +28,37 @@ class _StubOllamaInferenceClient:
             prompt_tokens=12,
             completion_tokens=7,
             finish_reason="stop",
+        )
+
+    async def chat_stream(  # noqa: ARG002
+        self,
+        model: str,
+        messages: list[dict[str, str]],
+        temperature: float,
+        max_tokens: int | None,
+    ):
+        from src.models.runtime.inference import ChatStreamChunk
+
+        yield ChatStreamChunk(
+            content_delta="stub-",
+            done=False,
+            finish_reason=None,
+            prompt_tokens=None,
+            completion_tokens=None,
+        )
+        yield ChatStreamChunk(
+            content_delta="response",
+            done=False,
+            finish_reason=None,
+            prompt_tokens=None,
+            completion_tokens=None,
+        )
+        yield ChatStreamChunk(
+            content_delta="",
+            done=True,
+            finish_reason="stop",
+            prompt_tokens=12,
+            completion_tokens=7,
         )
 
     async def embed(self, model: str, texts: list[str]) -> EmbeddingGenerationResult:  # noqa: ARG002
@@ -84,7 +117,7 @@ async def test_embeddings_response_shape() -> None:
 async def test_chat_completions_rejects_stream_true() -> None:
     service = InferenceService(ollama_client=_StubOllamaInferenceClient())
 
-    with pytest.raises(ValidationDomainError, match="stream=true is not supported"):
+    with pytest.raises(ValidationDomainError, match="stream=true must be sent to the streaming route response path"):
         await service.chat_completions(
             ChatCompletionsRequest(
                 model="gpt-oss:20b",
@@ -92,6 +125,36 @@ async def test_chat_completions_rejects_stream_true() -> None:
                 stream=True,
             )
         )
+
+
+async def test_chat_completions_stream_emits_openai_sse_frames() -> None:
+    service = InferenceService(ollama_client=_StubOllamaInferenceClient())
+    request = ChatCompletionsRequest(
+        model="gpt-oss:20b",
+        messages=[ChatMessage(role="user", content="Hello")],
+        stream=True,
+    )
+
+    frames = [frame async for frame in service.chat_completions_stream(request)]
+
+    assert frames[0].startswith("data: ")
+    assert frames[-1] == "data: [DONE]\n\n"
+
+    payloads = []
+    for frame in frames[:-1]:
+        row = frame.removeprefix("data: ").strip()
+        payloads.append(json.loads(row))
+
+    role_delta = payloads[0]["choices"][0]["delta"]
+    assert role_delta["role"] == "assistant"
+
+    content = "".join(
+        str(payload["choices"][0]["delta"].get("content", ""))
+        for payload in payloads
+    )
+    assert "stub-response" in content
+    assert payloads[-1]["choices"][0]["finish_reason"] == "stop"
+    assert payloads[-1]["usage"]["total_tokens"] == 19
 
 
 async def test_text_completions_rejects_empty_prompt_list() -> None:

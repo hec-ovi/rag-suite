@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import sqlite3
 import threading
+from collections.abc import Iterator
 from typing import Any
 from xml.sax.saxutils import escape
 
@@ -65,6 +66,85 @@ class RagGraphService:
             )
 
         return response  # type: ignore[return-value]
+
+    def prepare_stream_stateless(self, state: RagGraphState) -> tuple[RagGraphState, list[dict[str, str]]]:
+        """Prepare retrieval + generation messages for streamed stateless answer."""
+
+        stream_state: RagGraphState = dict(state)
+        stream_state.update(self._retrieve_node(stream_state))
+
+        llm_messages, resolved_query = self._build_generation_messages(
+            state=stream_state,
+            messages=stream_state.get("messages", []),
+        )
+        stream_state["query"] = resolved_query
+        return stream_state, llm_messages
+
+    def prepare_stream_session(
+        self,
+        state: RagGraphState,
+        session_id: str,
+    ) -> tuple[RagGraphState, list[dict[str, str]]]:
+        """Prepare retrieval + generation messages for streamed session answer."""
+
+        thread_id = f"{state['project_id']}:{session_id}"
+        with self._session_lock:
+            snapshot = self._session_graph.get_state(
+                config={"configurable": {"thread_id": thread_id}},
+            )
+
+        previous_messages_raw = snapshot.values.get("messages")
+        previous_messages = previous_messages_raw if isinstance(previous_messages_raw, list) else []
+        current_messages = state.get("messages", [])
+        merged_messages = [*previous_messages, *current_messages]
+
+        stream_state: RagGraphState = dict(state)
+        stream_state["messages"] = merged_messages
+        stream_state.update(self._retrieve_node(stream_state))
+
+        llm_messages, resolved_query = self._build_generation_messages(
+            state=stream_state,
+            messages=merged_messages,
+        )
+        stream_state["query"] = resolved_query
+        return stream_state, llm_messages
+
+    def stream_generation(self, model: str, messages: list[dict[str, str]]) -> Iterator[str]:
+        """Stream assistant token deltas from inference backend."""
+
+        yield from self._inference_client.stream_chat_deltas(
+            model=model,
+            messages=messages,
+        )
+
+    def persist_session_turn(
+        self,
+        project_id: str,
+        session_id: str,
+        user_message: str,
+        assistant_message: str,
+    ) -> None:
+        """Persist one user/assistant exchange into LangGraph checkpoints."""
+
+        user_content = user_message.strip()
+        assistant_content = assistant_message.strip()
+        if not user_content:
+            return
+
+        thread_id = f"{project_id}:{session_id}"
+        with self._session_lock:
+            config = {"configurable": {"thread_id": thread_id}}
+            next_config = self._session_graph.update_state(
+                config=config,
+                values={"messages": [{"role": "user", "content": user_content}]},
+                as_node="generate",
+            )
+            if assistant_content:
+                self._session_graph.update_state(
+                    config=next_config,
+                    values={"messages": [{"role": "assistant", "content": assistant_content}]},
+                    as_node="generate",
+                )
 
     def _build_graph(self) -> StateGraph[RagGraphState]:
         """Create retrieve->generate graph."""
@@ -133,27 +213,10 @@ class RagGraphService:
     def _generate_node(self, state: RagGraphState) -> dict[str, object]:
         """Generate grounded answer using retrieved context and optional memory."""
 
-        query = state.get("query", "").strip()
-        if not query:
-            query = self._latest_user_query(state.get("messages", []))
-
-        history_window = max(state.get("history_window_messages", self._default_history_window_messages), 0)
-        history_messages, _ = self._split_history_and_current_question(state.get("messages", []), fallback_query=query)
-        if history_window > 0:
-            history_messages = history_messages[-history_window:]
-        else:
-            history_messages = []
-
-        user_prompt = self._user_prompt_template.format(
-            question=query,
-            retrieved_context=state.get("retrieval_context", "<source_set empty=\"true\" />"),
+        llm_messages, query = self._build_generation_messages(
+            state=state,
+            messages=state.get("messages", []),
         )
-
-        llm_messages: list[dict[str, str]] = [
-            {"role": "system", "content": self._system_prompt},
-            *history_messages,
-            {"role": "user", "content": user_prompt},
-        ]
 
         answer = self._inference_client.complete_chat(
             model=state["chat_model"],
@@ -165,7 +228,38 @@ class RagGraphService:
             "messages": [{"role": "assistant", "content": answer}],
         }
 
-    def _latest_user_query(self, messages: list[AnyMessage]) -> str:
+    def _build_generation_messages(
+        self,
+        state: RagGraphState,
+        messages: list[Any],
+    ) -> tuple[list[dict[str, str]], str]:
+        """Construct grounded prompt messages for chat generation."""
+
+        query = state.get("query", "").strip()
+        if not query:
+            query = self._latest_user_query(messages)
+
+        history_window = max(state.get("history_window_messages", self._default_history_window_messages), 0)
+        history_messages, current_query = self._split_history_and_current_question(messages, fallback_query=query)
+        if history_window > 0:
+            history_messages = history_messages[-history_window:]
+        else:
+            history_messages = []
+
+        resolved_query = current_query.strip() if current_query.strip() else query
+        user_prompt = self._user_prompt_template.format(
+            question=resolved_query,
+            retrieved_context=state.get("retrieval_context", "<source_set empty=\"true\" />"),
+        )
+
+        llm_messages: list[dict[str, str]] = [
+            {"role": "system", "content": self._system_prompt},
+            *history_messages,
+            {"role": "user", "content": user_prompt},
+        ]
+        return llm_messages, resolved_query
+
+    def _latest_user_query(self, messages: list[Any]) -> str:
         """Resolve latest user message text from LangGraph message state."""
 
         for message in reversed(messages):
@@ -174,11 +268,17 @@ class RagGraphService:
                 if isinstance(content, str) and content.strip():
                     return content.strip()
 
+            if isinstance(message, dict):
+                role = message.get("role")
+                content_raw = message.get("content")
+                if role == "user" and isinstance(content_raw, str) and content_raw.strip():
+                    return content_raw.strip()
+
         return ""
 
     def _split_history_and_current_question(
         self,
-        messages: list[AnyMessage],
+        messages: list[Any],
         fallback_query: str,
     ) -> tuple[list[dict[str, str]], str]:
         """Map LangGraph message history into OpenAI chat messages."""
@@ -190,13 +290,17 @@ class RagGraphService:
 
         return openai_messages, fallback_query
 
-    def _to_openai_messages(self, messages: list[AnyMessage]) -> list[dict[str, str]]:
+    def _to_openai_messages(self, messages: list[Any]) -> list[dict[str, str]]:
         """Convert LangChain messages to OpenAI-compatible role/content dicts."""
 
         rows: list[dict[str, str]] = []
         for message in messages:
-            content = message.content if isinstance(message.content, str) else ""
-            content = content.strip()
+            if isinstance(message, dict):
+                content_raw = message.get("content")
+            else:
+                content_raw = getattr(message, "content", "")
+
+            content = content_raw.strip() if isinstance(content_raw, str) else ""
             if not content:
                 continue
 
@@ -208,7 +312,7 @@ class RagGraphService:
 
         return rows
 
-    def _resolve_role(self, message: AnyMessage) -> str | None:
+    def _resolve_role(self, message: Any) -> str | None:
         """Map LangChain message type to OpenAI chat role."""
 
         if isinstance(message, HumanMessage):
@@ -217,6 +321,10 @@ class RagGraphService:
             return "assistant"
         if isinstance(message, SystemMessage):
             return "system"
+        if isinstance(message, dict):
+            role = message.get("role")
+            if role in {"user", "assistant", "system"}:
+                return role
         return None
 
     def _build_retrieval_context(self, sources: list[dict[str, Any]]) -> str:
