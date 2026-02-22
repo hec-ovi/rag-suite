@@ -5,9 +5,11 @@ from sqlalchemy.orm import Session
 from src.core.config import Settings
 from src.services.ingestion_service import IngestionService
 from src.services.project_service import ProjectService
+from src.services.retrieval_service import RetrievalService
 from src.tools.agentic_chunker import AgenticChunker
 from src.tools.contextual_header_generator import ContextualHeaderGenerator
 from src.tools.deterministic_chunker import DeterministicChunker
+from src.tools.hybrid_ranker import HybridRanker
 from src.tools.json_response_parser import JsonResponseParser
 from src.tools.normalize_text import DeterministicTextNormalizer
 from src.tools.ollama_chat_client import OllamaChatClient
@@ -58,4 +60,32 @@ def build_ingestion_service(session: Session, settings: Settings) -> IngestionSe
             api_key=settings.qdrant_api_key,
             timeout_seconds=settings.qdrant_timeout_seconds,
         ),
+    )
+
+
+def build_retrieval_service(session: Session, settings: Settings) -> RetrievalService:
+    """Build retrieval service with hybrid ranking tools."""
+
+    prompt_loader = PromptLoader()
+    chat_client = OllamaChatClient(
+        base_url=settings.ollama_url,
+        timeout_seconds=settings.ollama_timeout_seconds,
+    )
+    embedding_client = OllamaEmbeddingClient(
+        base_url=settings.ollama_url,
+        timeout_seconds=settings.ollama_timeout_seconds,
+    )
+
+    return RetrievalService(
+        session=session,
+        settings=settings,
+        embedding_client=embedding_client,
+        chat_client=chat_client,
+        prompt_loader=prompt_loader,
+        qdrant_indexer=QdrantIndexer(
+            url=settings.qdrant_url,
+            api_key=settings.qdrant_api_key,
+            timeout_seconds=settings.qdrant_timeout_seconds,
+        ),
+        hybrid_ranker=HybridRanker(),
     )

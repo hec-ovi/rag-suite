@@ -7,11 +7,11 @@
 ![Ollama](https://img.shields.io/badge/Ollama-Local%20Inference-111111)
 ![Docker Compose](https://img.shields.io/badge/Docker%20Compose-Stack-2496ED?logo=docker&logoColor=white)
 
-Production-focused RAG platform with a quality-first ingestion pipeline.
+Production-focused RAG platform with a quality-first ingestion + retrieval pipeline.
 
-## Stage 0 Scope
+## Current Scope
 
-Current stage implements the data preparation control plane:
+Stage 0 implements the data preparation control plane:
 
 - Deterministic text normalization (no model rewriting)
 - Deterministic chunking and experimental agentic chunk boundary proposals
@@ -21,6 +21,11 @@ Current stage implements the data preparation control plane:
 - OpenAPI backend for step-by-step and one-shot ingestion workflows
 - Automatic pipeline preview endpoint for human review before persistence
 - Frontend ingestion shell with PDF/DOCX/TXT extraction, diff review, and manual or automatic execution controls
+
+Stage 1 (basic) now adds hybrid RAG retrieval:
+
+- Hybrid search combining Qdrant dense similarity + sparse BM25 lexical scoring
+- Grounded answer endpoint with inline chunk citations
 
 ## Why Qdrant (and not FAISS-only)
 
@@ -79,7 +84,7 @@ docker compose --env-file .env up -d --build
 - `QDRANT_STORAGE_DIR=./qdrant/storage` and `BACKEND_DATA_DIR=./backend/data` work as repository-relative defaults.
 - Set `OLLAMA_MODELS_DIR` to your persistent local model store (for example `/home/.../models/ollama` in your real `.env`).
 
-## Stage 0 Backend Endpoints
+## Backend Endpoints
 
 - `GET /v1/health`
 - `POST /v1/projects`
@@ -93,11 +98,13 @@ docker compose --env-file .env up -d --build
 - `POST /v1/pipeline/operations/{operation_id}/cancel`
 - `POST /v1/pipeline/preview-automatic`
 - `POST /v1/projects/{project_id}/documents/ingest`
+- `POST /v1/projects/{project_id}/rag/search`
+- `POST /v1/projects/{project_id}/rag/answer`
 
 ## Incremental Roadmap
 
 1. Stage 0: data preparation and indexing control plane (current)
-2. Stage 1: retrieval and grounded answer endpoint with citations
+2. Stage 1: basic hybrid retrieval and grounded answer endpoint (current)
 3. Stage 2: reranking and quality benchmark harness (Recall@k, MRR, nDCG)
 4. Stage 3: graph-augmented retrieval branch
 
@@ -153,6 +160,15 @@ UV_CACHE_DIR=/tmp/uv-cache uv run --directory backend ruff check src tests
 UV_CACHE_DIR=/tmp/uv-cache uv run --directory backend pytest -q
 UV_CACHE_DIR=/tmp/uv-cache uv run --directory backend python -c "from src.main import app; print(sorted(app.openapi()['paths'].keys()))"
 ```
+
+## Hybrid Smoke Check (Tiny)
+
+Validated against a tiny synthetic document (`Paris/Berlin/Madrid capitals`) with live Docker services:
+
+- `POST /v1/projects` -> project created
+- `POST /v1/projects/{project_id}/documents/ingest` -> `embedded_chunk_count=1`
+- `POST /v1/projects/{project_id}/rag/search` -> one ranked chunk returned
+- `POST /v1/projects/{project_id}/rag/answer` -> grounded answer with citation format `[document_id:chunk_index]`
 
 ## ROCm Stability Notes
 

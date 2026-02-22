@@ -21,6 +21,7 @@ from src.core.exceptions import (
 from src.routes.health import router as health_router
 from src.routes.pipeline import router as pipeline_router
 from src.routes.projects import router as projects_router
+from src.routes.rag import router as rag_router
 from src.services.operation_manager import OperationManager
 
 
@@ -336,3 +337,4 @@ async def handle_domain(_: Request, exc: DomainError) -> JSONResponse:
 app.include_router(health_router, prefix="/v1")
 app.include_router(projects_router, prefix="/v1")
 app.include_router(pipeline_router, prefix="/v1")
+app.include_router(rag_router, prefix="/v1")

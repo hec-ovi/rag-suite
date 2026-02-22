@@ -64,3 +64,32 @@ class QdrantIndexer:
             await self._client.delete_collection(collection_name=collection_name)
         except Exception as error:  # noqa: BLE001
             raise ExternalServiceError(f"Failed to delete Qdrant collection '{collection_name}': {error}") from error
+
+    async def search_chunks(
+        self,
+        collection_name: str,
+        query_vector: list[float],
+        limit: int,
+    ) -> list[qdrant_models.ScoredPoint]:
+        """Search vector neighbors with payloads for retrieval."""
+
+        try:
+            exists = await self._client.collection_exists(collection_name=collection_name)
+            if not exists:
+                return []
+
+            response = await self._client.query_points(
+                collection_name=collection_name,
+                query=query_vector,
+                limit=limit,
+                with_payload=True,
+                with_vectors=False,
+            )
+            points = getattr(response, "points", None)
+            if isinstance(points, list):
+                return points
+            if isinstance(response, list):
+                return response
+            return []
+        except Exception as error:  # noqa: BLE001
+            raise ExternalServiceError(f"Failed to search Qdrant collection '{collection_name}': {error}") from error

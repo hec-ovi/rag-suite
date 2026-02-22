@@ -1,6 +1,6 @@
 # Backend
 
-FastAPI backend for Stage 0 ingestion pipeline.
+FastAPI backend for Stage 0 ingestion plus Stage 1 basic hybrid RAG retrieval.
 
 ## Run (local)
 
@@ -13,6 +13,11 @@ UV_CACHE_DIR=/tmp/uv-cache uv run --directory backend uvicorn src.main:app --hos
 
 - Swagger UI: `http://localhost:8000/docs`
 - OpenAPI JSON: `http://localhost:8000/openapi.json`
+
+## Hybrid RAG Endpoints
+
+- `POST /v1/projects/{project_id}/rag/search`
+- `POST /v1/projects/{project_id}/rag/answer`
 
 ## Section Audit Script
 
