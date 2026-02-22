@@ -57,6 +57,7 @@ interface ExploreModalProps {
 function ProjectExploreModal({ project, documents, onClose }: ExploreModalProps) {
   const [selectedDocumentId, setSelectedDocumentId] = useState<string>("")
   const [selectedChunkId, setSelectedChunkId] = useState<string>("")
+  const [selectedChunkView, setSelectedChunkView] = useState<"raw" | "normalized" | "final">("raw")
 
   const effectiveSelectedDocumentId =
     documents.some((document) => document.id === selectedDocumentId) ? selectedDocumentId : documents[0]?.id ?? ""
@@ -72,9 +73,26 @@ function ProjectExploreModal({ project, documents, onClose }: ExploreModalProps)
   const loadedChunks = chunksQuery.data ?? []
   const effectiveSelectedChunkId =
     loadedChunks.some((chunk) => chunk.id === selectedChunkId) ? selectedChunkId : loadedChunks[0]?.id ?? ""
+  const selectedChunkIndex = loadedChunks.findIndex((chunk) => chunk.id === effectiveSelectedChunkId)
+  const canGoToPreviousChunk = selectedChunkIndex > 0
+  const canGoToNextChunk = selectedChunkIndex >= 0 && selectedChunkIndex < loadedChunks.length - 1
 
   const selectedChunk: ChunkSummaryRecord | null =
     loadedChunks.find((chunk) => chunk.id === effectiveSelectedChunkId) ?? null
+
+  function goToPreviousChunk(): void {
+    if (!canGoToPreviousChunk) {
+      return
+    }
+    setSelectedChunkId(loadedChunks[selectedChunkIndex - 1]?.id ?? "")
+  }
+
+  function goToNextChunk(): void {
+    if (!canGoToNextChunk) {
+      return
+    }
+    setSelectedChunkId(loadedChunks[selectedChunkIndex + 1]?.id ?? "")
+  }
 
   return (
     <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/50 p-4">
@@ -104,7 +122,10 @@ function ProjectExploreModal({ project, documents, onClose }: ExploreModalProps)
                 <button
                   key={document.id}
                   type="button"
-                  onClick={() => setSelectedDocumentId(document.id)}
+                  onClick={() => {
+                    setSelectedDocumentId(document.id)
+                    setSelectedChunkId("")
+                  }}
                   className={`border p-3 text-left ${
                     effectiveSelectedDocumentId === document.id
                       ? "border-primary bg-primary/10 text-foreground"
@@ -144,21 +165,35 @@ function ProjectExploreModal({ project, documents, onClose }: ExploreModalProps)
                 </div>
 
                 <div className="border border-border bg-surface p-3">
-                  <div className="mb-3 grid gap-3 md:grid-cols-[240px_1fr]">
-                    <label className="flex flex-col gap-1 text-sm text-muted">
-                      Chunk selector
-                      <select
-                        value={effectiveSelectedChunkId}
-                        onChange={(event) => setSelectedChunkId(event.target.value)}
-                        className="border border-border bg-background px-3 py-2 text-foreground"
-                      >
-                        {loadedChunks.map((chunk) => (
-                          <option key={chunk.id} value={chunk.id}>
-                            Chunk {chunk.chunk_index + 1} ({chunk.start_char}-{chunk.end_char})
-                          </option>
-                        ))}
-                      </select>
-                    </label>
+                  <div className="mb-3 grid gap-3 md:grid-cols-[320px_1fr]">
+                    <div className="grid gap-2 border border-border bg-background px-3 py-2">
+                      <div className="flex items-center justify-between gap-2">
+                        <button
+                          type="button"
+                          onClick={goToPreviousChunk}
+                          disabled={!canGoToPreviousChunk}
+                          className="border border-border bg-surface px-2 py-1 text-xs font-semibold text-foreground disabled:opacity-40"
+                        >
+                          Prev
+                        </button>
+                        <p className="font-mono text-xs text-muted">
+                          Chunk {selectedChunkIndex >= 0 ? selectedChunkIndex + 1 : 0} of {loadedChunks.length}
+                        </p>
+                        <button
+                          type="button"
+                          onClick={goToNextChunk}
+                          disabled={!canGoToNextChunk}
+                          className="border border-border bg-surface px-2 py-1 text-xs font-semibold text-foreground disabled:opacity-40"
+                        >
+                          Next
+                        </button>
+                      </div>
+                      <p className="font-mono text-xs text-muted">
+                        {selectedChunk === null
+                          ? "No chunk range"
+                          : `${selectedChunk.start_char}-${selectedChunk.end_char}`}
+                      </p>
+                    </div>
                     <div className="grid gap-1 border border-border bg-background px-3 py-2">
                       <p className="font-mono text-xs text-muted">
                         {chunksQuery.isFetching ? "Loading chunks..." : `${loadedChunks.length} chunks loaded`}
@@ -174,33 +209,86 @@ function ProjectExploreModal({ project, documents, onClose }: ExploreModalProps)
                   {selectedChunk === null ? (
                     <p className="text-sm text-muted">Select a chunk to inspect text variants.</p>
                   ) : (
-                    <div className="grid gap-3 xl:grid-cols-3">
-                      <label className="flex flex-col gap-1 text-xs font-semibold uppercase tracking-wide text-muted">
-                        Raw Chunk Snapshot
-                        <textarea
-                          readOnly
-                          value={selectedChunk.raw_chunk}
-                          className="h-64 border border-border bg-background p-3 font-mono text-xs text-foreground"
-                        />
-                      </label>
+                    <div className="grid gap-3">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setSelectedChunkView("raw")}
+                          className={`border px-3 py-1 text-xs font-semibold ${
+                            selectedChunkView === "raw"
+                              ? "border-primary bg-primary/10 text-foreground"
+                              : "border-border bg-background text-muted"
+                          }`}
+                        >
+                          Raw
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedChunkView("normalized")}
+                          className={`border px-3 py-1 text-xs font-semibold ${
+                            selectedChunkView === "normalized"
+                              ? "border-primary bg-primary/10 text-foreground"
+                              : "border-border bg-background text-muted"
+                          }`}
+                        >
+                          Normalized
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedChunkView("final")}
+                          className={`border px-3 py-1 text-xs font-semibold ${
+                            selectedChunkView === "final"
+                              ? "border-primary bg-primary/10 text-foreground"
+                              : "border-border bg-background text-muted"
+                          }`}
+                        >
+                          Final Chunk
+                        </button>
+                      </div>
 
-                      <label className="flex flex-col gap-1 text-xs font-semibold uppercase tracking-wide text-muted">
-                        Normalized Chunk
-                        <textarea
-                          readOnly
-                          value={selectedChunk.normalized_chunk}
-                          className="h-64 border border-border bg-background p-3 font-mono text-xs text-foreground"
-                        />
-                      </label>
+                      {selectedChunkView === "raw" ? (
+                        <label className="flex flex-col gap-1 text-xs font-semibold uppercase tracking-wide text-muted">
+                          Raw Chunk Snapshot
+                          <textarea
+                            readOnly
+                            value={selectedChunk.raw_chunk}
+                            className="h-64 border border-border bg-background p-3 font-mono text-xs text-foreground"
+                          />
+                        </label>
+                      ) : null}
 
-                      <label className="flex flex-col gap-1 text-xs font-semibold uppercase tracking-wide text-muted">
-                        Contextualized Chunk
-                        <textarea
-                          readOnly
-                          value={selectedChunk.contextualized_chunk}
-                          className="h-64 border border-border bg-background p-3 font-mono text-xs text-foreground"
-                        />
-                      </label>
+                      {selectedChunkView === "normalized" ? (
+                        <label className="flex flex-col gap-1 text-xs font-semibold uppercase tracking-wide text-muted">
+                          Normalized Chunk
+                          <textarea
+                            readOnly
+                            value={selectedChunk.normalized_chunk}
+                            className="h-64 border border-border bg-background p-3 font-mono text-xs text-foreground"
+                          />
+                        </label>
+                      ) : null}
+
+                      {selectedChunkView === "final" ? (
+                        <div className="grid gap-3">
+                          <label className="flex flex-col gap-1 text-xs font-semibold uppercase tracking-wide text-muted">
+                            Header
+                            <textarea
+                              readOnly
+                              value={selectedChunk.context_header ?? ""}
+                              className="h-20 border border-border bg-background p-3 font-mono text-xs text-foreground"
+                              placeholder="No contextual header for this chunk."
+                            />
+                          </label>
+                          <label className="flex flex-col gap-1 text-xs font-semibold uppercase tracking-wide text-muted">
+                            Final Chunk
+                            <textarea
+                              readOnly
+                              value={selectedChunk.contextualized_chunk}
+                              className="h-64 border border-border bg-background p-3 font-mono text-xs text-foreground"
+                            />
+                          </label>
+                        </div>
+                      ) : null}
                     </div>
                   )}
                 </div>

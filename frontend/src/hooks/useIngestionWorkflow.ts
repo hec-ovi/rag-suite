@@ -71,6 +71,8 @@ interface WorkflowActions {
   runAutomaticIngest: () => Promise<void>
 }
 
+const DEFAULT_DOCUMENT_NAME = "Untitled Document"
+
 function extractApiErrorMessage(error: unknown): string {
   if (typeof error === "object" && error !== null && "message" in error) {
     const typed = error as { message?: unknown }
@@ -337,7 +339,7 @@ export function useIngestionWorkflow(): { state: WorkflowState; actions: Workflo
 
     try {
       const response = await contextualizeMutation.mutateAsync({
-        document_name: fileName || "Untitled Document",
+        document_name: fileName.trim().length > 0 ? fileName : DEFAULT_DOCUMENT_NAME,
         full_document_text: source,
         chunks,
         mode: selectedContextMode,
@@ -364,7 +366,7 @@ export function useIngestionWorkflow(): { state: WorkflowState; actions: Workflo
 
     try {
       const response = await previewMutation.mutateAsync({
-        document_name: fileName || "Untitled Document",
+        document_name: fileName.trim().length > 0 ? fileName : DEFAULT_DOCUMENT_NAME,
         raw_text: rawText,
         automation,
         chunk_options: {
@@ -412,7 +414,7 @@ export function useIngestionWorkflow(): { state: WorkflowState; actions: Workflo
       const response = await ingestMutation.mutateAsync({
         projectId: selectedProjectId,
         payload: {
-          document_name: fileName || "Untitled Document",
+          document_name: fileName.trim().length > 0 ? fileName : DEFAULT_DOCUMENT_NAME,
           source_type: "text",
           raw_text: rawText,
           workflow_mode: "manual",
@@ -469,7 +471,7 @@ export function useIngestionWorkflow(): { state: WorkflowState; actions: Workflo
       const response = await ingestMutation.mutateAsync({
         projectId: selectedProjectId,
         payload: {
-          document_name: fileName || "Untitled Document",
+          document_name: fileName.trim().length > 0 ? fileName : DEFAULT_DOCUMENT_NAME,
           source_type: "text",
           raw_text: rawText,
           workflow_mode: "automatic",
@@ -525,6 +527,13 @@ export function useIngestionWorkflow(): { state: WorkflowState; actions: Workflo
     setProjectNameDraft,
     setSelectedProjectId,
     setRawText: (value) => {
+      const hasText = value.trim().length > 0
+      if (hasText && fileName.trim().length === 0) {
+        setFileName(DEFAULT_DOCUMENT_NAME)
+      }
+      if (!hasText && fileName === DEFAULT_DOCUMENT_NAME) {
+        setFileName("")
+      }
       setRawText(value)
       setNormalizedText("")
       setNormalizationEnabled(false)
