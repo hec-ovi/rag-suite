@@ -10,11 +10,7 @@ interface HeaderProps {
   onThemeModeChange: (mode: ThemeMode) => void
 }
 
-const modeCycle: Record<ThemeMode, ThemeMode> = {
-  system: "light",
-  light: "dark",
-  dark: "system",
-}
+const themeModes: ThemeMode[] = ["system", "light", "dark"]
 
 const menuLabels: Record<ViewId, string> = {
   start: "Start Here",
@@ -51,18 +47,22 @@ function ThemeModeIcon({ mode }: { mode: ThemeMode }) {
 
 export function Header({ currentView, onViewChange, themeMode, onThemeModeChange }: HeaderProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [isThemeMenuOpen, setIsThemeMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement | null>(null)
+  const themeMenuRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
     function handleDocumentClick(event: MouseEvent): void {
-      if (menuRef.current === null) {
-        return
-      }
       if (!(event.target instanceof Node)) {
         return
       }
-      if (!menuRef.current.contains(event.target)) {
+
+      if (menuRef.current !== null && !menuRef.current.contains(event.target)) {
         setIsMenuOpen(false)
+      }
+
+      if (themeMenuRef.current !== null && !themeMenuRef.current.contains(event.target)) {
+        setIsThemeMenuOpen(false)
       }
     }
 
@@ -119,15 +119,48 @@ export function Header({ currentView, onViewChange, themeMode, onThemeModeChange
           ) : null}
         </div>
 
-        <button
-          type="button"
-          onClick={() => onThemeModeChange(modeCycle[themeMode])}
-          className="inline-flex h-10 w-10 items-center justify-center border border-border bg-surface text-foreground hover:bg-background"
-          aria-label={`Theme mode: ${themeMode}. Click to switch.`}
-          title={`Theme mode: ${themeMode}`}
-        >
-          <ThemeModeIcon mode={themeMode} />
-        </button>
+        <div ref={themeMenuRef} className="relative">
+          <button
+            type="button"
+            onClick={() => setIsThemeMenuOpen((open) => !open)}
+            className="inline-flex h-10 w-10 items-center justify-center border border-border bg-surface text-foreground hover:bg-background"
+            aria-haspopup="menu"
+            aria-expanded={isThemeMenuOpen}
+            aria-label={`Theme mode: ${themeMode}`}
+            title={`Theme mode: ${themeMode}`}
+          >
+            <ThemeModeIcon mode={themeMode} />
+          </button>
+
+          {isThemeMenuOpen ? (
+            <div
+              className="absolute right-0 top-[calc(100%+6px)] z-50 grid grid-cols-3 gap-1 border border-border bg-surface p-1 shadow-lg shadow-black/10"
+              role="menu"
+            >
+              {themeModes.map((mode) => (
+                <button
+                  key={mode}
+                  type="button"
+                  onClick={() => {
+                    onThemeModeChange(mode)
+                    setIsThemeMenuOpen(false)
+                  }}
+                  className={`inline-flex h-9 w-9 items-center justify-center border ${
+                    themeMode === mode
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "border-border bg-background text-foreground hover:bg-surface"
+                  }`}
+                  role="menuitemradio"
+                  aria-checked={themeMode === mode}
+                  aria-label={mode}
+                  title={mode}
+                >
+                  <ThemeModeIcon mode={mode} />
+                </button>
+              ))}
+            </div>
+          ) : null}
+        </div>
       </nav>
     </header>
   )
