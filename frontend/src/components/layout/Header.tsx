@@ -134,7 +134,7 @@ export function Header({ currentView, onViewChange, themeMode, onThemeModeChange
 
           {isThemeMenuOpen ? (
             <div
-              className="absolute right-0 top-[calc(100%+6px)] z-50 grid grid-cols-3 gap-1 border border-border bg-surface p-1 shadow-lg shadow-black/10"
+              className="absolute right-0 top-[calc(100%+6px)] z-50 grid grid-cols-1 gap-1 border border-border bg-surface p-1 shadow-lg shadow-black/10"
               role="menu"
             >
               {themeModes.map((mode) => (
