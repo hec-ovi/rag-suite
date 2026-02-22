@@ -4,7 +4,7 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
-from fastapi.openapi.docs import get_swagger_ui_html
+from fastapi.openapi.docs import get_redoc_html, get_swagger_ui_html
 from fastapi.responses import HTMLResponse, JSONResponse
 from sqlalchemy import Engine
 
@@ -40,7 +40,7 @@ app = FastAPI(
     title="RAG Suite Backend",
     version="0.1.0",
     docs_url=None,
-    redoc_url="/redoc",
+    redoc_url=None,
     openapi_url="/openapi.json",
     lifespan=lifespan,
 )
@@ -49,6 +49,16 @@ SWAGGER_NOWRAP_CSS = """
 .opblock .opblock-section-header label,
 .opblock .opblock-section-header select,
 .opblock .tab-header .tab-item {
+  white-space: nowrap !important;
+}
+"""
+
+REDOC_NOWRAP_CSS = """
+.redoc-wrap table td,
+.redoc-wrap table th,
+.redoc-wrap button,
+.redoc-wrap label,
+.redoc-wrap [role="button"] {
   white-space: nowrap !important;
 }
 """
@@ -67,6 +77,21 @@ async def custom_swagger_ui() -> HTMLResponse:
         f"<style>{SWAGGER_NOWRAP_CSS}</style></head>",
     )
     return HTMLResponse(content=html, status_code=swagger.status_code)
+
+
+@app.get("/redoc", include_in_schema=False)
+async def custom_redoc_ui() -> HTMLResponse:
+    """Serve ReDoc with CSS override so content-type labels do not wrap."""
+
+    redoc = get_redoc_html(
+        openapi_url=app.openapi_url or "/openapi.json",
+        title=f"{app.title} - ReDoc",
+    )
+    html = redoc.body.decode("utf-8").replace(
+        "</head>",
+        f"<style>{REDOC_NOWRAP_CSS}</style></head>",
+    )
+    return HTMLResponse(content=html, status_code=redoc.status_code)
 
 
 @app.exception_handler(ResourceNotFoundError)

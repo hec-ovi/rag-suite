@@ -91,7 +91,9 @@ export const useIngestionStore = create<IngestionStore>((set) => ({
   setProjects: (projects) =>
     set((state) => ({
       projects,
-      selectedProjectId: state.selectedProjectId || projects.at(0)?.id || "",
+      selectedProjectId: projects.some((project) => project.id === state.selectedProjectId)
+        ? state.selectedProjectId
+        : projects.at(0)?.id || "",
     })),
   setSelectedProjectId: (selectedProjectId) => set({ selectedProjectId }),
   setProjectNameDraft: (projectNameDraft) => set({ projectNameDraft }),

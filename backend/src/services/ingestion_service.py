@@ -310,7 +310,13 @@ class IngestionService:
                     start_char=chunk.start_char,
                     end_char=chunk.end_char,
                     rationale=chunk.rationale,
-                    raw_chunk=chunk.chunk_text,
+                    raw_chunk=self._extract_raw_chunk_snapshot(
+                        raw_text=request.raw_text,
+                        normalized_text=normalized_text,
+                        chunk_start=chunk.start_char,
+                        chunk_end=chunk.end_char,
+                        fallback_chunk=chunk.chunk_text,
+                    ),
                     normalized_chunk=chunk.chunk_text,
                     context_header=chunk.context_header,
                     contextualized_chunk=chunk.contextualized_text,
@@ -412,3 +418,26 @@ class IngestionService:
             )
             for chunk in runtime_chunks
         ]
+
+    def _extract_raw_chunk_snapshot(
+        self,
+        raw_text: str,
+        normalized_text: str,
+        chunk_start: int,
+        chunk_end: int,
+        fallback_chunk: str,
+    ) -> str:
+        """Best-effort raw chunk snapshot for lineage view."""
+
+        if chunk_start < 0 or chunk_end <= chunk_start:
+            return fallback_chunk
+
+        if chunk_end <= len(raw_text):
+            raw_slice = raw_text[chunk_start:chunk_end]
+            if raw_slice.strip():
+                return raw_slice
+
+        if raw_text == normalized_text and chunk_start < len(raw_text):
+            return raw_text[chunk_start : min(chunk_end, len(raw_text))]
+
+        return fallback_chunk

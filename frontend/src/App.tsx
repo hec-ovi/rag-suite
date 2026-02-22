@@ -8,6 +8,7 @@ import { NormalizationPanel } from "./components/features/NormalizationPanel"
 import { ProjectPanel } from "./components/features/ProjectPanel"
 import { ProjectsExplorer } from "./components/features/ProjectsExplorer"
 import { SourceEditorPanel } from "./components/features/SourceEditorPanel"
+import { StartGuidePanel } from "./components/features/StartGuidePanel"
 import { useIngestionWorkflow } from "./hooks/useIngestionWorkflow"
 import { useThemeMode } from "./hooks/useThemeMode"
 import { useNavigationStore } from "./stores/navigation.store"
@@ -82,12 +83,13 @@ function App() {
     </>
   )
 
-  const projectsView = <ProjectsExplorer projects={state.projects} />
+  const startView = <StartGuidePanel />
+  const projectsView = <ProjectsExplorer projects={state.projects} onProjectsRefresh={actions.refreshProjects} />
 
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-grid-gradient text-foreground">
       <Header currentView={currentView} onViewChange={setView} themeMode={mode} onThemeModeChange={setMode} />
-      <MainContent currentView={currentView} ingestionView={ingestionView} projectsView={projectsView} />
+      <MainContent currentView={currentView} startView={startView} ingestionView={ingestionView} projectsView={projectsView} />
       <Footer />
     </div>
   )

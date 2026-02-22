@@ -2,11 +2,14 @@ import { apiRequest } from "./api-client"
 import type {
   AutomaticPreviewRequest,
   AutomaticPreviewResponse,
+  ChunkSummaryRecord,
   ChunkTextRequest,
   ChunkTextResponse,
   ContextualizeChunksRequest,
   ContextualizeChunksResponse,
   CreateProjectRequest,
+  DeleteProjectResponse,
+  DocumentSummaryRecord,
   IngestDocumentRequest,
   IngestedDocumentResponse,
   NormalizeTextRequest,
@@ -27,6 +30,24 @@ export async function listProjects(): Promise<ProjectRecord[]> {
     method: "GET",
   })
   return response.projects
+}
+
+export async function deleteProject(projectId: string): Promise<DeleteProjectResponse> {
+  return apiRequest<DeleteProjectResponse>(`/projects/${projectId}`, {
+    method: "DELETE",
+  })
+}
+
+export async function listProjectDocuments(projectId: string): Promise<DocumentSummaryRecord[]> {
+  return apiRequest<DocumentSummaryRecord[]>(`/projects/${projectId}/documents`, {
+    method: "GET",
+  })
+}
+
+export async function listDocumentChunks(documentId: string): Promise<ChunkSummaryRecord[]> {
+  return apiRequest<ChunkSummaryRecord[]>(`/projects/documents/${documentId}/chunks`, {
+    method: "GET",
+  })
 }
 
 export async function normalizeText(data: NormalizeTextRequest): Promise<NormalizeTextResponse> {

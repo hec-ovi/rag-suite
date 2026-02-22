@@ -11,6 +11,7 @@ from src.models.api.pipeline import IngestDocumentRequest, IngestedDocumentRespo
 from src.models.api.project import (
     ChunkSummaryResponse,
     CreateProjectRequest,
+    DeleteProjectResponse,
     DocumentSummaryResponse,
     ProjectListResponse,
     ProjectResponse,
@@ -41,6 +42,18 @@ async def list_projects(
 
     service = build_project_service(session=session, settings=settings)
     return ProjectListResponse(projects=await service.list_projects())
+
+
+@router.delete("/{project_id}")
+async def delete_project(
+    project_id: str,
+    session: Annotated[Session, Depends(get_db_session)],
+    settings: Annotated[Settings, Depends(get_settings)],
+) -> DeleteProjectResponse:
+    """Delete project namespace and dependent ingestion records."""
+
+    service = build_project_service(session=session, settings=settings)
+    return await service.delete_project(project_id)
 
 
 @router.get("/{project_id}/documents")

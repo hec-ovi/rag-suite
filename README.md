@@ -83,6 +83,7 @@ docker compose --env-file .env up -d --build
 
 - `POST /v1/projects`
 - `GET /v1/projects`
+- `DELETE /v1/projects/{project_id}`
 - `GET /v1/projects/{project_id}/documents`
 - `GET /v1/projects/documents/{document_id}/chunks`
 - `POST /v1/pipeline/normalize`
@@ -102,12 +103,14 @@ docker compose --env-file .env up -d --build
 
 The ingestion UI in `frontend/` supports:
 
+- `Start` guide screen with cold-start checklist and execution modes
 - Upload and browser-side extraction from `.pdf`, `.docx`, and `.txt`
 - Raw text review and editing
 - Deterministic normalization with diff visualization
 - Deterministic or agentic chunk proposal review
 - Contextual header generation and manual edit
 - Manual ingest (approved chunks) or full automatic ingest
+- `Projects` table with document/chunk stats, flag summaries, delete action, and chunk lineage explorer popup
 
 ## Audit Example (PDF-Derived TXT)
 

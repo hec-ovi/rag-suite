@@ -19,7 +19,15 @@ from src.tools.qdrant_indexer import QdrantIndexer
 def build_project_service(session: Session, settings: Settings) -> ProjectService:
     """Build project service instance."""
 
-    return ProjectService(session=session, collection_prefix=settings.qdrant_collection_prefix)
+    return ProjectService(
+        session=session,
+        collection_prefix=settings.qdrant_collection_prefix,
+        qdrant_indexer=QdrantIndexer(
+            url=settings.qdrant_url,
+            api_key=settings.qdrant_api_key,
+            timeout_seconds=settings.qdrant_timeout_seconds,
+        ),
+    )
 
 
 def build_ingestion_service(session: Session, settings: Settings) -> IngestionService:

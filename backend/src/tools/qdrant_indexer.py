@@ -52,3 +52,15 @@ class QdrantIndexer:
             await self._client.upsert(collection_name=collection_name, points=points, wait=True)
         except Exception as error:  # noqa: BLE001
             raise ExternalServiceError(f"Failed to upsert vectors into Qdrant: {error}") from error
+
+    async def delete_collection(self, collection_name: str) -> None:
+        """Delete an existing collection if present."""
+
+        try:
+            exists = await self._client.collection_exists(collection_name=collection_name)
+            if not exists:
+                return
+
+            await self._client.delete_collection(collection_name=collection_name)
+        except Exception as error:  # noqa: BLE001
+            raise ExternalServiceError(f"Failed to delete Qdrant collection '{collection_name}': {error}") from error

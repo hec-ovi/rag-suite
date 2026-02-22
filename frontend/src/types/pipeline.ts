@@ -14,6 +14,13 @@ export interface ProjectListResponse {
   projects: ProjectRecord[]
 }
 
+export interface DeleteProjectResponse {
+  project_id: string
+  qdrant_collection_name: string
+  deleted_document_count: number
+  deleted_chunk_count: number
+}
+
 export interface CreateProjectRequest {
   name: string
   description?: string
@@ -138,6 +145,33 @@ export interface IngestedDocumentResponse {
   embedding_model: string
   chunking_mode: string
   contextualization_mode: string
+  created_at: string
+}
+
+export interface DocumentSummaryRecord {
+  id: string
+  name: string
+  source_type: string
+  chunk_count: number
+  workflow_mode: string
+  chunking_mode: string
+  contextualization_mode: string
+  used_normalization: boolean
+  used_agentic_chunking: boolean
+  has_contextual_headers: boolean
+  created_at: string
+}
+
+export interface ChunkSummaryRecord {
+  id: string
+  chunk_index: number
+  start_char: number
+  end_char: number
+  rationale: string | null
+  context_header: string | null
+  raw_chunk: string
+  normalized_chunk: string
+  contextualized_chunk: string
   created_at: string
 }
 

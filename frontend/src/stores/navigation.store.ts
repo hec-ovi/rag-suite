@@ -1,6 +1,6 @@
 import { create } from "zustand"
 
-export type ViewId = "ingestion" | "projects"
+export type ViewId = "start" | "ingestion" | "projects"
 
 interface NavigationStore {
   currentView: ViewId
@@ -8,6 +8,6 @@ interface NavigationStore {
 }
 
 export const useNavigationStore = create<NavigationStore>((set) => ({
-  currentView: "ingestion",
+  currentView: "start",
   setView: (view) => set({ currentView: view }),
 }))
