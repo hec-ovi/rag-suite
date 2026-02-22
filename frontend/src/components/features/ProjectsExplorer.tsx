@@ -190,13 +190,6 @@ function ProjectExploreModal({ project, documents, onClose }: ExploreModalProps)
                         Next
                       </button>
                     </div>
-                    <div className="grid gap-1 border border-border bg-background px-3 py-2">
-                      {selectedChunk?.rationale ? (
-                        <p className="text-sm text-foreground">Rationale: {selectedChunk.rationale}</p>
-                      ) : (
-                        <p className="text-sm text-muted">No rationale available for this chunk.</p>
-                      )}
-                    </div>
                   </div>
 
                   {selectedChunk === null ? (
