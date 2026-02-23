@@ -166,9 +166,15 @@ export function RagHybridSourcesPanel({
         <h2 className="font-display text-lg font-semibold text-foreground">Sources</h2>
       </header>
 
-      <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4">
+      <div className="chat-scrollbar min-h-0 flex-1 overflow-y-auto px-4 pb-4">
         {response === null ? (
-          <p className="pt-3 text-sm text-muted">No sources yet. Send a message to inspect retrieval trace.</p>
+          <div className="grid h-full place-items-center py-6">
+            <div className="flex items-center gap-1.5 text-muted">
+              <span className="h-2 w-2 animate-pulse bg-muted [animation-delay:0ms]" />
+              <span className="h-2 w-2 animate-pulse bg-muted [animation-delay:120ms]" />
+              <span className="h-2 w-2 animate-pulse bg-muted [animation-delay:240ms]" />
+            </div>
+          </div>
         ) : (
           <div className="grid gap-3 pt-3">
             <section className="grid grid-cols-2 gap-2 bg-background p-3">

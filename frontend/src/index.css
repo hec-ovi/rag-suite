@@ -61,6 +61,26 @@ body {
   overflow: hidden;
 }
 
+.chat-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--border)) transparent;
+}
+
+.chat-scrollbar::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.chat-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.chat-scrollbar::-webkit-scrollbar-thumb {
+  background: hsl(var(--border));
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
 .bg-grid-gradient {
   background-image:
     radial-gradient(circle at 12% 16%, hsl(var(--primary) / 0.12), transparent 35%),

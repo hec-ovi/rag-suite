@@ -34,21 +34,21 @@ function stripInlineSourceTags(value: string): string {
 }
 
 function parseAssistantContent(rawContent: string): ParsedAssistantContent {
-  const thinkingBlocks: string[] = []
+  let thinkingBuffer = ""
   const pattern = /<(think|thinking)>([\s\S]*?)<\/\1>/gi
 
   const answerWithoutThinking = rawContent.replace(pattern, (_, __, block: string) => {
-    const cleaned = block.trim()
-    if (cleaned.length > 0) {
-      thinkingBlocks.push(cleaned)
+    if (block.length > 0) {
+      thinkingBuffer += block
     }
     return ""
   })
   const answer = stripInlineSourceTags(answerWithoutThinking)
+  const thinkingNormalized = thinkingBuffer.trim()
 
   return {
     answer: answer.trim(),
-    thinkingBlocks,
+    thinkingBlocks: thinkingNormalized.length > 0 ? [thinkingNormalized] : [],
   }
 }
 
@@ -107,7 +107,7 @@ export function RagHybridChatPanel({
         const parsed = parseAssistantContent(message.content)
         return {
           message,
-          answer: parsed.answer.length > 0 ? parsed.answer : message.content,
+          answer: parsed.answer,
           thinkingBlocks: parsed.thinkingBlocks,
         }
       }),
@@ -167,18 +167,31 @@ export function RagHybridChatPanel({
         </div>
       ) : null}
 
-      <div ref={messagesContainerRef} className="min-h-0 flex-1 overflow-y-auto px-4 pb-3">
+      <div ref={messagesContainerRef} className="chat-scrollbar min-h-0 flex-1 overflow-y-auto px-4 pb-3">
         {!hasMessages ? (
-          <p className="pt-3 text-sm text-muted">No messages yet.</p>
+          <div className="grid h-full place-items-center py-6">
+            <div className="flex items-center gap-1.5 text-muted">
+              <span className="h-2 w-2 animate-pulse bg-muted [animation-delay:0ms]" />
+              <span className="h-2 w-2 animate-pulse bg-muted [animation-delay:120ms]" />
+              <span className="h-2 w-2 animate-pulse bg-muted [animation-delay:240ms]" />
+            </div>
+          </div>
         ) : (
           <div className="grid gap-3 pt-1">
             {renderedMessages.map(({ message, answer, thinkingBlocks }) => (
               <article key={message.id} className={`grid gap-1 ${message.role === "assistant" ? "" : "justify-items-end"}`}>
                 <div
-                  className={`max-w-[92%] px-3 py-2 text-sm ${
+                  className={`relative max-w-[92%] px-3 py-2 text-sm ${
                     message.role === "assistant" ? "bg-background text-foreground" : "bg-primary text-primary-foreground"
-                  } !rounded-2xl`}
+                  }`}
                 >
+                  <span
+                    className={`absolute top-2 h-0 w-0 border-y-[7px] border-y-transparent ${
+                      message.role === "assistant"
+                        ? "-left-[7px] border-r-[7px] border-r-background"
+                        : "-right-[7px] border-l-[7px] border-l-primary"
+                    }`}
+                  />
                   <p className="mb-1 font-mono text-[10px] font-semibold uppercase tracking-wide opacity-80">
                     {message.role === "assistant" ? "Assistant" : "User"}
                   </p>
@@ -190,8 +203,8 @@ export function RagHybridChatPanel({
                           Thinking
                         </summary>
                         <div className="mt-2 space-y-2 text-xs text-muted">
-                          {thinkingBlocks.map((block) => (
-                            <p key={`${message.id}-${block.slice(0, 12)}`} className="whitespace-pre-wrap break-words">
+                          {thinkingBlocks.map((block, index) => (
+                            <p key={`${message.id}-thinking-${index}`} className="whitespace-pre-wrap break-words">
                               {block}
                             </p>
                           ))}
@@ -200,7 +213,15 @@ export function RagHybridChatPanel({
                     </div>
                   ) : null}
 
-                  <p className="whitespace-pre-wrap break-words leading-relaxed">{answer}</p>
+                  {answer.trim().length > 0 ? (
+                    <p className="whitespace-pre-wrap break-words leading-relaxed">{answer}</p>
+                  ) : message.role === "assistant" && message.isStreaming ? (
+                    <div className="flex items-center gap-1.5 py-1 text-muted">
+                      <span className="h-2 w-2 animate-pulse bg-muted [animation-delay:0ms]" />
+                      <span className="h-2 w-2 animate-pulse bg-muted [animation-delay:120ms]" />
+                      <span className="h-2 w-2 animate-pulse bg-muted [animation-delay:240ms]" />
+                    </div>
+                  ) : null}
                 </div>
                 <p className="px-1 text-[11px] text-muted">{formatMessageTime(message.createdAt)}</p>
               </article>

@@ -541,6 +541,9 @@ export function useRagHybridWorkflow(): { state: RagHybridState; actions: RagHyb
       isStreaming: true,
     }
 
+    setLatestResponse(null)
+    setSelectedSourceId(null)
+
     const initialMessages = [...messages, userMessage, assistantPlaceholder]
     setMessages(initialMessages)
 
