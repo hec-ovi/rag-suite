@@ -14,6 +14,8 @@ from src.models.api.inference import (
     CompletionsResponse,
     EmbeddingsRequest,
     EmbeddingsResponse,
+    RerankRequest,
+    RerankResponse,
 )
 from src.services.service_factory import build_inference_service
 
@@ -62,3 +64,14 @@ async def embeddings(
 
     service = build_inference_service(settings=settings)
     return await service.embeddings(data)
+
+
+@router.post("/rerank")
+async def rerank(
+    data: RerankRequest,
+    settings: Annotated[Settings, Depends(get_settings)],
+) -> RerankResponse:
+    """Rerank candidate documents for one query."""
+
+    service = build_inference_service(settings=settings)
+    return await service.rerank(data)

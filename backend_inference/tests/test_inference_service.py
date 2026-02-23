@@ -10,8 +10,14 @@ from src.models.api.inference import (
     ChatMessage,
     CompletionsRequest,
     EmbeddingsRequest,
+    RerankRequest,
 )
-from src.models.runtime.inference import ChatGenerationResult, EmbeddingGenerationResult
+from src.models.runtime.inference import (
+    ChatGenerationResult,
+    EmbeddingGenerationResult,
+    RerankGenerationResult,
+    RerankResult,
+)
 from src.services.inference_service import InferenceService
 
 
@@ -65,6 +71,20 @@ class _StubOllamaInferenceClient:
         return EmbeddingGenerationResult(
             embeddings=[[0.1, 0.2], [0.3, 0.4]][: len(texts)],
             prompt_tokens=8,
+        )
+
+    async def rerank(  # noqa: ARG002
+        self,
+        model: str,
+        query: str,
+        documents: list[str],
+        top_n: int | None,
+    ) -> RerankGenerationResult:
+        return RerankGenerationResult(
+            results=[
+                RerankResult(index=1, relevance_score=0.9),
+                RerankResult(index=0, relevance_score=0.6),
+            ][: (top_n or len(documents))]
         )
 
 
@@ -180,3 +200,21 @@ async def test_embeddings_reject_empty_input_list() -> None:
                 input=["", "   "],
             )
         )
+
+
+async def test_rerank_response_shape() -> None:
+    service = InferenceService(ollama_client=_StubOllamaInferenceClient())
+
+    response = await service.rerank(
+        RerankRequest(
+            model="bge-reranker-v2-m3:latest",
+            query="What is the policy?",
+            documents=["Doc A", "Doc B"],
+            top_n=2,
+        )
+    )
+
+    assert response.model == "bge-reranker-v2-m3:latest"
+    assert len(response.results) == 2
+    assert response.results[0].index == 1
+    assert response.results[0].relevance_score == 0.9

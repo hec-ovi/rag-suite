@@ -21,8 +21,10 @@ class Settings(BaseSettings):
     inference_timeout_seconds: float = Field(default=300.0)
     rag_chat_model: str = Field(default="gpt-oss:20b", validation_alias="OLLAMA_CHAT_MODEL")
     rag_embedding_model: str = Field(default="bge-m3:latest", validation_alias="OLLAMA_EMBEDDING_MODEL")
+    rag_rerank_model: str = Field(default="bge-reranker-v2-m3:latest", validation_alias="OLLAMA_RERANK_MODEL")
 
     rag_checkpoint_path: str = Field(default="./data/rag_memory_checkpoints.db")
+    rag_reranked_checkpoint_path: str = Field(default="./data/rag_reranked_memory_checkpoints.db")
     rag_sessions_database_url: str = Field(default="sqlite:///./data/rag_sessions.db")
     rag_default_history_window_messages: int = Field(default=8)
 

@@ -15,6 +15,10 @@ from src.core.session_database import (
     build_session_store_factory,
     initialize_session_store_database,
 )
+from src.reranked.chat_service import RagRerankedChatService
+from src.reranked.graph_service import RagRerankedGraphService
+from src.reranked.retrieval_service import RerankedRetrievalService
+from src.reranked.session_store_service import RagRerankedSessionStoreService
 from src.services.hybrid_retrieval_service import HybridRetrievalService
 from src.services.rag_chat_service import RagChatService
 from src.services.rag_graph_service import RagGraphService
@@ -40,6 +44,7 @@ class RuntimeContainer:
         initialize_session_store_database(self._session_store_engine)
         self._session_store_factory: sessionmaker[Session] = build_session_store_factory(self._session_store_engine)
         self.rag_session_store_service = RagSessionStoreService(self._session_store_factory)
+        self.rag_reranked_session_store_service = RagRerankedSessionStoreService(self._session_store_factory)
 
         self._inference_client = InferenceApiClient(
             base_url=settings.inference_api_url,
@@ -51,7 +56,7 @@ class RuntimeContainer:
             timeout_seconds=settings.qdrant_timeout_seconds,
         )
 
-        retrieval_service = HybridRetrievalService(
+        hybrid_retrieval_service = HybridRetrievalService(
             session_factory=self._session_factory,
             inference_client=self._inference_client,
             qdrant_searcher=self._qdrant_searcher,
@@ -59,7 +64,7 @@ class RuntimeContainer:
         )
 
         graph_service = RagGraphService(
-            retrieval_service=retrieval_service,
+            retrieval_service=hybrid_retrieval_service,
             inference_client=self._inference_client,
             prompt_loader=PromptLoader(),
             checkpoint_path=str(resolve_local_path(settings.rag_checkpoint_path)),
@@ -75,9 +80,31 @@ class RuntimeContainer:
             session_store=self.rag_session_store_service,
         )
 
+        reranked_retrieval_service = RerankedRetrievalService(
+            hybrid_retrieval_service=hybrid_retrieval_service,
+            inference_client=self._inference_client,
+        )
+        reranked_graph_service = RagRerankedGraphService(
+            retrieval_service=reranked_retrieval_service,
+            inference_client=self._inference_client,
+            prompt_loader=PromptLoader(),
+            checkpoint_path=str(resolve_local_path(settings.rag_reranked_checkpoint_path)),
+            default_history_window_messages=settings.rag_default_history_window_messages,
+        )
+        self.rag_reranked_chat_service = RagRerankedChatService(
+            graph_service=reranked_graph_service,
+            citation_parser=CitationParser(),
+            default_chat_model=settings.rag_chat_model,
+            default_embedding_model=settings.rag_embedding_model,
+            default_rerank_model=settings.rag_rerank_model,
+            default_history_window_messages=settings.rag_default_history_window_messages,
+            session_store=self.rag_reranked_session_store_service,
+        )
+
     def close(self) -> None:
         """Close shared clients and release runtime resources."""
 
+        self.rag_reranked_chat_service.close()
         self.rag_chat_service.close()
         self._qdrant_searcher.close()
         self._inference_client.close()

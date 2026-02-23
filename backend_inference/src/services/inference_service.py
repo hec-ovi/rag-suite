@@ -19,6 +19,9 @@ from src.models.api.inference import (
     EmbeddingsRequest,
     EmbeddingsResponse,
     EmbeddingsUsage,
+    RerankRequest,
+    RerankResponse,
+    RerankResultRow,
 )
 from src.tools.ollama_inference_client import OllamaInferenceClient
 
@@ -207,6 +210,36 @@ class InferenceService:
             ),
         )
 
+    async def rerank(self, request: RerankRequest) -> RerankResponse:
+        """Run query-document reranking compatible with Ollama `/api/rerank`."""
+
+        query = request.query.strip()
+        if not query:
+            raise ValidationDomainError("query must not be empty")
+
+        documents = self._normalize_rerank_documents(request.documents)
+        top_n = request.top_n
+        if top_n is not None and top_n > len(documents):
+            top_n = len(documents)
+
+        result = await self._ollama_client.rerank(
+            model=request.model,
+            query=query,
+            documents=documents,
+            top_n=top_n,
+        )
+
+        return RerankResponse(
+            model=request.model,
+            results=[
+                RerankResultRow(
+                    index=item.index,
+                    relevance_score=item.relevance_score,
+                )
+                for item in result.results
+            ],
+        )
+
     def _normalize_prompt(self, prompt: str | list[str]) -> str:
         """Normalize completion prompt variants to a single prompt string."""
 
@@ -236,6 +269,14 @@ class InferenceService:
             raise ValidationDomainError("input list must contain at least one non-empty item")
 
         return texts
+
+    def _normalize_rerank_documents(self, documents: list[str]) -> list[str]:
+        """Normalize rerank documents into a non-empty list."""
+
+        normalized = [item.strip() for item in documents if isinstance(item, str) and item.strip()]
+        if not normalized:
+            raise ValidationDomainError("documents must contain at least one non-empty item")
+        return normalized
 
     def _to_sse_data(self, payload: dict[str, object]) -> str:
         """Encode an SSE data frame."""

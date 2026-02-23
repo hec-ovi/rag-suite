@@ -42,6 +42,26 @@ class _FakeHttpClient:
         return _FakeStreamResponse(self._lines)
 
 
+class _FakePostResponse:
+    def __init__(self, payload: dict[str, object]) -> None:
+        self._payload = payload
+
+    def raise_for_status(self) -> None:
+        return None
+
+    def json(self) -> dict[str, object]:
+        return self._payload
+
+
+class _FakeHttpClientWithPost(_FakeHttpClient):
+    def __init__(self, lines: list[str], post_payload: dict[str, object]) -> None:
+        super().__init__(lines)
+        self._post_payload = post_payload
+
+    def post(self, url: str, json: dict[str, object]):  # noqa: ANN201, A002, ARG002
+        return _FakePostResponse(self._post_payload)
+
+
 def test_stream_chat_deltas_extracts_content_only(monkeypatch) -> None:  # noqa: ANN001
     lines = [
         'data: {"id":"chatcmpl-1","choices":[{"index":0,"delta":{"role":"assistant"},"finish_reason":null}]}',
@@ -86,3 +106,29 @@ def test_stream_chat_deltas_rejects_malformed_json(monkeypatch) -> None:  # noqa
                 messages=[{"role": "user", "content": "hello"}],
             )
         )
+
+
+def test_rerank_returns_index_score_rows(monkeypatch) -> None:  # noqa: ANN001
+    payload = {
+        "model": "bge-reranker-v2-m3:latest",
+        "results": [
+            {"index": 1, "relevance_score": 0.82},
+            {"index": 0, "relevance_score": 0.63},
+        ],
+    }
+
+    monkeypatch.setattr(
+        httpx,
+        "Client",
+        lambda timeout: _FakeHttpClientWithPost([], payload),  # noqa: ARG005
+    )
+
+    client = InferenceApiClient(base_url="http://backend-inference:8010/v1", timeout_seconds=10.0)
+    rows = client.rerank(
+        model="bge-reranker-v2-m3:latest",
+        query="what is this document about",
+        documents=["A", "B"],
+        top_n=2,
+    )
+
+    assert rows == [(1, 0.82), (0, 0.63)]

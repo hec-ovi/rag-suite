@@ -117,3 +117,26 @@ class EmbeddingsResponse(BaseModel):
     model: Annotated[str, Field(description="Model used")]
     data: Annotated[list[EmbeddingData], Field(description="Generated embeddings")]
     usage: Annotated[EmbeddingsUsage, Field(description="Token usage summary")]
+
+
+class RerankRequest(BaseModel):
+    """Rerank request for query-document relevance sorting."""
+
+    model: Annotated[str, Field(min_length=1, description="Reranker model name")]
+    query: Annotated[str, Field(min_length=1, description="User query used for relevance scoring")]
+    documents: Annotated[list[str], Field(min_length=1, description="Candidate documents to rerank")]
+    top_n: Annotated[int | None, Field(default=None, ge=1, le=200, description="Optional top-N cutoff")]
+
+
+class RerankResultRow(BaseModel):
+    """One reranked document reference with relevance score."""
+
+    index: Annotated[int, Field(description="Original index in documents array")]
+    relevance_score: Annotated[float, Field(description="Reranker relevance score")]
+
+
+class RerankResponse(BaseModel):
+    """Rerank response payload."""
+
+    model: Annotated[str, Field(description="Reranker model used")]
+    results: Annotated[list[RerankResultRow], Field(description="Reranked result rows")]

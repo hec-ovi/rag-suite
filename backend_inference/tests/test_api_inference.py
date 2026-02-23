@@ -10,3 +10,4 @@ def test_openapi_contains_inference_routes() -> None:
     assert "/v1/chat/completions" in paths
     assert "/v1/completions" in paths
     assert "/v1/embeddings" in paths
+    assert "/v1/rerank" in paths

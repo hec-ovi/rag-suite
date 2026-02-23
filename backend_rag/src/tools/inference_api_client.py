@@ -104,6 +104,52 @@ class InferenceApiClient:
 
         return content.strip()
 
+    def rerank(
+        self,
+        *,
+        model: str,
+        query: str,
+        documents: list[str],
+        top_n: int | None = None,
+    ) -> list[tuple[int, float]]:
+        """Rerank candidate documents and return (index, relevance_score) rows."""
+
+        payload: dict[str, object] = {
+            "model": model,
+            "query": query,
+            "documents": documents,
+        }
+        if top_n is not None:
+            payload["top_n"] = top_n
+
+        try:
+            response = self._client.post(f"{self._base_url}/rerank", json=payload)
+            response.raise_for_status()
+        except httpx.HTTPError as error:
+            raise ExternalServiceError(
+                "Inference rerank request failed. "
+                f"Details: {self._format_http_error(error)}"
+            ) from error
+
+        parsed = response.json()
+        results = parsed.get("results")
+        if not isinstance(results, list):
+            raise ExternalServiceError("Inference rerank response is missing results")
+
+        normalized: list[tuple[int, float]] = []
+        for item in results:
+            if not isinstance(item, dict):
+                raise ExternalServiceError("Inference rerank result row is malformed")
+
+            index = item.get("index")
+            score = item.get("relevance_score")
+            if not isinstance(index, int) or not isinstance(score, int | float):
+                raise ExternalServiceError("Inference rerank result row contains invalid index/score")
+
+            normalized.append((index, float(score)))
+
+        return normalized
+
     def stream_chat_deltas(self, model: str, messages: list[dict[str, str]]) -> Iterator[str]:
         """Generate streamed chat deltas from inference backend SSE."""
 

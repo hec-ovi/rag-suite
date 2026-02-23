@@ -123,7 +123,9 @@ services:
       INFERENCE_TIMEOUT_SECONDS: ${INFERENCE_TIMEOUT_SECONDS:-300}
       OLLAMA_CHAT_MODEL: ${OLLAMA_CHAT_MODEL}
       OLLAMA_EMBEDDING_MODEL: ${OLLAMA_EMBEDDING_MODEL}
+      OLLAMA_RERANK_MODEL: ${OLLAMA_RERANK_MODEL:-bge-reranker-v2-m3:latest}
       RAG_CHECKPOINT_PATH: ${RAG_CHECKPOINT_PATH:-./data/rag_memory_checkpoints.db}
+      RAG_RERANKED_CHECKPOINT_PATH: ${RAG_RERANKED_CHECKPOINT_PATH:-./data/rag_reranked_memory_checkpoints.db}
       RAG_SESSIONS_DATABASE_URL: ${RAG_SESSIONS_DATABASE_URL:-sqlite:///./data/rag_sessions.db}
     volumes:
       - ${DATA_DIR}:/app/data

@@ -18,6 +18,12 @@ Implemented in this stage:
   - Stateless stream (`/v1/rag/chat/stateless/stream`)
   - Session stream (`/v1/rag/chat/session/stream`)
   - Stream `delta` events are forwarded from true inference-token streaming (not synthetic chunk splitting)
+- Reranked lane (isolated from hybrid lane):
+  - Stateless (`/v1/rag/reranked/chat/stateless`)
+  - Session memory (`/v1/rag/reranked/chat/session`)
+  - SSE streaming variants (`/v1/rag/reranked/chat/*/stream`)
+  - Dedicated reranked session store (`/v1/reranked/sessions/*`)
+  - Source lineage payload includes both `hybrid_candidates` and final reranked `sources`
 
 ## Run (local)
 
@@ -39,11 +45,21 @@ UV_CACHE_DIR=/tmp/uv-cache uv run --directory backend_rag uvicorn src.main:app -
 - `POST /v1/rag/chat/session`
 - `POST /v1/rag/chat/stateless/stream` (SSE)
 - `POST /v1/rag/chat/session/stream` (SSE)
+- `GET /v1/rag/reranked/status`
+- `POST /v1/rag/reranked/chat/stateless`
+- `POST /v1/rag/reranked/chat/session`
+- `POST /v1/rag/reranked/chat/stateless/stream` (SSE)
+- `POST /v1/rag/reranked/chat/session/stream` (SSE)
 - `GET /v1/sessions`
 - `POST /v1/sessions`
 - `GET /v1/sessions/{session_id}`
 - `PATCH /v1/sessions/{session_id}`
 - `DELETE /v1/sessions/{session_id}`
+- `GET /v1/reranked/sessions`
+- `POST /v1/reranked/sessions`
+- `GET /v1/reranked/sessions/{session_id}`
+- `PATCH /v1/reranked/sessions/{session_id}`
+- `DELETE /v1/reranked/sessions/{session_id}`
 
 ## Prompt Injection Strategy
 

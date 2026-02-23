@@ -7,10 +7,12 @@ Scope:
 - `POST /v1/chat/completions`
 - `POST /v1/completions`
 - `POST /v1/embeddings`
+- `POST /v1/rerank`
 - `GET /v1/health`
 
 This service is the only component that talks directly to Ollama.
 `POST /v1/chat/completions` supports OpenAI-style SSE when `stream=true`.
+`POST /v1/rerank` proxies Ollama reranker models (for example `bge-reranker-v2-m3:latest`).
 
 ## Run (local)
 

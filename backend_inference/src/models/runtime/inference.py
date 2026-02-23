@@ -30,3 +30,18 @@ class EmbeddingGenerationResult:
 
     embeddings: list[list[float]]
     prompt_tokens: int
+
+
+@dataclass(slots=True)
+class RerankResult:
+    """One rerank row returned by Ollama."""
+
+    index: int
+    relevance_score: float
+
+
+@dataclass(slots=True)
+class RerankGenerationResult:
+    """Normalized rerank output from Ollama."""
+
+    results: list[RerankResult]
