@@ -6,6 +6,7 @@ from src.core.exceptions import OperationCancelledError
 from src.models.runtime.pipeline import ChunkCandidate, ContextualizedChunkCandidate
 from src.tools.ollama_chat_client import OllamaChatClient
 from src.tools.prompt_loader import PromptLoader
+from src.tools.thinking_sanitizer import strip_thinking_sections
 
 
 class ContextualHeaderGenerator:
@@ -81,7 +82,7 @@ class ContextualHeaderGenerator:
             user_prompt=user_prompt,
             cancel_event=cancel_event,
         )
-        return response.strip()
+        return strip_thinking_sections(response)
 
     def _template_header(self, document_name: str, chunk_index: int) -> str:
         """Produce deterministic fallback headers."""

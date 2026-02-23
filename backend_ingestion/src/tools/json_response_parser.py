@@ -4,6 +4,7 @@ import json
 import re
 
 from src.core.exceptions import ValidationDomainError
+from src.tools.thinking_sanitizer import strip_thinking_sections
 
 
 class JsonResponseParser:
@@ -12,7 +13,7 @@ class JsonResponseParser:
     def parse(self, response_text: str) -> dict[str, object]:
         """Parse raw model output and extract JSON object content."""
 
-        stripped = response_text.strip()
+        stripped = strip_thinking_sections(response_text)
         try:
             payload = json.loads(stripped)
             if isinstance(payload, dict):
