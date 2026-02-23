@@ -1,6 +1,11 @@
 import { ingestionRequest, ragRequest, ragStreamRequest, RagApiError } from "./rag-api-client"
 import type {
   RagChatResponse,
+  RagSessionCreateRequest,
+  RagSessionDetailRecord,
+  RagSessionListResponse,
+  RagSessionSummaryRecord,
+  RagSessionUpdateRequest,
   RagDocumentSummary,
   RagProjectListResponse,
   RagProjectRecord,
@@ -28,6 +33,43 @@ export async function listRagProjects(): Promise<RagProjectRecord[]> {
 export async function listRagProjectDocuments(projectId: string): Promise<RagDocumentSummary[]> {
   return ingestionRequest<RagDocumentSummary[]>(`/projects/${projectId}/documents`, {
     method: "GET",
+  })
+}
+
+export async function listRagSessions(projectId?: string): Promise<RagSessionSummaryRecord[]> {
+  const query = typeof projectId === "string" && projectId.trim().length > 0 ? `?project_id=${projectId}` : ""
+  const response = await ragRequest<RagSessionListResponse>(`/sessions${query}`, {
+    method: "GET",
+  })
+  return response.sessions
+}
+
+export async function createRagSession(payload: RagSessionCreateRequest): Promise<RagSessionDetailRecord> {
+  return ragRequest<RagSessionDetailRecord>("/sessions", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  })
+}
+
+export async function getRagSession(sessionId: string): Promise<RagSessionDetailRecord> {
+  return ragRequest<RagSessionDetailRecord>(`/sessions/${sessionId}`, {
+    method: "GET",
+  })
+}
+
+export async function updateRagSession(
+  sessionId: string,
+  payload: RagSessionUpdateRequest,
+): Promise<RagSessionDetailRecord> {
+  return ragRequest<RagSessionDetailRecord>(`/sessions/${sessionId}`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  })
+}
+
+export async function deleteRagSession(sessionId: string): Promise<void> {
+  await ragRequest<null>(`/sessions/${sessionId}`, {
+    method: "DELETE",
   })
 }
 

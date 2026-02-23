@@ -124,6 +124,7 @@ services:
       OLLAMA_CHAT_MODEL: ${OLLAMA_CHAT_MODEL}
       OLLAMA_EMBEDDING_MODEL: ${OLLAMA_EMBEDDING_MODEL}
       RAG_CHECKPOINT_PATH: ${RAG_CHECKPOINT_PATH:-./data/rag_memory_checkpoints.db}
+      RAG_SESSIONS_DATABASE_URL: ${RAG_SESSIONS_DATABASE_URL:-sqlite:///./data/rag_sessions.db}
     volumes:
       - ${DATA_DIR}:/app/data
     depends_on:

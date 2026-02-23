@@ -91,9 +91,53 @@ export interface RagChatMessage {
 
 export interface RagSessionEntry {
   id: string
+  projectId: string
   title: string
   messageCount: number
+  createdAt: string
   updatedAt: string
+}
+
+export interface RagSessionMessageRecord {
+  id: string
+  role: "user" | "assistant"
+  content: string
+  created_at: string
+}
+
+export interface RagSessionSummaryRecord {
+  id: string
+  project_id: string
+  title: string
+  message_count: number
+  created_at: string
+  updated_at: string
+}
+
+export interface RagSessionDetailRecord extends RagSessionSummaryRecord {
+  selected_document_ids: string[]
+  selected_source_id: string | null
+  latest_response: RagChatResponse | null
+  messages: RagSessionMessageRecord[]
+}
+
+export interface RagSessionListResponse {
+  sessions: RagSessionSummaryRecord[]
+}
+
+export interface RagSessionCreateRequest {
+  project_id: string
+  title?: string
+  selected_document_ids?: string[]
+}
+
+export interface RagSessionUpdateRequest {
+  project_id?: string
+  title?: string
+  selected_document_ids?: string[]
+  selected_source_id?: string | null
+  latest_response?: RagChatResponse | null
+  messages?: RagSessionMessageRecord[]
 }
 
 export interface RagApiErrorResponse {

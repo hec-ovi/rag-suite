@@ -14,6 +14,7 @@ from src.models.api.rag import (
 )
 from src.models.runtime.graph import RagGraphState
 from src.services.rag_graph_service import RagGraphService
+from src.services.rag_session_store_service import RagSessionStoreService
 from src.tools.citation_parser import CitationParser
 
 
@@ -29,12 +30,14 @@ class RagChatService:
         default_chat_model: str,
         default_embedding_model: str,
         default_history_window_messages: int,
+        session_store: RagSessionStoreService | None = None,
     ) -> None:
         self._graph_service = graph_service
         self._citation_parser = citation_parser
         self._default_chat_model = default_chat_model
         self._default_embedding_model = default_embedding_model
         self._default_history_window_messages = max(default_history_window_messages, 0)
+        self._session_store = session_store
 
     def chat_stateless(self, request: RagHybridChatRequest) -> RagHybridChatResponse:
         """Execute one-shot hybrid RAG answer generation."""
@@ -64,11 +67,20 @@ class RagChatService:
             session_id=session_id,
         )
         output = self._graph_service.invoke_session(graph_state, session_id=session_id)
-        return self._build_response(
+        response = self._build_response(
             output=output,
             mode="session",
             session_id=session_id,
         )
+        self._persist_session_snapshot(
+            session_id=session_id,
+            project_id=request.project_id,
+            user_message=request.message,
+            assistant_message=response.answer,
+            selected_document_ids=request.document_ids,
+            response=response,
+        )
+        return response
 
     def stream_chat_stateless(
         self,
@@ -151,6 +163,14 @@ class RagChatService:
             mode="session",
             session_id=session_id,
             answer=normalized_answer,
+        )
+        self._persist_session_snapshot(
+            session_id=session_id,
+            project_id=request.project_id,
+            user_message=request.message,
+            assistant_message=response.answer,
+            selected_document_ids=request.document_ids,
+            response=response,
         )
         yield ("done", response.model_dump(mode="json"))
 
@@ -261,4 +281,28 @@ class RagChatService:
             output=output,
             mode=mode,
             session_id=session_id,
+        )
+
+    def _persist_session_snapshot(
+        self,
+        *,
+        session_id: str,
+        project_id: str,
+        user_message: str,
+        assistant_message: str,
+        selected_document_ids: list[str] | None,
+        response: RagHybridChatResponse,
+    ) -> None:
+        """Persist session transcript + latest sources into isolated session store."""
+
+        if self._session_store is None:
+            return
+
+        self._session_store.append_turn(
+            session_id=session_id,
+            project_id=project_id,
+            user_message=user_message,
+            assistant_message=assistant_message,
+            selected_document_ids=selected_document_ids,
+            latest_response=response,
         )

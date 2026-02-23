@@ -26,13 +26,14 @@ Stage 1 baseline RAG (implemented):
 
 - Hybrid retrieval (`dense + sparse/BM25`) on project-scoped data
 - Stateless and session-memory chat endpoints in `backend_rag`
+- Persistent session snapshot store in `backend_rag` (`create/list/get/update/delete`)
 - Ordered source tracing (`document + chunk + score`) in every chat response
 
 Service split (active):
 
 - `backend_inference`: OpenAI-compatible inference API (the only service that calls Ollama directly)
 - `backend_ingestion`: ingestion/vectorization API
-- `backend_rag`: hybrid RAG chat API (stateless + session memory)
+- `backend_rag`: hybrid RAG chat API + persistent session store
 
 ## Why Qdrant (and not FAISS-only)
 
@@ -63,7 +64,7 @@ rewiring ingestion/RAG business logic.
 ```text
 backend_ingestion/  FastAPI ingestion API + SQLite control plane + Qdrant adapters
 backend_inference/  FastAPI OpenAI-compatible inference API (Ollama gateway)
-backend_rag/        FastAPI hybrid RAG API (stateless + session memory)
+backend_rag/        FastAPI hybrid RAG API + persistent session store
 frontend/           React ingestion UI shell
 ollama/             ROCm Ollama startup scripts
 qdrant/             Local persistent Qdrant storage mount point (`qdrant/storage`)
@@ -117,6 +118,7 @@ docker compose --env-file .env up -d --build
 
 - `.env.template` keeps `OLLAMA_MODELS_DIR` as an absolute placeholder.
 - `QDRANT_STORAGE_DIR=./qdrant/storage` and `DATA_DIR=./data` work as repository-relative defaults.
+- `RAG_SESSIONS_DATABASE_URL` defaults to `sqlite:///./data/rag_sessions.db` (persistent chat session snapshots).
 - Set `OLLAMA_MODELS_DIR` to your persistent local model store (for example `/home/.../models/ollama` in your real `.env`).
 
 ## Backend Endpoints
@@ -151,6 +153,11 @@ docker compose --env-file .env up -d --build
 - `POST /v1/rag/chat/session`
 - `POST /v1/rag/chat/stateless/stream` (SSE)
 - `POST /v1/rag/chat/session/stream` (SSE)
+- `GET /v1/sessions`
+- `POST /v1/sessions`
+- `GET /v1/sessions/{session_id}`
+- `PATCH /v1/sessions/{session_id}`
+- `DELETE /v1/sessions/{session_id}`
 
 ## OpenAI-Compatible Inference (Ollama-backed)
 
@@ -198,6 +205,7 @@ The ingestion UI in `frontend/` supports:
 Hybrid RAG UI (`RAG Mode -> Hybrid`) now supports:
 
 - Stateless and session-memory chat modes
+- Persistent session sidebar (load on refresh, create, delete)
 - Project-scoped queries with optional per-document filter
 - True token streaming path (`backend_inference` SSE -> `backend_rag` SSE -> frontend chat panel)
 - Separated source trace panel (citations, documents, ranked chunk bullets, and full source preview)

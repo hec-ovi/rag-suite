@@ -23,6 +23,7 @@ class Settings(BaseSettings):
     rag_embedding_model: str = Field(default="bge-m3:latest", validation_alias="OLLAMA_EMBEDDING_MODEL")
 
     rag_checkpoint_path: str = Field(default="./data/rag_memory_checkpoints.db")
+    rag_sessions_database_url: str = Field(default="sqlite:///./data/rag_sessions.db")
     rag_default_history_window_messages: int = Field(default=8)
 
     model_config = SettingsConfigDict(

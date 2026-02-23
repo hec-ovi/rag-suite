@@ -28,7 +28,13 @@ export function RagHybridWorkbench({ state, actions }: RagHybridWorkbenchProps) 
           activeSessionId={state.sessionId}
           sessionEntries={state.sessionEntries}
           onToggleOpen={() => setIsSessionsOpen((current) => !current)}
-          onSelectSession={actions.selectSession}
+          onSelectSession={(sessionId) => {
+            void actions.selectSession(sessionId)
+          }}
+          onDeleteSession={(sessionId) => {
+            void actions.deleteSession(sessionId)
+          }}
+          disabled={state.isManagingSessions || state.isRequesting || state.isStreaming}
         />
 
         <div className="flex min-h-0 flex-1 bg-surface">
@@ -121,7 +127,7 @@ export function RagHybridWorkbench({ state, actions }: RagHybridWorkbenchProps) 
                   type="button"
                   disabled={newSessionProjectId.trim().length === 0}
                   onClick={() => {
-                    actions.startNewSession(newSessionProjectId)
+                    void actions.startNewSession(newSessionProjectId)
                     setIsNewSessionModalOpen(false)
                   }}
                   className="bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-60"

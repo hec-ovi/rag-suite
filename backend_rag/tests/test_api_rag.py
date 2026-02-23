@@ -13,3 +13,5 @@ def test_openapi_contains_rag_routes() -> None:
     assert "/v1/rag/chat/session" in paths
     assert "/v1/rag/chat/stateless/stream" in paths
     assert "/v1/rag/chat/session/stream" in paths
+    assert "/v1/sessions" in paths
+    assert "/v1/sessions/{session_id}" in paths

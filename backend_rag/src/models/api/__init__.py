@@ -5,6 +5,14 @@ from src.models.api.rag import (
     RagSourceChunk,
     RagSourceDocument,
 )
+from src.models.api.session import (
+    RagSessionCreateRequest,
+    RagSessionListResponse,
+    RagSessionMessage,
+    RagSessionRecord,
+    RagSessionSummary,
+    RagSessionUpdateRequest,
+)
 
 __all__ = [
     "RagHybridChatRequest",
@@ -12,4 +20,10 @@ __all__ = [
     "RagSourceChunk",
     "RagSourceDocument",
     "RagHybridChatResponse",
+    "RagSessionMessage",
+    "RagSessionSummary",
+    "RagSessionRecord",
+    "RagSessionCreateRequest",
+    "RagSessionUpdateRequest",
+    "RagSessionListResponse",
 ]

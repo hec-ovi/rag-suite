@@ -17,6 +17,7 @@ from src.core.exceptions import (
 from src.core.runtime import RuntimeContainer
 from src.routes.health import router as health_router
 from src.routes.rag import router as rag_router
+from src.routes.sessions import router as sessions_router
 
 
 @asynccontextmanager
@@ -86,3 +87,4 @@ async def handle_domain(_: Request, exc: DomainError) -> JSONResponse:
 
 app.include_router(health_router, prefix="/v1")
 app.include_router(rag_router, prefix="/v1")
+app.include_router(sessions_router, prefix="/v1")

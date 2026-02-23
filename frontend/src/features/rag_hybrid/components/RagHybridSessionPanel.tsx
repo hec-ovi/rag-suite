@@ -6,6 +6,8 @@ interface RagHybridSessionPanelProps {
   sessionEntries: RagSessionEntry[]
   onToggleOpen: () => void
   onSelectSession: (sessionId: string) => void
+  onDeleteSession: (sessionId: string) => void
+  disabled?: boolean
 }
 
 function formatSessionTime(value: string): string {
@@ -27,6 +29,8 @@ export function RagHybridSessionPanel({
   sessionEntries,
   onToggleOpen,
   onSelectSession,
+  onDeleteSession,
+  disabled = false,
 }: RagHybridSessionPanelProps) {
   if (!isOpen) {
     return (
@@ -70,20 +74,37 @@ export function RagHybridSessionPanel({
           sessionEntries.map((entry) => {
             const active = entry.id === activeSessionId
             return (
-              <button
+              <div
                 key={entry.id}
-                type="button"
-                onClick={() => onSelectSession(entry.id)}
-                className={`grid w-full gap-1 border-l-2 px-2 py-2 text-left ${
+                className={`grid grid-cols-[1fr_auto] items-start gap-2 border-l-2 px-2 py-2 ${
                   active ? "border-primary bg-primary/10" : "border-transparent bg-background hover:border-border"
                 }`}
               >
-                <p className="truncate text-sm font-semibold text-foreground">{entry.title}</p>
-                <p className="text-xs text-muted">
-                  {entry.messageCount} msg • {formatSessionTime(entry.updatedAt)}
-                </p>
-                <p className="truncate font-mono text-[10px] text-muted">{entry.id}</p>
-              </button>
+                <button type="button" onClick={() => onSelectSession(entry.id)} className="grid gap-1 text-left">
+                  <p className="truncate text-sm font-semibold text-foreground">{entry.title}</p>
+                  <p className="text-xs text-muted">
+                    {entry.messageCount} msg • {formatSessionTime(entry.updatedAt)}
+                  </p>
+                  <p className="truncate font-mono text-[10px] text-muted">{entry.id}</p>
+                </button>
+
+                <button
+                  type="button"
+                  disabled={disabled}
+                  onClick={() => onDeleteSession(entry.id)}
+                  className="mt-0.5 px-1.5 py-1 text-muted transition-colors hover:text-danger disabled:opacity-50"
+                  aria-label={`Delete session ${entry.title}`}
+                  title="Delete session"
+                >
+                  <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M3 6h18" />
+                    <path d="M8 6V4h8v2" />
+                    <path d="M19 6l-1 14H6L5 6" />
+                    <path d="M10 11v6" />
+                    <path d="M14 11v6" />
+                  </svg>
+                </button>
+              </div>
             )
           })
         )}

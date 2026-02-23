@@ -66,6 +66,10 @@ function buildRequester(baseUrl: string) {
       throw new RagApiError(message, response.status)
     }
 
+    if (response.status === 204) {
+      return null as TResponse
+    }
+
     return (await response.json()) as TResponse
   }
 }

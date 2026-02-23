@@ -10,9 +10,15 @@ from src.core.database import (
     initialize_database,
     resolve_local_path,
 )
+from src.core.session_database import (
+    build_session_store_engine,
+    build_session_store_factory,
+    initialize_session_store_database,
+)
 from src.services.hybrid_retrieval_service import HybridRetrievalService
 from src.services.rag_chat_service import RagChatService
 from src.services.rag_graph_service import RagGraphService
+from src.services.rag_session_store_service import RagSessionStoreService
 from src.tools.citation_parser import CitationParser
 from src.tools.hybrid_ranker import HybridRanker
 from src.tools.inference_api_client import InferenceApiClient
@@ -29,6 +35,11 @@ class RuntimeContainer:
         self._engine: Engine = build_engine(settings.database_url)
         initialize_database(self._engine)
         self._session_factory: sessionmaker[Session] = build_session_factory(self._engine)
+
+        self._session_store_engine: Engine = build_session_store_engine(settings.rag_sessions_database_url)
+        initialize_session_store_database(self._session_store_engine)
+        self._session_store_factory: sessionmaker[Session] = build_session_store_factory(self._session_store_engine)
+        self.rag_session_store_service = RagSessionStoreService(self._session_store_factory)
 
         self._inference_client = InferenceApiClient(
             base_url=settings.inference_api_url,
@@ -61,6 +72,7 @@ class RuntimeContainer:
             default_chat_model=settings.rag_chat_model,
             default_embedding_model=settings.rag_embedding_model,
             default_history_window_messages=settings.rag_default_history_window_messages,
+            session_store=self.rag_session_store_service,
         )
 
     def close(self) -> None:
@@ -69,4 +81,5 @@ class RuntimeContainer:
         self.rag_chat_service.close()
         self._qdrant_searcher.close()
         self._inference_client.close()
+        self._session_store_engine.dispose()
         self._engine.dispose()

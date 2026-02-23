@@ -10,6 +10,7 @@ Implemented in this stage:
 - Project-scoped retrieval (mandatory `project_id`)
 - Optional per-request document filtering (`document_ids`)
 - Full source trace in API response (ordered chunks + document summaries)
+- Persistent session snapshot store (SQLite) for UI session recovery
 - Two chat modes:
   - Stateless (`/v1/rag/chat/stateless`)
   - Session memory (`/v1/rag/chat/session`) with LangGraph checkpoint persistence
@@ -38,6 +39,11 @@ UV_CACHE_DIR=/tmp/uv-cache uv run --directory backend_rag uvicorn src.main:app -
 - `POST /v1/rag/chat/session`
 - `POST /v1/rag/chat/stateless/stream` (SSE)
 - `POST /v1/rag/chat/session/stream` (SSE)
+- `GET /v1/sessions`
+- `POST /v1/sessions`
+- `GET /v1/sessions/{session_id}`
+- `PATCH /v1/sessions/{session_id}`
+- `DELETE /v1/sessions/{session_id}`
 
 ## Prompt Injection Strategy
 
@@ -47,7 +53,8 @@ RAG context is injected with XML-tagged source blocks in a prompt template:
 - `<source id="Sx" ...>` per ranked chunk
 - `<context_header>` + `<chunk_text>` fields
 
-The model is instructed to cite using `[Sx]`, and response payload includes `citations_used` plus full `sources` metadata.
+Assistant text is constrained to grounded answers without inline citation markers; source attribution remains in the
+structured `sources` payload (ranked chunks + scores + document ids).
 
 ## Tests
 

@@ -61,6 +61,14 @@ class _FakeGraphService:
         return None
 
 
+class _FakeSessionStore:
+    def __init__(self) -> None:
+        self.append_calls: list[dict[str, object]] = []
+
+    def append_turn(self, **kwargs) -> None:  # noqa: ANN003
+        self.append_calls.append(kwargs)
+
+
 def test_stream_chat_stateless_yields_meta_delta_done() -> None:
     service = RagChatService(
         graph_service=_FakeGraphService(),  # type: ignore[arg-type]
@@ -87,12 +95,14 @@ def test_stream_chat_stateless_yields_meta_delta_done() -> None:
 
 def test_stream_chat_session_persists_turn() -> None:
     graph = _FakeGraphService()
+    session_store = _FakeSessionStore()
     service = RagChatService(
         graph_service=graph,  # type: ignore[arg-type]
         citation_parser=CitationParser(),
         default_chat_model="gpt-oss:20b",
         default_embedding_model="bge-m3:latest",
         default_history_window_messages=8,
+        session_store=session_store,  # type: ignore[arg-type]
     )
 
     events = list(
@@ -110,3 +120,5 @@ def test_stream_chat_session_persists_turn() -> None:
     assert graph.persist_calls[0][0] == "project-1"
     assert graph.persist_calls[0][1] == "session-123"
     assert graph.persist_calls[0][3] == "Grounded answer"
+    assert session_store.append_calls[0]["session_id"] == "session-123"
+    assert session_store.append_calls[0]["assistant_message"] == "Grounded answer"
