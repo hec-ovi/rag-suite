@@ -73,6 +73,8 @@ class _StubOllamaInferenceClient:
             prompt_tokens=8,
         )
 
+
+class _StubRerankerApiClient:
     async def rerank(  # noqa: ARG002
         self,
         model: str,
@@ -89,7 +91,10 @@ class _StubOllamaInferenceClient:
 
 
 async def test_chat_completions_response_shape() -> None:
-    service = InferenceService(ollama_client=_StubOllamaInferenceClient())
+    service = InferenceService(
+        ollama_client=_StubOllamaInferenceClient(),
+        reranker_client=_StubRerankerApiClient(),
+    )
 
     response = await service.chat_completions(
         ChatCompletionsRequest(
@@ -105,7 +110,10 @@ async def test_chat_completions_response_shape() -> None:
 
 
 async def test_text_completions_accept_prompt_list() -> None:
-    service = InferenceService(ollama_client=_StubOllamaInferenceClient())
+    service = InferenceService(
+        ollama_client=_StubOllamaInferenceClient(),
+        reranker_client=_StubRerankerApiClient(),
+    )
 
     response = await service.completions(
         CompletionsRequest(
@@ -120,7 +128,10 @@ async def test_text_completions_accept_prompt_list() -> None:
 
 
 async def test_embeddings_response_shape() -> None:
-    service = InferenceService(ollama_client=_StubOllamaInferenceClient())
+    service = InferenceService(
+        ollama_client=_StubOllamaInferenceClient(),
+        reranker_client=_StubRerankerApiClient(),
+    )
 
     response = await service.embeddings(
         EmbeddingsRequest(
@@ -135,7 +146,10 @@ async def test_embeddings_response_shape() -> None:
 
 
 async def test_chat_completions_rejects_stream_true() -> None:
-    service = InferenceService(ollama_client=_StubOllamaInferenceClient())
+    service = InferenceService(
+        ollama_client=_StubOllamaInferenceClient(),
+        reranker_client=_StubRerankerApiClient(),
+    )
 
     with pytest.raises(ValidationDomainError, match="stream=true must be sent to the streaming route response path"):
         await service.chat_completions(
@@ -148,7 +162,10 @@ async def test_chat_completions_rejects_stream_true() -> None:
 
 
 async def test_chat_completions_stream_emits_openai_sse_frames() -> None:
-    service = InferenceService(ollama_client=_StubOllamaInferenceClient())
+    service = InferenceService(
+        ollama_client=_StubOllamaInferenceClient(),
+        reranker_client=_StubRerankerApiClient(),
+    )
     request = ChatCompletionsRequest(
         model="gpt-oss:20b",
         messages=[ChatMessage(role="user", content="Hello")],
@@ -178,7 +195,10 @@ async def test_chat_completions_stream_emits_openai_sse_frames() -> None:
 
 
 async def test_text_completions_rejects_empty_prompt_list() -> None:
-    service = InferenceService(ollama_client=_StubOllamaInferenceClient())
+    service = InferenceService(
+        ollama_client=_StubOllamaInferenceClient(),
+        reranker_client=_StubRerankerApiClient(),
+    )
 
     with pytest.raises(ValidationDomainError, match="prompt list must contain at least one non-empty item"):
         await service.completions(
@@ -191,7 +211,10 @@ async def test_text_completions_rejects_empty_prompt_list() -> None:
 
 
 async def test_embeddings_reject_empty_input_list() -> None:
-    service = InferenceService(ollama_client=_StubOllamaInferenceClient())
+    service = InferenceService(
+        ollama_client=_StubOllamaInferenceClient(),
+        reranker_client=_StubRerankerApiClient(),
+    )
 
     with pytest.raises(ValidationDomainError, match="input list must contain at least one non-empty item"):
         await service.embeddings(
@@ -203,7 +226,10 @@ async def test_embeddings_reject_empty_input_list() -> None:
 
 
 async def test_rerank_response_shape() -> None:
-    service = InferenceService(ollama_client=_StubOllamaInferenceClient())
+    service = InferenceService(
+        ollama_client=_StubOllamaInferenceClient(),
+        reranker_client=_StubRerankerApiClient(),
+    )
 
     response = await service.rerank(
         RerankRequest(

@@ -24,6 +24,7 @@ Implemented in this stage:
   - SSE streaming variants (`/v1/rag/reranked/chat/*/stream`)
   - Dedicated reranked session store (`/v1/reranked/sessions/*`)
   - Source lineage payload includes both `hybrid_candidates` and final reranked `sources`
+  - Rerank scoring is delegated to `backend_inference /v1/rerank` (which now proxies `backend_reranker`)
 
 ## Run (local)
 

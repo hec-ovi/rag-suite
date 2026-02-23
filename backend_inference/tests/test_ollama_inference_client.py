@@ -174,30 +174,3 @@ async def test_chat_stream_wraps_thinking_and_content_deltas(monkeypatch) -> Non
 
     assert "".join(chunk.content_delta for chunk in chunks) == "<thinking>step</thinking>answer"
 
-
-async def test_rerank_parses_results(monkeypatch) -> None:  # noqa: ANN001
-    payload = {
-        "model": "bge-reranker-v2-m3:latest",
-        "results": [
-            {"index": 2, "relevance_score": 0.91},
-            {"index": 0, "relevance_score": 0.55},
-        ],
-    }
-
-    monkeypatch.setattr(
-        httpx,
-        "AsyncClient",
-        lambda timeout: _FakeAsyncClient(payload),  # noqa: ARG005
-    )
-
-    client = OllamaInferenceClient(base_url="http://ollama:11434", timeout_seconds=5.0)
-    result = await client.rerank(
-        model="bge-reranker-v2-m3:latest",
-        query="test query",
-        documents=["a", "b", "c"],
-        top_n=2,
-    )
-
-    assert len(result.results) == 2
-    assert result.results[0].index == 2
-    assert result.results[0].relevance_score == 0.91

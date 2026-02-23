@@ -35,10 +35,12 @@ Stage 2 reranked RAG (implemented):
 - Dedicated reranked endpoints under `/v1/rag/reranked/*`
 - Dedicated reranked session store under `/v1/reranked/sessions/*`
 - Side-by-side source lineage (`hybrid candidates` vs `final reranked sources`)
+- Dedicated reranker backend (`backend_reranker`) for stable `/v1/rerank` scoring outside Ollama
 
 Service split (active):
 
-- `backend_inference`: OpenAI-compatible inference API (the only service that calls Ollama directly)
+- `backend_inference`: OpenAI-compatible inference API (the only service that calls Ollama directly for chat/completions/embeddings)
+- `backend_reranker`: dedicated cross-encoder reranker backend
 - `backend_ingestion`: ingestion/vectorization API
 - `backend_rag`: hybrid RAG chat API + persistent session store
 
@@ -53,6 +55,7 @@ FAISS is kept as a future benchmark/tuning path, not as the primary persistence 
 Current runtime chain:
 
 - `ollama` -> `backend_inference` -> (`backend_ingestion` and `backend_rag`)
+- `backend_rag` -> `backend_inference /v1/rerank` -> `backend_reranker`
 
 This keeps model access centralized behind one inference API so cloud model providers can be swapped later without
 rewiring ingestion/RAG business logic.
@@ -71,6 +74,7 @@ rewiring ingestion/RAG business logic.
 ```text
 backend_ingestion/  FastAPI ingestion API + SQLite control plane + Qdrant adapters
 backend_inference/  FastAPI OpenAI-compatible inference API (Ollama gateway)
+backend_reranker/   FastAPI dedicated cross-encoder reranker backend
 backend_rag/        FastAPI hybrid RAG API + persistent session store
 frontend/           React ingestion UI shell
 ollama/             ROCm Ollama startup scripts
@@ -118,6 +122,7 @@ docker compose --env-file .env up -d --build
 - Frontend: `http://localhost:5173`
 - Ingestion backend docs: `http://localhost:8000/docs`
 - Inference backend docs: `http://localhost:8010/docs`
+- Reranker backend docs: `http://localhost:8030/docs`
 - RAG backend docs: `http://localhost:8020/docs`
 - Qdrant: `http://localhost:6333/dashboard`
 
@@ -127,6 +132,7 @@ docker compose --env-file .env up -d --build
 - `QDRANT_STORAGE_DIR=./qdrant/storage` and `DATA_DIR=./data` work as repository-relative defaults.
 - `RAG_SESSIONS_DATABASE_URL` defaults to `sqlite:///./data/rag_sessions.db` (persistent chat session snapshots).
 - `RAG_RERANKED_CHECKPOINT_PATH` defaults to `./data/rag_reranked_memory_checkpoints.db` (reranked memory graph checkpoints).
+- `RERANKER_CACHE_DIR` defaults to `./data/reranker_cache` (persistent Hugging Face model cache for dedicated reranker backend).
 - Set `OLLAMA_MODELS_DIR` to your persistent local model store (for example `/home/.../models/ollama` in your real `.env`).
 
 ## Backend Endpoints
@@ -153,6 +159,11 @@ docker compose --env-file .env up -d --build
 - `POST /v1/pipeline/operations/{operation_id}/cancel`
 - `POST /v1/pipeline/preview-automatic`
 - `POST /v1/projects/{project_id}/documents/ingest`
+
+`backend_reranker` (port `8030`):
+
+- `GET /v1/health`
+- `POST /v1/rerank`
 
 `backend_rag` (port `8020`):
 
@@ -186,6 +197,8 @@ These endpoints are exposed by `backend_inference` and follow OpenAI-style reque
 - `POST /v1/completions`
 - `POST /v1/embeddings`
 - `POST /v1/rerank`
+
+`POST /v1/rerank` now delegates to `backend_reranker` (cross-encoder scoring), avoiding Ollama rerank API limitations while keeping a stable inference contract.
 
 Example:
 
@@ -275,6 +288,7 @@ UV_CACHE_DIR=/tmp/uv-cache uv run --directory backend_ingestion python -m script
 ```bash
 UV_CACHE_DIR=/tmp/uv-cache uv run --directory backend_ingestion pytest -q tests
 UV_CACHE_DIR=/tmp/uv-cache uv run --directory backend_inference pytest -q tests
+UV_CACHE_DIR=/tmp/uv-cache uv run --directory backend_reranker pytest -q tests
 UV_CACHE_DIR=/tmp/uv-cache uv run --directory backend_rag pytest -q tests
 ```
 

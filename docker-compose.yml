@@ -56,8 +56,12 @@ services:
     environment:
       OLLAMA_URL: http://ollama:11434
       OLLAMA_TIMEOUT_SECONDS: ${OLLAMA_TIMEOUT_SECONDS:-300}
+      RERANKER_API_URL: http://backend-reranker:8030/v1
+      RERANKER_TIMEOUT_SECONDS: ${RERANKER_TIMEOUT_SECONDS:-300}
     depends_on:
       ollama:
+        condition: service_healthy
+      backend-reranker:
         condition: service_healthy
     ports:
       - "${INFERENCE_BACKEND_PORT:-8010}:8010"
@@ -68,6 +72,43 @@ services:
           "python",
           "-c",
           "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8010/v1/health', timeout=3)",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
+
+  backend-reranker:
+    build:
+      context: ./backend_reranker
+      dockerfile: Dockerfile
+      args:
+        RERANK_USE_ROCM_WHEELS: ${RERANK_USE_ROCM_WHEELS:-1}
+        RERANK_TORCH_INDEX_URL: ${RERANK_TORCH_INDEX_URL:-https://rocm.prereleases.amd.com/whl/gfx1151/}
+    container_name: rag-suite-backend-reranker
+    restart: unless-stopped
+    privileged: true
+    ipc: host
+    environment:
+      HSA_OVERRIDE_GFX_VERSION: ${HSA_OVERRIDE_GFX_VERSION}
+      HIP_VISIBLE_DEVICES: ${HIP_VISIBLE_DEVICES}
+      RERANK_DEFAULT_MODEL: ${RERANK_DEFAULT_MODEL:-BAAI/bge-reranker-v2-m3}
+      RERANK_DEVICE: ${RERANK_DEVICE:-auto}
+      RERANK_MAX_LENGTH: ${RERANK_MAX_LENGTH:-1024}
+      RERANK_BATCH_SIZE: ${RERANK_BATCH_SIZE:-16}
+      RERANK_USE_FP16: ${RERANK_USE_FP16:-true}
+      HF_HOME: /cache/huggingface
+    volumes:
+      - ${RERANKER_CACHE_DIR:-./data/reranker_cache}:/cache/huggingface
+    ports:
+      - "${RERANKER_BACKEND_PORT:-8030}:8030"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8030/v1/health', timeout=3)",
         ]
       interval: 10s
       timeout: 5s
@@ -123,7 +164,7 @@ services:
       INFERENCE_TIMEOUT_SECONDS: ${INFERENCE_TIMEOUT_SECONDS:-300}
       OLLAMA_CHAT_MODEL: ${OLLAMA_CHAT_MODEL}
       OLLAMA_EMBEDDING_MODEL: ${OLLAMA_EMBEDDING_MODEL}
-      OLLAMA_RERANK_MODEL: ${OLLAMA_RERANK_MODEL:-bge-reranker-v2-m3:latest}
+      OLLAMA_RERANK_MODEL: ${OLLAMA_RERANK_MODEL:-BAAI/bge-reranker-v2-m3}
       RAG_CHECKPOINT_PATH: ${RAG_CHECKPOINT_PATH:-./data/rag_memory_checkpoints.db}
       RAG_RERANKED_CHECKPOINT_PATH: ${RAG_RERANKED_CHECKPOINT_PATH:-./data/rag_reranked_memory_checkpoints.db}
       RAG_SESSIONS_DATABASE_URL: ${RAG_SESSIONS_DATABASE_URL:-sqlite:///./data/rag_sessions.db}

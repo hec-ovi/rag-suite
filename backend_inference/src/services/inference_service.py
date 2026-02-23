@@ -24,13 +24,15 @@ from src.models.api.inference import (
     RerankResultRow,
 )
 from src.tools.ollama_inference_client import OllamaInferenceClient
+from src.tools.reranker_api_client import RerankerApiClient
 
 
 class InferenceService:
     """Service exposing OpenAI-compatible inference responses via Ollama."""
 
-    def __init__(self, ollama_client: OllamaInferenceClient) -> None:
+    def __init__(self, ollama_client: OllamaInferenceClient, reranker_client: RerankerApiClient) -> None:
         self._ollama_client = ollama_client
+        self._reranker_client = reranker_client
 
     async def chat_completions(self, request: ChatCompletionsRequest) -> ChatCompletionsResponse:
         """Run chat completions compatible with `/v1/chat/completions`."""
@@ -211,7 +213,7 @@ class InferenceService:
         )
 
     async def rerank(self, request: RerankRequest) -> RerankResponse:
-        """Run query-document reranking compatible with Ollama `/api/rerank`."""
+        """Run query-document reranking via dedicated reranker backend."""
 
         query = request.query.strip()
         if not query:
@@ -222,7 +224,7 @@ class InferenceService:
         if top_n is not None and top_n > len(documents):
             top_n = len(documents)
 
-        result = await self._ollama_client.rerank(
+        result = await self._reranker_client.rerank(
             model=request.model,
             query=query,
             documents=documents,
