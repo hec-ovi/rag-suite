@@ -50,14 +50,15 @@ class OllamaInferenceClient:
 
         content_raw = message.get("content")
         content = content_raw.strip() if isinstance(content_raw, str) else ""
+        thinking_raw = message.get("thinking")
+        thinking = thinking_raw.strip() if isinstance(thinking_raw, str) else ""
+
+        if thinking and content:
+            content = f"<thinking>{thinking}</thinking>\n{content}"
+        elif thinking:
+            content = f"<thinking>{thinking}</thinking>"
 
         if not content:
-            thinking_raw = message.get("thinking")
-            if isinstance(thinking_raw, str) and thinking_raw.strip():
-                raise ExternalServiceError(
-                    "Ollama response contained no assistant content "
-                    "(reasoning text was returned in `thinking` only)"
-                )
             raise ExternalServiceError("Ollama response contained empty completion text")
 
         prompt_tokens_raw = parsed.get("prompt_eval_count", 0)
@@ -162,9 +163,13 @@ class OllamaInferenceClient:
         content_delta = ""
         message_raw = parsed.get("message")
         if isinstance(message_raw, dict):
+            thinking_raw = message_raw.get("thinking")
+            if isinstance(thinking_raw, str) and thinking_raw:
+                content_delta += f"<thinking>{thinking_raw}</thinking>"
+
             content_raw = message_raw.get("content")
             if isinstance(content_raw, str):
-                content_delta = content_raw
+                content_delta += content_raw
 
         finish_reason_raw = parsed.get("done_reason")
         finish_reason = finish_reason_raw if isinstance(finish_reason_raw, str) and finish_reason_raw else None

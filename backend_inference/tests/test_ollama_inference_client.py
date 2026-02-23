@@ -1,9 +1,7 @@
 from __future__ import annotations
 
 import httpx
-import pytest
 
-from src.core.exceptions import ExternalServiceError
 from src.tools.ollama_inference_client import OllamaInferenceClient
 
 
@@ -64,7 +62,7 @@ class _FakeAsyncStreamClient:
         return _FakeStreamResponse(self._lines)
 
 
-async def test_chat_raises_when_content_is_empty_even_if_thinking_exists(monkeypatch) -> None:  # noqa: ANN001
+async def test_chat_wraps_thinking_when_content_is_empty(monkeypatch) -> None:  # noqa: ANN001
     payload = {
         "message": {
             "role": "assistant",
@@ -83,13 +81,14 @@ async def test_chat_raises_when_content_is_empty_even_if_thinking_exists(monkeyp
     )
 
     client = OllamaInferenceClient(base_url="http://ollama:11434", timeout_seconds=5.0)
-    with pytest.raises(ExternalServiceError, match="no assistant content"):
-        await client.chat(
-            model="gpt-oss:20b",
-            messages=[{"role": "user", "content": "test"}],
-            temperature=0.0,
-            max_tokens=32,
-        )
+    result = await client.chat(
+        model="gpt-oss:20b",
+        messages=[{"role": "user", "content": "test"}],
+        temperature=0.0,
+        max_tokens=32,
+    )
+
+    assert result.content == "<thinking>Useful fallback output</thinking>"
 
 
 async def test_chat_stream_returns_content_and_final_usage(monkeypatch) -> None:  # noqa: ANN001
@@ -123,7 +122,7 @@ async def test_chat_stream_returns_content_and_final_usage(monkeypatch) -> None:
     assert chunks[-1].completion_tokens == 4
 
 
-async def test_chat_stream_ignores_thinking_deltas(monkeypatch) -> None:  # noqa: ANN001
+async def test_chat_stream_wraps_thinking_deltas(monkeypatch) -> None:  # noqa: ANN001
     lines = [
         '{"message":{"role":"assistant","thinking":"internal reasoning"},"done":false}',
         '{"done":true,"done_reason":"stop","prompt_eval_count":3,"eval_count":2}',
@@ -146,5 +145,31 @@ async def test_chat_stream_ignores_thinking_deltas(monkeypatch) -> None:  # noqa
         )
     ]
 
-    assert "".join(chunk.content_delta for chunk in chunks) == ""
+    assert "".join(chunk.content_delta for chunk in chunks) == "<thinking>internal reasoning</thinking>"
     assert chunks[-1].done is True
+
+
+async def test_chat_stream_wraps_thinking_and_content_deltas(monkeypatch) -> None:  # noqa: ANN001
+    lines = [
+        '{"message":{"role":"assistant","thinking":"step","content":"answer"},"done":false}',
+        '{"done":true,"done_reason":"stop"}',
+    ]
+
+    monkeypatch.setattr(
+        httpx,
+        "AsyncClient",
+        lambda timeout: _FakeAsyncStreamClient(lines),  # noqa: ARG005
+    )
+
+    client = OllamaInferenceClient(base_url="http://ollama:11434", timeout_seconds=5.0)
+    chunks = [
+        chunk
+        async for chunk in client.chat_stream(
+            model="gpt-oss:20b",
+            messages=[{"role": "user", "content": "test"}],
+            temperature=0.0,
+            max_tokens=32,
+        )
+    ]
+
+    assert "".join(chunk.content_delta for chunk in chunks) == "<thinking>step</thinking>answer"
