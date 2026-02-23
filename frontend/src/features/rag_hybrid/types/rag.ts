@@ -89,6 +89,13 @@ export interface RagChatMessage {
   isStreaming?: boolean
 }
 
+export interface RagSessionEntry {
+  id: string
+  title: string
+  messageCount: number
+  updatedAt: string
+}
+
 export interface RagApiErrorResponse {
   detail?: string
 }

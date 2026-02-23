@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 
 import { useQuery } from "@tanstack/react-query"
 
@@ -16,8 +16,25 @@ import type {
   RagDocumentSummary,
   RagProjectRecord,
   RagSessionChatRequest,
+  RagSessionEntry,
   RagStatelessChatRequest,
 } from "../types/rag"
+
+interface SessionSnapshot {
+  messages: RagChatMessage[]
+  latestResponse: RagChatResponse | null
+  selectedSourceId: string | null
+}
+
+interface RagAdvancedSettingsInput {
+  topK: number
+  denseTopK: number
+  sparseTopK: number
+  denseWeight: number
+  historyWindowMessages: number
+  chatModelOverride: string
+  embeddingModelOverride: string
+}
 
 function createLocalId(prefix: string): string {
   if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
@@ -27,7 +44,7 @@ function createLocalId(prefix: string): string {
 }
 
 function createSessionId(): string {
-  return `session-${Date.now().toString(36)}`
+  return `session-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`
 }
 
 function isAbortError(error: unknown): boolean {
@@ -63,6 +80,27 @@ function extractErrorMessage(error: unknown): string {
   return "Unexpected error"
 }
 
+function normalizeSessionTitle(messages: RagChatMessage[]): string {
+  const firstUser = messages.find((message) => message.role === "user" && message.content.trim().length > 0)
+  if (firstUser === undefined) {
+    return "Untitled Session"
+  }
+
+  const normalized = firstUser.content.trim().replace(/\s+/g, " ")
+  if (normalized.length <= 48) {
+    return normalized
+  }
+  return `${normalized.slice(0, 48)}...`
+}
+
+function createEmptySessionSnapshot(): SessionSnapshot {
+  return {
+    messages: [],
+    latestResponse: null,
+    selectedSourceId: null,
+  }
+}
+
 export interface RagHybridState {
   projects: RagProjectRecord[]
   selectedProjectId: string
@@ -71,6 +109,7 @@ export interface RagHybridState {
 
   chatMode: RagChatMode
   sessionId: string
+  sessionEntries: RagSessionEntry[]
 
   topK: number
   denseTopK: number
@@ -101,15 +140,10 @@ export interface RagHybridActions {
   toggleDocument: (documentId: string) => void
   setChatMode: (mode: RagChatMode) => void
   setSessionId: (value: string) => void
+  selectSession: (sessionId: string) => void
   startNewSession: () => void
 
-  setTopK: (value: number) => void
-  setDenseTopK: (value: number) => void
-  setSparseTopK: (value: number) => void
-  setDenseWeight: (value: number) => void
-  setHistoryWindowMessages: (value: number) => void
-  setChatModelOverride: (value: string) => void
-  setEmbeddingModelOverride: (value: string) => void
+  applyAdvancedSettings: (settings: RagAdvancedSettingsInput) => void
 
   setDraftMessage: (value: string) => void
   sendMessage: () => Promise<void>
@@ -117,15 +151,16 @@ export interface RagHybridActions {
   clearConversation: () => void
   selectSource: (sourceId: string) => void
   selectCitation: (sourceId: string) => void
-  refreshProjects: () => Promise<void>
 }
 
 export function useRagHybridWorkflow(): { state: RagHybridState; actions: RagHybridActions } {
   const [selectedProjectId, setSelectedProjectId] = useState("")
   const [selectedDocumentIds, setSelectedDocumentIds] = useState<string[]>([])
 
-  const [chatMode, setChatMode] = useState<RagChatMode>("stateless")
+  const [chatMode, setChatMode] = useState<RagChatMode>("session")
   const [sessionId, setSessionId] = useState(createSessionId)
+  const [sessionEntries, setSessionEntries] = useState<RagSessionEntry[]>([])
+  const [sessionSnapshots, setSessionSnapshots] = useState<Record<string, SessionSnapshot>>({})
 
   const [topK, setTopK] = useState(6)
   const [denseTopK, setDenseTopK] = useState(24)
@@ -149,6 +184,7 @@ export function useRagHybridWorkflow(): { state: RagHybridState; actions: RagHyb
   const [isStreaming, setIsStreaming] = useState(false)
 
   const abortControllerRef = useRef<AbortController | null>(null)
+  const autoSelectedProjectRef = useRef<string>("")
 
   const projectsQuery = useQuery({
     queryKey: ["rag-hybrid", "projects"],
@@ -161,6 +197,64 @@ export function useRagHybridWorkflow(): { state: RagHybridState; actions: RagHyb
     enabled: selectedProjectId.trim().length > 0,
   })
 
+  const projects = projectsQuery.data ?? []
+  const documents = documentsQuery.data ?? []
+
+  function upsertSessionEntry(targetSessionId: string, nextMessages: RagChatMessage[]): void {
+    const nextEntry: RagSessionEntry = {
+      id: targetSessionId,
+      title: normalizeSessionTitle(nextMessages),
+      messageCount: nextMessages.length,
+      updatedAt: new Date().toISOString(),
+    }
+
+    setSessionEntries((current) => {
+      const withoutCurrent = current.filter((item) => item.id !== targetSessionId)
+      return [nextEntry, ...withoutCurrent]
+    })
+  }
+
+  function saveSessionSnapshot(targetSessionId: string, snapshot: SessionSnapshot): void {
+    setSessionSnapshots((current) => ({
+      ...current,
+      [targetSessionId]: snapshot,
+    }))
+    upsertSessionEntry(targetSessionId, snapshot.messages)
+  }
+
+  function restoreSessionSnapshot(targetSessionId: string): void {
+    const snapshot = sessionSnapshots[targetSessionId]
+    if (snapshot === undefined) {
+      setMessages([])
+      setLatestResponse(null)
+      setSelectedSourceId(null)
+      return
+    }
+
+    setMessages(snapshot.messages)
+    setLatestResponse(snapshot.latestResponse)
+    setSelectedSourceId(snapshot.selectedSourceId)
+  }
+
+  function clearConversationState(): void {
+    setMessages([])
+    setLatestResponse(null)
+    setSelectedSourceId(null)
+  }
+
+  function persistCurrentSessionState(targetSessionId?: string): void {
+    const resolvedSessionId = (targetSessionId ?? sessionId).trim()
+    if (chatMode !== "session" || resolvedSessionId.length === 0) {
+      return
+    }
+
+    saveSessionSnapshot(resolvedSessionId, {
+      messages,
+      latestResponse,
+      selectedSourceId,
+    })
+  }
+
   useEffect(() => {
     return () => {
       abortControllerRef.current?.abort()
@@ -168,54 +262,106 @@ export function useRagHybridWorkflow(): { state: RagHybridState; actions: RagHyb
   }, [])
 
   useEffect(() => {
-    setSelectedDocumentIds([])
-    setLatestResponse(null)
-    setSelectedSourceId(null)
-    setMessages([])
+    upsertSessionEntry(sessionId, messages)
+    // only initialize the first session entry
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  useEffect(() => {
+    clearConversationState()
     setErrorMessage("")
+    autoSelectedProjectRef.current = ""
 
     if (selectedProjectId.trim().length === 0) {
+      setSelectedDocumentIds([])
       setStatusMessage("Select a project and ask your first question.")
       return
     }
 
-    setStatusMessage("Project selected. Configure retrieval and send a message.")
+    setStatusMessage("Project selected. Loading and auto-selecting documents.")
   }, [selectedProjectId])
 
-  const projects = projectsQuery.data ?? []
-  const documents = documentsQuery.data ?? []
+  useEffect(() => {
+    if (selectedProjectId.trim().length === 0) {
+      return
+    }
+    if (documentsQuery.isFetching) {
+      return
+    }
+    if (autoSelectedProjectRef.current === selectedProjectId) {
+      return
+    }
 
-  const state: RagHybridState = {
-    projects,
-    selectedProjectId,
-    documents,
-    selectedDocumentIds,
-    chatMode,
-    sessionId,
-    topK,
-    denseTopK,
-    sparseTopK,
-    denseWeight,
-    historyWindowMessages,
-    chatModelOverride,
-    embeddingModelOverride,
-    draftMessage,
-    messages,
-    latestResponse,
-    selectedSourceId,
-    statusMessage,
-    errorMessage,
-    isLoadingProjects: projectsQuery.isFetching,
-    isLoadingDocuments: documentsQuery.isFetching,
-    isRequesting,
-    isStreaming,
-  }
+    setSelectedDocumentIds(documents.map((document) => document.id))
+    autoSelectedProjectRef.current = selectedProjectId
+    setStatusMessage(
+      documents.length === 0
+        ? "Project has no documents yet. Load data first."
+        : `All ${documents.length} document(s) selected by default.`,
+    )
+  }, [selectedProjectId, documents, documentsQuery.isFetching])
 
-  async function refreshProjects(): Promise<void> {
-    await projectsQuery.refetch()
-  }
+  const state: RagHybridState = useMemo(
+    () => ({
+      projects,
+      selectedProjectId,
+      documents,
+      selectedDocumentIds,
+      chatMode,
+      sessionId,
+      sessionEntries,
+      topK,
+      denseTopK,
+      sparseTopK,
+      denseWeight,
+      historyWindowMessages,
+      chatModelOverride,
+      embeddingModelOverride,
+      draftMessage,
+      messages,
+      latestResponse,
+      selectedSourceId,
+      statusMessage,
+      errorMessage,
+      isLoadingProjects: projectsQuery.isFetching,
+      isLoadingDocuments: documentsQuery.isFetching,
+      isRequesting,
+      isStreaming,
+    }),
+    [
+      projects,
+      selectedProjectId,
+      documents,
+      selectedDocumentIds,
+      chatMode,
+      sessionId,
+      sessionEntries,
+      topK,
+      denseTopK,
+      sparseTopK,
+      denseWeight,
+      historyWindowMessages,
+      chatModelOverride,
+      embeddingModelOverride,
+      draftMessage,
+      messages,
+      latestResponse,
+      selectedSourceId,
+      statusMessage,
+      errorMessage,
+      projectsQuery.isFetching,
+      documentsQuery.isFetching,
+      isRequesting,
+      isStreaming,
+    ],
+  )
 
   function selectProject(projectId: string): void {
+    if (projectId === selectedProjectId) {
+      return
+    }
+
+    persistCurrentSessionState()
     setSelectedProjectId(projectId)
   }
 
@@ -229,23 +375,81 @@ export function useRagHybridWorkflow(): { state: RagHybridState; actions: RagHyb
   }
 
   function handleSetChatMode(mode: RagChatMode): void {
-    setChatMode(mode)
-    setErrorMessage("")
-    if (mode === "stateless") {
-      setStatusMessage("Stateless mode enabled. Each message is independent.")
-    } else {
-      setStatusMessage("Session mode enabled. Memory persists by session id.")
+    if (mode === chatMode || isRequesting || isStreaming) {
+      return
     }
+
+    persistCurrentSessionState()
+    setChatMode(mode)
+    clearConversationState()
+    setErrorMessage("")
+
+    if (mode === "stateless") {
+      setStatusMessage("Stateless mode enabled. Chat reset.")
+      return
+    }
+
+    const resolvedSessionId = sessionId.trim().length > 0 ? sessionId : createSessionId()
+    setSessionId(resolvedSessionId)
+    restoreSessionSnapshot(resolvedSessionId)
+    upsertSessionEntry(resolvedSessionId, sessionSnapshots[resolvedSessionId]?.messages ?? [])
+    setStatusMessage(`Session mode enabled (${resolvedSessionId}). Chat reset.`)
+  }
+
+  function handleSetSessionId(value: string): void {
+    setSessionId(value)
+  }
+
+  function selectSession(targetSessionId: string): void {
+    if (targetSessionId.trim().length === 0 || isRequesting || isStreaming) {
+      return
+    }
+
+    persistCurrentSessionState()
+
+    if (chatMode !== "session") {
+      setChatMode("session")
+    }
+
+    setSessionId(targetSessionId)
+    restoreSessionSnapshot(targetSessionId)
+    upsertSessionEntry(targetSessionId, sessionSnapshots[targetSessionId]?.messages ?? [])
+    setStatusMessage(`Session loaded: ${targetSessionId}`)
+    setErrorMessage("")
   }
 
   function startNewSession(): void {
+    if (isRequesting || isStreaming) {
+      return
+    }
+
+    persistCurrentSessionState()
+
+    if (chatMode !== "session") {
+      setChatMode("session")
+    }
+
     const freshSessionId = createSessionId()
     setSessionId(freshSessionId)
-    setMessages([])
-    setLatestResponse(null)
-    setSelectedSourceId(null)
+    clearConversationState()
+    setSessionSnapshots((current) => ({
+      ...current,
+      [freshSessionId]: createEmptySessionSnapshot(),
+    }))
+    upsertSessionEntry(freshSessionId, [])
     setStatusMessage(`New session started: ${freshSessionId}`)
     setErrorMessage("")
+  }
+
+  function applyAdvancedSettings(settings: RagAdvancedSettingsInput): void {
+    setTopK(clampInteger(settings.topK, 1, 50))
+    setDenseTopK(clampInteger(settings.denseTopK, 1, 100))
+    setSparseTopK(clampInteger(settings.sparseTopK, 1, 100))
+    setDenseWeight(clampFloat(settings.denseWeight, 0, 1))
+    setHistoryWindowMessages(clampInteger(settings.historyWindowMessages, 0, 40))
+    setChatModelOverride(settings.chatModelOverride)
+    setEmbeddingModelOverride(settings.embeddingModelOverride)
+    setStatusMessage("Advanced settings applied.")
   }
 
   async function sendMessage(): Promise<void> {
@@ -284,7 +488,8 @@ export function useRagHybridWorkflow(): { state: RagHybridState; actions: RagHyb
       isStreaming: true,
     }
 
-    setMessages((current) => [...current, userMessage, assistantPlaceholder])
+    const initialMessages = [...messages, userMessage, assistantPlaceholder]
+    setMessages(initialMessages)
 
     const abortController = new AbortController()
     abortControllerRef.current = abortController
@@ -307,13 +512,19 @@ export function useRagHybridWorkflow(): { state: RagHybridState; actions: RagHyb
 
       let assembledAnswer = ""
       let response: RagChatResponse
+      let resolvedSessionId = sessionId.trim()
+      if (chatMode === "session" && resolvedSessionId.length === 0) {
+        resolvedSessionId = createSessionId()
+        setSessionId(resolvedSessionId)
+      }
+
       setIsRequesting(false)
       setIsStreaming(true)
 
       if (chatMode === "session") {
         const payload: RagSessionChatRequest = {
           ...sharedPayload,
-          session_id: sessionId.trim().length > 0 ? sessionId.trim() : undefined,
+          session_id: resolvedSessionId,
         }
         response = await streamSessionHybridChat(
           payload,
@@ -360,23 +571,32 @@ export function useRagHybridWorkflow(): { state: RagHybridState; actions: RagHyb
       }
 
       if (chatMode === "session" && response.session_id !== null && response.session_id.trim().length > 0) {
+        resolvedSessionId = response.session_id
         setSessionId(response.session_id)
       }
 
-      setLatestResponse(response)
-      setSelectedSourceId(response.sources[0]?.source_id ?? null)
-
-      setMessages((current) =>
-        current.map((message) =>
-          message.id === assistantMessageId
-            ? {
-                ...message,
-                content: response.answer,
-                isStreaming: false,
-              }
-            : message,
-        ),
+      const nextSelectedSourceId = response.sources[0]?.source_id ?? null
+      const finalMessages = initialMessages.map((message) =>
+        message.id === assistantMessageId
+          ? {
+              ...message,
+              content: response.answer,
+              isStreaming: false,
+            }
+          : message,
       )
+
+      setLatestResponse(response)
+      setSelectedSourceId(nextSelectedSourceId)
+      setMessages(finalMessages)
+
+      if (chatMode === "session" && resolvedSessionId.trim().length > 0) {
+        saveSessionSnapshot(resolvedSessionId, {
+          messages: finalMessages,
+          latestResponse: response,
+          selectedSourceId: nextSelectedSourceId,
+        })
+      }
 
       setStatusMessage(`Response ready with ${response.sources.length} traced source chunk(s).`)
     } catch (error) {
@@ -415,11 +635,13 @@ export function useRagHybridWorkflow(): { state: RagHybridState; actions: RagHyb
   }
 
   function clearConversation(): void {
-    setMessages([])
-    setLatestResponse(null)
-    setSelectedSourceId(null)
+    clearConversationState()
     setErrorMessage("")
     setStatusMessage("Conversation cleared.")
+
+    if (chatMode === "session" && sessionId.trim().length > 0) {
+      saveSessionSnapshot(sessionId, createEmptySessionSnapshot())
+    }
   }
 
   function selectSource(sourceId: string): void {
@@ -434,22 +656,16 @@ export function useRagHybridWorkflow(): { state: RagHybridState; actions: RagHyb
     selectProject,
     toggleDocument,
     setChatMode: handleSetChatMode,
-    setSessionId,
+    setSessionId: handleSetSessionId,
+    selectSession,
     startNewSession,
-    setTopK: (value) => setTopK(clampInteger(value, 1, 50)),
-    setDenseTopK: (value) => setDenseTopK(clampInteger(value, 1, 100)),
-    setSparseTopK: (value) => setSparseTopK(clampInteger(value, 1, 100)),
-    setDenseWeight: (value) => setDenseWeight(clampFloat(value, 0, 1)),
-    setHistoryWindowMessages: (value) => setHistoryWindowMessages(clampInteger(value, 0, 40)),
-    setChatModelOverride,
-    setEmbeddingModelOverride,
+    applyAdvancedSettings,
     setDraftMessage,
     sendMessage,
     interrupt,
     clearConversation,
     selectSource,
     selectCitation,
-    refreshProjects,
   }
 
   return {

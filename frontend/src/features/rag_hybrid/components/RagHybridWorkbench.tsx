@@ -1,5 +1,8 @@
+import { useState } from "react"
+
 import { RagHybridChatPanel } from "./RagHybridChatPanel"
 import { RagHybridConfigPanel } from "./RagHybridConfigPanel"
+import { RagHybridSessionPanel } from "./RagHybridSessionPanel"
 import { RagHybridSourcesPanel } from "./RagHybridSourcesPanel"
 import type { RagHybridActions, RagHybridState } from "../hooks/useRagHybridWorkflow"
 
@@ -12,44 +15,26 @@ export function RagHybridWorkbench({ state, actions }: RagHybridWorkbenchProps) 
   const disableConfig = state.isRequesting || state.isStreaming
   const disableChatInput = disableConfig || state.selectedProjectId.trim().length === 0
 
+  const [isSessionsOpen, setIsSessionsOpen] = useState(true)
+  const [isSourcesOpen, setIsSourcesOpen] = useState(true)
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false)
+
   return (
     <div className="h-full min-h-0">
-      <div className="grid h-full min-h-0 gap-4 xl:grid-cols-[22rem_minmax(0,1fr)]">
-        <aside className="min-h-0">
-          <RagHybridConfigPanel
-            projects={state.projects}
-            selectedProjectId={state.selectedProjectId}
-            onProjectSelect={actions.selectProject}
-            onRefreshProjects={actions.refreshProjects}
-            documents={state.documents}
-            selectedDocumentIds={state.selectedDocumentIds}
-            onToggleDocument={actions.toggleDocument}
-            chatMode={state.chatMode}
-            onChatModeChange={actions.setChatMode}
-            sessionId={state.sessionId}
-            onSessionIdChange={actions.setSessionId}
-            onNewSession={actions.startNewSession}
-            topK={state.topK}
-            denseTopK={state.denseTopK}
-            sparseTopK={state.sparseTopK}
-            denseWeight={state.denseWeight}
-            historyWindowMessages={state.historyWindowMessages}
-            onTopKChange={actions.setTopK}
-            onDenseTopKChange={actions.setDenseTopK}
-            onSparseTopKChange={actions.setSparseTopK}
-            onDenseWeightChange={actions.setDenseWeight}
-            onHistoryWindowMessagesChange={actions.setHistoryWindowMessages}
-            chatModelOverride={state.chatModelOverride}
-            embeddingModelOverride={state.embeddingModelOverride}
-            onChatModelOverrideChange={actions.setChatModelOverride}
-            onEmbeddingModelOverrideChange={actions.setEmbeddingModelOverride}
-            isLoadingProjects={state.isLoadingProjects}
-            isLoadingDocuments={state.isLoadingDocuments}
-            disabled={disableConfig}
-          />
-        </aside>
+      <div className="flex h-full min-h-0 gap-4">
+        <RagHybridSessionPanel
+          isOpen={isSessionsOpen}
+          activeSessionId={state.sessionId}
+          sessionEntries={state.sessionEntries}
+          onToggleOpen={() => setIsSessionsOpen((current) => !current)}
+          onSelectSession={actions.selectSession}
+        />
 
-        <div className="grid min-h-0 gap-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(20rem,0.85fr)]">
+        <div
+          className={`grid min-h-0 flex-1 gap-4 ${
+            isSourcesOpen ? "xl:grid-cols-[minmax(0,1fr)_minmax(22rem,0.82fr)]" : "xl:grid-cols-1"
+          }`}
+        >
           <div className="min-h-0 min-w-0">
             <RagHybridChatPanel
               messages={state.messages}
@@ -58,24 +43,54 @@ export function RagHybridWorkbench({ state, actions }: RagHybridWorkbenchProps) 
               onSendMessage={actions.sendMessage}
               onInterrupt={actions.interrupt}
               onClearConversation={actions.clearConversation}
+              onOpenSettings={() => setIsSettingsOpen(true)}
+              onToggleSources={() => setIsSourcesOpen((current) => !current)}
+              onToggleStateless={() => actions.setChatMode(state.chatMode === "stateless" ? "session" : "stateless")}
+              onStartNewSession={actions.startNewSession}
+              chatMode={state.chatMode}
               statusMessage={state.statusMessage}
               errorMessage={state.errorMessage}
               disabled={disableChatInput}
               isRequesting={state.isRequesting}
               isStreaming={state.isStreaming}
+              areSourcesOpen={isSourcesOpen}
             />
           </div>
 
-          <div className="min-h-0 min-w-0">
-            <RagHybridSourcesPanel
-              response={state.latestResponse}
-              selectedSourceId={state.selectedSourceId}
-              onSourceSelect={actions.selectSource}
-              onCitationSelect={actions.selectCitation}
-            />
-          </div>
+          {isSourcesOpen ? (
+            <div className="min-h-0 min-w-0">
+              <RagHybridSourcesPanel
+                response={state.latestResponse}
+                selectedSourceId={state.selectedSourceId}
+                onSourceSelect={actions.selectSource}
+                onCitationSelect={actions.selectCitation}
+              />
+            </div>
+          ) : null}
         </div>
       </div>
+
+      <RagHybridConfigPanel
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+        projects={state.projects}
+        selectedProjectId={state.selectedProjectId}
+        onProjectSelect={actions.selectProject}
+        documents={state.documents}
+        selectedDocumentIds={state.selectedDocumentIds}
+        onToggleDocument={actions.toggleDocument}
+        topK={state.topK}
+        denseTopK={state.denseTopK}
+        sparseTopK={state.sparseTopK}
+        denseWeight={state.denseWeight}
+        historyWindowMessages={state.historyWindowMessages}
+        chatModelOverride={state.chatModelOverride}
+        embeddingModelOverride={state.embeddingModelOverride}
+        onApplyAdvancedSettings={actions.applyAdvancedSettings}
+        isLoadingProjects={state.isLoadingProjects}
+        isLoadingDocuments={state.isLoadingDocuments}
+        disabled={disableConfig}
+      />
     </div>
   )
 }

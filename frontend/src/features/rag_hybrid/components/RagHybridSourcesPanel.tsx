@@ -1,3 +1,5 @@
+import { useMemo, useState } from "react"
+
 import { SectionCard } from "../../../components/ui/SectionCard"
 import type { RagChatResponse, RagSourceChunk } from "../types/rag"
 
@@ -8,40 +10,146 @@ interface RagHybridSourcesPanelProps {
   onCitationSelect: (sourceId: string) => void
 }
 
-function ScoreRow({ label, value }: { label: string; value: number }) {
+interface NormalizedSourceScores {
+  hybrid: number
+  dense: number
+  sparse: number
+}
+
+function clampPercentage(value: number): number {
+  if (!Number.isFinite(value)) {
+    return 0
+  }
+  return Math.min(100, Math.max(0, value))
+}
+
+function colorByPercentage(value: number): string {
+  const hue = Math.round((clampPercentage(value) / 100) * 120)
+  return `hsl(${hue} 85% 42%)`
+}
+
+function normalizeValue(value: number, min: number, max: number): number {
+  if (!Number.isFinite(value)) {
+    return 0
+  }
+  if (!Number.isFinite(min) || !Number.isFinite(max) || max <= min) {
+    return 50
+  }
+  return clampPercentage(((value - min) / (max - min)) * 100)
+}
+
+function buildNormalizedScoreMap(response: RagChatResponse | null): Record<string, NormalizedSourceScores> {
+  if (response === null || response.sources.length === 0) {
+    return {}
+  }
+
+  const hybridValues = response.sources.map((source) => source.hybrid_score)
+  const denseValues = response.sources.map((source) => source.dense_score)
+  const sparseValues = response.sources.map((source) => source.sparse_score)
+
+  const hybridMin = Math.min(...hybridValues)
+  const hybridMax = Math.max(...hybridValues)
+  const denseMin = Math.min(...denseValues)
+  const denseMax = Math.max(...denseValues)
+  const sparseMin = Math.min(...sparseValues)
+  const sparseMax = Math.max(...sparseValues)
+
+  return response.sources.reduce<Record<string, NormalizedSourceScores>>((accumulator, source) => {
+    accumulator[source.source_id] = {
+      hybrid: normalizeValue(source.hybrid_score, hybridMin, hybridMax),
+      dense: normalizeValue(source.dense_score, denseMin, denseMax),
+      sparse: normalizeValue(source.sparse_score, sparseMin, sparseMax),
+    }
+    return accumulator
+  }, {})
+}
+
+function GaugeRow({ label, percentage }: { label: string; percentage: number }) {
+  const color = colorByPercentage(percentage)
+
   return (
-    <div className="grid grid-cols-[auto_1fr] gap-2 text-sm">
-      <span className="font-mono text-xs uppercase tracking-wide text-muted">{label}</span>
-      <span className="text-foreground">{value.toFixed(4)}</span>
+    <div className="grid gap-1">
+      <div className="flex items-center justify-between text-sm">
+        <span className="font-mono text-xs uppercase tracking-wide text-muted">{label}</span>
+        <span style={{ color }} className="font-semibold">
+          {percentage.toFixed(1)}%
+        </span>
+      </div>
+
+      <div className="relative h-3 border border-border bg-background">
+        <div className="absolute inset-0 bg-[linear-gradient(90deg,#d93025_0%,#fbbc04_50%,#188038_100%)] opacity-70" />
+        <div className="absolute bottom-0 top-0 w-0.5 bg-foreground" style={{ left: `${percentage}%` }} />
+      </div>
     </div>
   )
 }
 
-function SourceListItem({
+function SourceDetailModal({
   source,
-  selected,
-  onSelect,
+  normalizedScores,
+  onClose,
 }: {
   source: RagSourceChunk
-  selected: boolean
-  onSelect: (sourceId: string) => void
+  normalizedScores: NormalizedSourceScores
+  onClose: () => void
 }) {
   return (
-    <li>
-      <button
-        type="button"
-        onClick={() => onSelect(source.source_id)}
-        className={`grid w-full gap-1 border px-2 py-2 text-left ${
-          selected ? "border-primary bg-primary/10" : "border-border bg-background"
-        }`}
-      >
-        <p className="font-mono text-[11px] uppercase tracking-wide text-muted">
-          Rank {source.rank} • {source.source_id}
-        </p>
-        <p className="truncate text-sm font-medium text-foreground">{source.document_name}</p>
-        <p className="text-xs text-muted">Chunk {source.chunk_index + 1}</p>
-      </button>
-    </li>
+    <div className="fixed inset-0 z-30 grid place-items-center bg-black/45 p-4">
+      <div className="w-full max-w-3xl border border-border bg-surface shadow-xl">
+        <header className="flex items-center justify-between border-b border-border bg-background px-4 py-3">
+          <div>
+            <h3 className="font-display text-lg font-semibold text-foreground">
+              {source.source_id} • {source.document_name}
+            </h3>
+            <p className="text-sm text-muted">Chunk {source.chunk_index + 1}</p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="border border-border bg-surface px-3 py-2 text-sm font-semibold text-foreground"
+          >
+            Close
+          </button>
+        </header>
+
+        <div className="grid gap-3 p-4">
+          <section className="grid gap-2 border border-border bg-background p-3">
+            <GaugeRow label="Hybrid" percentage={normalizedScores.hybrid} />
+            <GaugeRow label="Dense" percentage={normalizedScores.dense} />
+            <GaugeRow label="Sparse" percentage={normalizedScores.sparse} />
+          </section>
+
+          <section className="grid gap-1 border border-border bg-background p-3 text-sm text-foreground">
+            <p>
+              <span className="font-mono text-xs uppercase tracking-wide text-muted">Document:</span> {source.document_name}
+            </p>
+            <p>
+              <span className="font-mono text-xs uppercase tracking-wide text-muted">Source Id:</span> {source.source_id}
+            </p>
+            <p>
+              <span className="font-mono text-xs uppercase tracking-wide text-muted">Chunk Key:</span> {source.chunk_key}
+            </p>
+            <p>
+              <span className="font-mono text-xs uppercase tracking-wide text-muted">Rank:</span> {source.rank}
+            </p>
+          </section>
+
+          <section className="border border-border bg-background p-3">
+            {source.context_header.trim().length > 0 ? (
+              <p className="mb-2 border border-border bg-surface px-2 py-1 text-sm text-foreground">
+                <span className="font-mono text-[10px] uppercase tracking-wide text-muted">Context: </span>
+                {source.context_header}
+              </p>
+            ) : null}
+            <div className="max-h-[36vh] overflow-y-auto border border-border bg-surface p-2">
+              <p className="whitespace-pre-wrap break-words text-sm text-foreground">{source.text}</p>
+            </div>
+          </section>
+        </div>
+      </div>
+
+      <button type="button" className="absolute inset-0 -z-10" onClick={onClose} aria-label="Close source details" />
+    </div>
   )
 }
 
@@ -51,34 +159,50 @@ export function RagHybridSourcesPanel({
   onSourceSelect,
   onCitationSelect,
 }: RagHybridSourcesPanelProps) {
-  const selectedSource =
-    response?.sources.find((source) => source.source_id === selectedSourceId) ?? response?.sources[0] ?? null
+  const [detailSourceId, setDetailSourceId] = useState<string | null>(null)
+
+  const normalizedScoreMap = useMemo(() => buildNormalizedScoreMap(response), [response])
+  const detailSource =
+    detailSourceId === null || response === null
+      ? null
+      : response.sources.find((source) => source.source_id === detailSourceId) ?? null
 
   return (
     <SectionCard
       title="Sources"
-      subtitle="Transparent retrieval trace for the latest answer."
+      subtitle=""
       className="h-full min-h-0 flex flex-col"
-      bodyClassName="min-h-0 flex-1 grid grid-rows-[auto_auto_auto_1fr] gap-3"
+      bodyClassName="min-h-0 flex-1 grid grid-rows-[auto_auto_1fr] gap-3"
     >
       {response === null ? (
         <div className="border border-border bg-background p-3">
-          <p className="text-sm text-muted">No trace yet. Send a message to view citations and source chunks.</p>
+          <p className="text-sm text-muted">No sources yet. Send a message to inspect retrieval trace.</p>
         </div>
       ) : (
         <>
-          <section className="border border-border bg-background p-3">
-            <p className="mb-1 font-mono text-xs uppercase tracking-wide text-muted">Response Metadata</p>
-            <div className="grid gap-1 text-sm text-foreground">
-              <p>Mode: {response.mode === "session" ? "Session Memory" : "Stateless"}</p>
-              <p>Session: {response.session_id ?? "(none)"}</p>
-              <p>Documents hit: {response.documents.length}</p>
-              <p>Sources ranked: {response.sources.length}</p>
+          <section className="grid grid-cols-2 gap-2 border border-border bg-background p-3">
+            <div className="border border-border bg-surface px-2 py-2">
+              <p className="font-mono text-[10px] uppercase tracking-wide text-muted">Mode</p>
+              <p className="text-sm font-semibold text-foreground">
+                {response.mode === "session" ? "Session Memory" : "Stateless"}
+              </p>
+            </div>
+            <div className="border border-border bg-surface px-2 py-2">
+              <p className="font-mono text-[10px] uppercase tracking-wide text-muted">Session</p>
+              <p className="truncate text-sm font-semibold text-foreground">{response.session_id ?? "none"}</p>
+            </div>
+            <div className="border border-border bg-surface px-2 py-2">
+              <p className="font-mono text-[10px] uppercase tracking-wide text-muted">Documents</p>
+              <p className="text-sm font-semibold text-foreground">{response.documents.length}</p>
+            </div>
+            <div className="border border-border bg-surface px-2 py-2">
+              <p className="font-mono text-[10px] uppercase tracking-wide text-muted">Sources</p>
+              <p className="text-sm font-semibold text-foreground">{response.sources.length}</p>
             </div>
           </section>
 
           <section className="border border-border bg-background p-3">
-            <p className="mb-1 font-mono text-xs uppercase tracking-wide text-muted">Citations Used</p>
+            <p className="mb-2 font-mono text-xs uppercase tracking-wide text-muted">Citations</p>
             {response.citations_used.length === 0 ? (
               <p className="text-sm text-muted">No explicit citation tag detected.</p>
             ) : (
@@ -88,7 +212,7 @@ export function RagHybridSourcesPanel({
                     key={citation}
                     type="button"
                     onClick={() => onCitationSelect(citation)}
-                    className="border border-border bg-surface px-2 py-1 text-xs font-semibold text-foreground"
+                    className="!rounded-full border border-border bg-surface px-2 py-1 text-xs font-semibold text-foreground"
                   >
                     {citation}
                   </button>
@@ -97,70 +221,48 @@ export function RagHybridSourcesPanel({
             )}
           </section>
 
-          <section className="border border-border bg-background p-3">
-            <p className="mb-1 font-mono text-xs uppercase tracking-wide text-muted">Documents</p>
-            <ul className="space-y-1 text-sm text-foreground">
-              {response.documents.map((document) => (
-                <li key={document.document_id} className="border border-border bg-surface px-2 py-1">
-                  <p className="truncate font-medium">{document.document_name}</p>
-                  <p className="text-xs text-muted">
-                    {document.hit_count} hits • best rank {document.top_rank}
-                  </p>
-                </li>
-              ))}
+          <section className="min-h-0 border border-border bg-background p-3">
+            <p className="mb-2 font-mono text-xs uppercase tracking-wide text-muted">Ranked Sources</p>
+            <ul className="h-full min-h-0 space-y-1 overflow-y-auto pr-1">
+              {response.sources.map((source) => {
+                const normalized = normalizedScoreMap[source.source_id] ?? { hybrid: 0, dense: 0, sparse: 0 }
+                return (
+                  <li key={source.source_id}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onSourceSelect(source.source_id)
+                        setDetailSourceId(source.source_id)
+                      }}
+                      className={`grid w-full grid-cols-[auto_1fr_auto] items-center gap-2 border px-2 py-2 text-left ${
+                        selectedSourceId === source.source_id
+                          ? "border-primary bg-primary/10"
+                          : "border-border bg-surface"
+                      }`}
+                    >
+                      <span className="!rounded-full h-2.5 w-2.5 bg-primary" />
+                      <span className="truncate text-sm font-medium text-foreground">
+                        {source.source_id} - Rank {source.rank}
+                      </span>
+                      <span style={{ color: colorByPercentage(normalized.hybrid) }} className="text-xs font-semibold">
+                        {normalized.hybrid.toFixed(0)}%
+                      </span>
+                    </button>
+                  </li>
+                )
+              })}
             </ul>
-          </section>
-
-          <section className="grid min-h-0 gap-3 border border-border bg-background p-3">
-            <p className="font-mono text-xs uppercase tracking-wide text-muted">Ranked Source Chunks</p>
-            <div className="grid min-h-0 gap-3 xl:grid-cols-[minmax(11rem,0.9fr)_minmax(0,1.1fr)]">
-              <div className="min-h-0 overflow-y-auto">
-                <ul className="space-y-1 pr-1">
-                  {response.sources.map((source) => (
-                    <SourceListItem
-                      key={source.source_id}
-                      source={source}
-                      selected={selectedSource?.source_id === source.source_id}
-                      onSelect={onSourceSelect}
-                    />
-                  ))}
-                </ul>
-              </div>
-
-              <div className="min-h-0 border border-border bg-surface p-2">
-                {selectedSource === null ? (
-                  <p className="text-sm text-muted">Select a source to inspect content.</p>
-                ) : (
-                  <div className="grid h-full min-h-0 grid-rows-[auto_auto_1fr] gap-2">
-                    <div className="grid gap-1 text-sm text-foreground">
-                      <p>
-                        {selectedSource.source_id} • {selectedSource.document_name}
-                      </p>
-                      <p className="text-xs text-muted">Chunk {selectedSource.chunk_index + 1}</p>
-                    </div>
-
-                    <div className="grid gap-1">
-                      <ScoreRow label="Hybrid" value={selectedSource.hybrid_score} />
-                      <ScoreRow label="Dense" value={selectedSource.dense_score} />
-                      <ScoreRow label="Sparse" value={selectedSource.sparse_score} />
-                    </div>
-
-                    <div className="min-h-0 overflow-y-auto border border-border bg-background p-2">
-                      {selectedSource.context_header.trim().length > 0 ? (
-                        <p className="mb-2 border border-border bg-surface px-2 py-1 text-sm text-foreground">
-                          <span className="font-mono text-[10px] uppercase tracking-wide text-muted">Context: </span>
-                          {selectedSource.context_header}
-                        </p>
-                      ) : null}
-                      <p className="whitespace-pre-wrap break-words text-sm text-foreground">{selectedSource.text}</p>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
           </section>
         </>
       )}
+
+      {detailSource !== null ? (
+        <SourceDetailModal
+          source={detailSource}
+          normalizedScores={normalizedScoreMap[detailSource.source_id] ?? { hybrid: 0, dense: 0, sparse: 0 }}
+          onClose={() => setDetailSourceId(null)}
+        />
+      ) : null}
     </SectionCard>
   )
 }
