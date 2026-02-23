@@ -24,8 +24,8 @@ const ragModeContent: Record<
   rag_reranked: {
     title: "RAG - Hybrid + Re-ranked",
     subtitle: "Hybrid retrieval followed by reranking.",
-    details: "Under construction. Menu and route are prepared for the reranking stage.",
-    status: "construction",
+    details: "Live lane. Uses hybrid candidate retrieval followed by reranker ordering with source lineage.",
+    status: "ready",
   },
   rag_kg: {
     title: "RAG - Hybrid + Knowledge Graph Enhanced",

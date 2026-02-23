@@ -29,6 +29,13 @@ Stage 1 baseline RAG (implemented):
 - Persistent session snapshot store in `backend_rag` (`create/list/get/update/delete`)
 - Ordered source tracing (`document + chunk + score`) in every chat response
 
+Stage 2 reranked RAG (implemented):
+
+- Isolated reranked pipeline (`hybrid candidate generation -> reranker -> grounded generation`)
+- Dedicated reranked endpoints under `/v1/rag/reranked/*`
+- Dedicated reranked session store under `/v1/reranked/sessions/*`
+- Side-by-side source lineage (`hybrid candidates` vs `final reranked sources`)
+
 Service split (active):
 
 - `backend_inference`: OpenAI-compatible inference API (the only service that calls Ollama directly)
@@ -119,6 +126,7 @@ docker compose --env-file .env up -d --build
 - `.env.template` keeps `OLLAMA_MODELS_DIR` as an absolute placeholder.
 - `QDRANT_STORAGE_DIR=./qdrant/storage` and `DATA_DIR=./data` work as repository-relative defaults.
 - `RAG_SESSIONS_DATABASE_URL` defaults to `sqlite:///./data/rag_sessions.db` (persistent chat session snapshots).
+- `RAG_RERANKED_CHECKPOINT_PATH` defaults to `./data/rag_reranked_memory_checkpoints.db` (reranked memory graph checkpoints).
 - Set `OLLAMA_MODELS_DIR` to your persistent local model store (for example `/home/.../models/ollama` in your real `.env`).
 
 ## Backend Endpoints
@@ -129,6 +137,7 @@ docker compose --env-file .env up -d --build
 - `POST /v1/chat/completions`
 - `POST /v1/completions`
 - `POST /v1/embeddings`
+- `POST /v1/rerank`
 
 `backend_ingestion` (port `8000`):
 
@@ -158,6 +167,16 @@ docker compose --env-file .env up -d --build
 - `GET /v1/sessions/{session_id}`
 - `PATCH /v1/sessions/{session_id}`
 - `DELETE /v1/sessions/{session_id}`
+- `GET /v1/rag/reranked/status`
+- `POST /v1/rag/reranked/chat/stateless`
+- `POST /v1/rag/reranked/chat/session`
+- `POST /v1/rag/reranked/chat/stateless/stream` (SSE)
+- `POST /v1/rag/reranked/chat/session/stream` (SSE)
+- `GET /v1/reranked/sessions`
+- `POST /v1/reranked/sessions`
+- `GET /v1/reranked/sessions/{session_id}`
+- `PATCH /v1/reranked/sessions/{session_id}`
+- `DELETE /v1/reranked/sessions/{session_id}`
 
 ## OpenAI-Compatible Inference (Ollama-backed)
 
@@ -166,6 +185,7 @@ These endpoints are exposed by `backend_inference` and follow OpenAI-style reque
 - `POST /v1/chat/completions`
 - `POST /v1/completions`
 - `POST /v1/embeddings`
+- `POST /v1/rerank`
 
 Example:
 
@@ -184,8 +204,9 @@ curl -sS http://localhost:8010/v1/chat/completions \
 
 1. Stage 0: data preparation and indexing control plane (complete)
 2. Stage 1: hybrid RAG baseline backend (complete)
-3. Stage 2: reranked retrieval branch + quality benchmark harness (Recall@k, MRR, nDCG)
-4. Stage 3: graph-augmented retrieval branch (Knowledge Graph / LightRAG)
+3. Stage 2: reranked retrieval branch (complete)
+4. Stage 3: quality benchmark harness (Recall@k, MRR, nDCG)
+5. Stage 4: graph-augmented retrieval branch (Knowledge Graph / LightRAG)
 
 ## Frontend Workflow
 
@@ -209,6 +230,15 @@ Hybrid RAG UI (`RAG Mode -> Hybrid`) now supports:
 - Project-scoped queries with optional per-document filter
 - True token streaming path (`backend_inference` SSE -> `backend_rag` SSE -> frontend chat panel)
 - Separated source trace panel (citations, documents, ranked chunk bullets, and full source preview)
+
+Reranked RAG UI (`RAG Mode -> Hybrid + Re-ranked`) now supports:
+
+- Isolated session sidebar and persistent session lifecycle
+- Retrieval settings with rerank candidate-pool and reranker-model override
+- True token streaming path (`backend_inference` SSE -> `backend_rag` SSE -> frontend chat panel)
+- Side-by-side source panel:
+  - pre-rerank hybrid candidates
+  - final reranked cited sources (with rank movement and score gauges)
 
 ## Audit Example (PDF-Derived TXT)
 
