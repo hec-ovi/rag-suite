@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from collections.abc import Iterator
 from datetime import datetime, timezone
 from uuid import uuid4
@@ -18,6 +19,8 @@ from src.tools.citation_parser import CitationParser
 
 class RagChatService:
     """Public service API for stateless and session-memory hybrid chat."""
+
+    _inline_source_tag_pattern = re.compile(r"\s*[\[【](S\d+)[\]】]\s*")
 
     def __init__(
         self,
@@ -135,18 +138,19 @@ class RagChatService:
             yield ("delta", {"content": delta})
 
         answer = "".join(answer_parts)
+        normalized_answer = self._strip_inline_source_tags(answer)
         self._graph_service.persist_session_turn(
             project_id=request.project_id,
             session_id=session_id,
             user_message=request.message,
-            assistant_message=answer,
+            assistant_message=normalized_answer,
         )
 
         response = self._build_stream_response(
             stream_state=stream_state,
             mode="session",
             session_id=session_id,
-            answer=answer,
+            answer=normalized_answer,
         )
         yield ("done", response.model_dump(mode="json"))
 
@@ -194,9 +198,10 @@ class RagChatService:
 
         sources = [RagSourceChunk.model_validate(row) for row in output.get("retrieved_sources", [])]
         documents = [RagSourceDocument.model_validate(row) for row in output.get("retrieved_documents", [])]
-        answer = str(output.get("answer", "")).strip()
+        answer_raw = str(output.get("answer", "")).strip()
         available_citations = {row.source_id for row in sources}
-        citations_used = self._citation_parser.extract(answer=answer, available_source_ids=available_citations)
+        citations_used = self._citation_parser.extract(answer=answer_raw, available_source_ids=available_citations)
+        answer = self._strip_inline_source_tags(answer_raw)
 
         return RagHybridChatResponse(
             mode="session" if mode == "session" else "stateless",
@@ -211,6 +216,18 @@ class RagChatService:
             citations_used=citations_used,
             created_at=datetime.now(timezone.utc),
         )
+
+    def _strip_inline_source_tags(self, answer: str) -> str:
+        """Remove source tag markers from assistant text for cleaner UX."""
+
+        if not answer.strip():
+            return ""
+
+        cleaned = self._inline_source_tag_pattern.sub(" ", answer)
+        # Collapse any spacing artifacts left by tag removal while preserving line breaks.
+        cleaned_lines = [re.sub(r"[ \t]+", " ", line).strip() for line in cleaned.splitlines()]
+        normalized = "\n".join(line for line in cleaned_lines if line or len(cleaned_lines) == 1).strip()
+        return normalized
 
     def _build_meta_payload(
         self,

@@ -273,7 +273,7 @@ export function RagHybridConfigPanel({
                   <button
                     type="button"
                     disabled={disabled}
-                    onClick={() =>
+                    onClick={() => {
                       onApplyAdvancedSettings({
                         topK: draftTopK,
                         denseTopK: draftDenseTopK,
@@ -283,7 +283,8 @@ export function RagHybridConfigPanel({
                         chatModelOverride: draftChatModel,
                         embeddingModelOverride: draftEmbeddingModel,
                       })
-                    }
+                      onClose()
+                    }}
                     className="bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-60"
                   >
                     Apply

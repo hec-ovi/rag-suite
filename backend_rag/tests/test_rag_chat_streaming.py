@@ -82,7 +82,7 @@ def test_stream_chat_stateless_yields_meta_delta_done() -> None:
     assert events[0][0] == "meta"
     assert events[1][0] == "delta"
     assert events[-1][0] == "done"
-    assert events[-1][1]["answer"] == "Grounded answer [S1]"
+    assert events[-1][1]["answer"] == "Grounded answer"
 
 
 def test_stream_chat_session_persists_turn() -> None:
@@ -109,4 +109,4 @@ def test_stream_chat_session_persists_turn() -> None:
     assert events[-1][0] == "done"
     assert graph.persist_calls[0][0] == "project-1"
     assert graph.persist_calls[0][1] == "session-123"
-    assert graph.persist_calls[0][3] == "Grounded answer [S1]"
+    assert graph.persist_calls[0][3] == "Grounded answer"

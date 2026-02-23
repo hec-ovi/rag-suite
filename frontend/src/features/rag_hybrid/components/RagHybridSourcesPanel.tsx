@@ -6,7 +6,6 @@ interface RagHybridSourcesPanelProps {
   response: RagChatResponse | null
   selectedSourceId: string | null
   onSourceSelect: (sourceId: string) => void
-  onCitationSelect: (sourceId: string) => void
 }
 
 interface NormalizedSourceScores {
@@ -152,7 +151,6 @@ export function RagHybridSourcesPanel({
   response,
   selectedSourceId,
   onSourceSelect,
-  onCitationSelect,
 }: RagHybridSourcesPanelProps) {
   const [detailSourceId, setDetailSourceId] = useState<string | null>(null)
 
@@ -195,27 +193,7 @@ export function RagHybridSourcesPanel({
             </section>
 
             <section className="bg-background p-3">
-              <p className="mb-2 font-mono text-xs uppercase tracking-wide text-muted">Citations</p>
-              {response.citations_used.length === 0 ? (
-                <p className="text-sm text-muted">No explicit citation tag detected.</p>
-              ) : (
-                <div className="flex flex-wrap gap-2">
-                  {response.citations_used.map((citation) => (
-                    <button
-                      key={citation}
-                      type="button"
-                      onClick={() => onCitationSelect(citation)}
-                      className="!rounded-full bg-surface px-2 py-1 text-xs font-semibold text-foreground"
-                    >
-                      {citation}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </section>
-
-            <section className="bg-background p-3">
-              <p className="mb-2 font-mono text-xs uppercase tracking-wide text-muted">Ranked Sources</p>
+              <p className="mb-2 font-mono text-xs uppercase tracking-wide text-muted">Citations - Ranked Sources</p>
               <ul className="space-y-1">
                 {response.sources.map((source) => {
                   const normalized = normalizedScoreMap[source.source_id] ?? { hybrid: 0, dense: 0, sparse: 0 }

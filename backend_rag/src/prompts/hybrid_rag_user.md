@@ -10,5 +10,5 @@
 
 Instructions:
 - Answer the question using the retrieved context above.
-- Add inline citations like [S1] for each factual claim.
+- Do not include inline citation markers such as [S1].
 - If no relevant source exists, respond: "I don't have enough grounded context to answer this confidently."

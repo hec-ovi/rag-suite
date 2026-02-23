@@ -24,17 +24,27 @@ interface ParsedAssistantContent {
   thinkingBlocks: string[]
 }
 
+function stripInlineSourceTags(value: string): string {
+  const cleaned = value.replace(/\s*[\[【]S\d+[\]】]\s*/g, " ")
+  return cleaned
+    .split("\n")
+    .map((line) => line.replace(/[ \t]+/g, " ").trim())
+    .join("\n")
+    .trim()
+}
+
 function parseAssistantContent(rawContent: string): ParsedAssistantContent {
   const thinkingBlocks: string[] = []
   const pattern = /<(think|thinking)>([\s\S]*?)<\/\1>/gi
 
-  const answer = rawContent.replace(pattern, (_, __, block: string) => {
+  const answerWithoutThinking = rawContent.replace(pattern, (_, __, block: string) => {
     const cleaned = block.trim()
     if (cleaned.length > 0) {
       thinkingBlocks.push(cleaned)
     }
     return ""
   })
+  const answer = stripInlineSourceTags(answerWithoutThinking)
 
   return {
     answer: answer.trim(),
@@ -167,7 +177,7 @@ export function RagHybridChatPanel({
                 <div
                   className={`max-w-[92%] px-3 py-2 text-sm ${
                     message.role === "assistant" ? "bg-background text-foreground" : "bg-primary text-primary-foreground"
-                  }`}
+                  } !rounded-2xl`}
                 >
                   <p className="mb-1 font-mono text-[10px] font-semibold uppercase tracking-wide opacity-80">
                     {message.role === "assistant" ? "Assistant" : "User"}

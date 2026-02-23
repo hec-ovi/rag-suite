@@ -141,7 +141,7 @@ export interface RagHybridActions {
   setChatMode: (mode: RagChatMode) => void
   setSessionId: (value: string) => void
   selectSession: (sessionId: string) => void
-  startNewSession: () => void
+  startNewSession: (projectId?: string) => void
 
   applyAdvancedSettings: (settings: RagAdvancedSettingsInput) => void
 
@@ -418,7 +418,7 @@ export function useRagHybridWorkflow(): { state: RagHybridState; actions: RagHyb
     setErrorMessage("")
   }
 
-  function startNewSession(): void {
+  function startNewSession(projectId?: string): void {
     if (isRequesting || isStreaming) {
       return
     }
@@ -427,6 +427,11 @@ export function useRagHybridWorkflow(): { state: RagHybridState; actions: RagHyb
 
     if (chatMode !== "session") {
       setChatMode("session")
+    }
+
+    if (typeof projectId === "string" && projectId.trim().length > 0 && projectId !== selectedProjectId) {
+      setSelectedProjectId(projectId)
+      autoSelectedProjectRef.current = ""
     }
 
     const freshSessionId = createSessionId()
