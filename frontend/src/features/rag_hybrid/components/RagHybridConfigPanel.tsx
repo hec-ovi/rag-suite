@@ -138,11 +138,11 @@ export function RagHybridConfigPanel({
               </p>
             </section>
 
-            <details className="border border-border bg-background p-3">
-              <summary className="cursor-pointer text-sm font-semibold text-foreground">
+            <section className="border border-border bg-background p-3">
+              <p className="mb-2 text-sm font-semibold text-foreground">
                 Documents ({selectedDocumentIds.length} selected)
-              </summary>
-              <div className="mt-3 max-h-52 space-y-1 overflow-y-auto pr-1">
+              </p>
+              <div className="max-h-52 space-y-1 overflow-y-auto pr-1">
                 {selectedProjectId.trim().length === 0 ? (
                   <p className="text-sm text-muted">Select a project first.</p>
                 ) : isLoadingDocuments ? (
@@ -172,11 +172,11 @@ export function RagHybridConfigPanel({
                   })
                 )}
               </div>
-            </details>
+            </section>
 
-            <details className="border border-border bg-background p-3">
-              <summary className="cursor-pointer text-sm font-semibold text-foreground">Advanced Settings</summary>
-              <div className="mt-3 grid gap-3">
+            <section className="border border-border bg-background p-3">
+              <p className="mb-2 text-sm font-semibold text-foreground">Retrieval + Model Settings</p>
+              <div className="grid gap-3">
                 <div className="grid gap-2 md:grid-cols-2">
                   <label className="grid gap-1 text-sm text-muted">
                     <span className="font-medium text-foreground">Top K</span>
@@ -290,7 +290,7 @@ export function RagHybridConfigPanel({
                   </button>
                 </div>
               </div>
-            </details>
+            </section>
           </form>
         </div>
       </div>

@@ -177,7 +177,7 @@ export function useRagHybridWorkflow(): { state: RagHybridState; actions: RagHyb
   const [latestResponse, setLatestResponse] = useState<RagChatResponse | null>(null)
   const [selectedSourceId, setSelectedSourceId] = useState<string | null>(null)
 
-  const [statusMessage, setStatusMessage] = useState("Select a project and ask your first question.")
+  const [statusMessage, setStatusMessage] = useState("")
   const [errorMessage, setErrorMessage] = useState("")
 
   const [isRequesting, setIsRequesting] = useState(false)
@@ -274,7 +274,7 @@ export function useRagHybridWorkflow(): { state: RagHybridState; actions: RagHyb
 
     if (selectedProjectId.trim().length === 0) {
       setSelectedDocumentIds([])
-      setStatusMessage("Select a project and ask your first question.")
+      setStatusMessage("")
       return
     }
 

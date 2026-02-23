@@ -13,15 +13,14 @@ interface RagHybridWorkbenchProps {
 
 export function RagHybridWorkbench({ state, actions }: RagHybridWorkbenchProps) {
   const disableConfig = state.isRequesting || state.isStreaming
-  const disableChatInput = disableConfig || state.selectedProjectId.trim().length === 0
+  const disableChatInput = state.selectedProjectId.trim().length === 0
 
   const [isSessionsOpen, setIsSessionsOpen] = useState(true)
-  const [isSourcesOpen, setIsSourcesOpen] = useState(true)
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
 
   return (
     <div className="h-full min-h-0">
-      <div className="flex h-full min-h-0 gap-4">
+      <div className="flex h-full min-h-0">
         <RagHybridSessionPanel
           isOpen={isSessionsOpen}
           activeSessionId={state.sessionId}
@@ -30,43 +29,32 @@ export function RagHybridWorkbench({ state, actions }: RagHybridWorkbenchProps) 
           onSelectSession={actions.selectSession}
         />
 
-        <div
-          className={`grid min-h-0 flex-1 gap-4 ${
-            isSourcesOpen ? "xl:grid-cols-[minmax(0,1fr)_minmax(22rem,0.82fr)]" : "xl:grid-cols-1"
-          }`}
-        >
-          <div className="min-h-0 min-w-0">
+        <div className="flex min-h-0 flex-1 bg-surface">
+          <div className="min-h-0 min-w-0 flex-1">
             <RagHybridChatPanel
               messages={state.messages}
               draftMessage={state.draftMessage}
               onDraftMessageChange={actions.setDraftMessage}
               onSendMessage={actions.sendMessage}
               onInterrupt={actions.interrupt}
-              onClearConversation={actions.clearConversation}
               onOpenSettings={() => setIsSettingsOpen(true)}
-              onToggleSources={() => setIsSourcesOpen((current) => !current)}
               onToggleStateless={() => actions.setChatMode(state.chatMode === "stateless" ? "session" : "stateless")}
               onStartNewSession={actions.startNewSession}
               chatMode={state.chatMode}
               statusMessage={state.statusMessage}
               errorMessage={state.errorMessage}
-              disabled={disableChatInput}
-              isRequesting={state.isRequesting}
+              isInputDisabled={disableChatInput}
+              isBusy={state.isRequesting}
               isStreaming={state.isStreaming}
-              areSourcesOpen={isSourcesOpen}
             />
           </div>
 
-          {isSourcesOpen ? (
-            <div className="min-h-0 min-w-0">
-              <RagHybridSourcesPanel
-                response={state.latestResponse}
-                selectedSourceId={state.selectedSourceId}
-                onSourceSelect={actions.selectSource}
-                onCitationSelect={actions.selectCitation}
-              />
-            </div>
-          ) : null}
+          <RagHybridSourcesPanel
+            response={state.latestResponse}
+            selectedSourceId={state.selectedSourceId}
+            onSourceSelect={actions.selectSource}
+            onCitationSelect={actions.selectCitation}
+          />
         </div>
       </div>
 

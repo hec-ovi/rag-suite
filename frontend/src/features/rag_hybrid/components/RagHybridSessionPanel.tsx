@@ -30,11 +30,11 @@ export function RagHybridSessionPanel({
 }: RagHybridSessionPanelProps) {
   if (!isOpen) {
     return (
-      <aside className="w-11 border border-border bg-surface/80 p-2">
+      <aside className="h-full w-12 border-r border-border bg-surface/90 p-2">
         <button
           type="button"
           onClick={onToggleOpen}
-          className="grid w-full place-items-center border border-border bg-background px-2 py-2 text-muted"
+          className="grid w-full place-items-center bg-transparent px-2 py-2 text-muted hover:text-foreground"
           aria-label="Open sessions"
           title="Open sessions"
         >
@@ -47,13 +47,13 @@ export function RagHybridSessionPanel({
   }
 
   return (
-    <aside className="w-72 border border-border bg-surface/80 p-3">
-      <header className="mb-3 flex items-center justify-between gap-2">
+    <aside className="h-full w-80 border-r border-border bg-surface/90 p-3">
+      <header className="mb-3 flex items-center justify-between gap-2 border-b border-border pb-3">
         <h2 className="font-display text-lg font-semibold text-foreground">Sessions</h2>
         <button
           type="button"
           onClick={onToggleOpen}
-          className="grid place-items-center border border-border bg-background px-2 py-2 text-muted"
+          className="grid place-items-center bg-transparent px-2 py-2 text-muted hover:text-foreground"
           aria-label="Collapse sessions"
           title="Collapse sessions"
         >
@@ -63,9 +63,9 @@ export function RagHybridSessionPanel({
         </button>
       </header>
 
-      <div className="max-h-[calc(100vh-18rem)] space-y-1 overflow-y-auto pr-1">
+      <div className="h-[calc(100%-4.25rem)] space-y-1 overflow-y-auto pr-1">
         {sessionEntries.length === 0 ? (
-          <p className="border border-border bg-background px-2 py-2 text-sm text-muted">No session entries yet.</p>
+          <p className="bg-background px-2 py-2 text-sm text-muted">No session entries yet.</p>
         ) : (
           sessionEntries.map((entry) => {
             const active = entry.id === activeSessionId
@@ -74,8 +74,8 @@ export function RagHybridSessionPanel({
                 key={entry.id}
                 type="button"
                 onClick={() => onSelectSession(entry.id)}
-                className={`grid w-full gap-1 border px-2 py-2 text-left ${
-                  active ? "border-primary bg-primary/10" : "border-border bg-background"
+                className={`grid w-full gap-1 border-l-2 px-2 py-2 text-left ${
+                  active ? "border-primary bg-primary/10" : "border-transparent bg-background hover:border-border"
                 }`}
               >
                 <p className="truncate text-sm font-semibold text-foreground">{entry.title}</p>

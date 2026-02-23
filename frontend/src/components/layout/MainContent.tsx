@@ -23,8 +23,10 @@ export function MainContent({
   ragRerankedView,
   ragKnowledgeGraphView,
 }: MainContentProps) {
+  const isRagHybridView = currentView === "rag_hybrid"
+
   return (
-    <main className="mx-auto w-full max-w-7xl flex-1 overflow-hidden px-4 py-6">
+    <main className={isRagHybridView ? "w-full flex-1 overflow-hidden" : "mx-auto w-full max-w-7xl flex-1 overflow-hidden px-4 py-6"}>
       <AnimatePresence mode="wait">
         <motion.section
           key={currentView}
@@ -32,7 +34,7 @@ export function MainContent({
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -10 }}
           transition={{ duration: 0.2 }}
-          className="h-full space-y-4 overflow-y-auto pr-1"
+          className={isRagHybridView ? "h-full overflow-hidden" : "h-full space-y-4 overflow-y-auto pr-1"}
         >
           {currentView === "start"
             ? startView
