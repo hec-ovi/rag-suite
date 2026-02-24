@@ -90,6 +90,23 @@ function mapSessionEntry(record: RagSessionSummaryRecord): RagSessionEntry {
   }
 }
 
+function sameIdOrder(left: string[], right: string[]): boolean {
+  if (left.length !== right.length) {
+    return false
+  }
+
+  return left.every((value, index) => value === right[index])
+}
+
+function resolveValidDocumentIds(selectedIds: string[], availableDocuments: RagDocumentSummary[]): string[] {
+  if (selectedIds.length === 0 || availableDocuments.length === 0) {
+    return []
+  }
+
+  const available = new Set(availableDocuments.map((document) => document.id))
+  return selectedIds.filter((id) => available.has(id))
+}
+
 function toStoredMessage(message: RagChatMessage): RagSessionMessageRecord {
   return {
     id: message.id,
@@ -245,6 +262,7 @@ export function useRagRerankedWorkflow(): { state: RagRerankedState; actions: Ra
       return
     }
 
+    setSelectedDocumentIds([])
     setSessionId("")
     setStatusMessage("Project selected. Loading and auto-selecting documents.")
   }, [selectedProjectId])
@@ -268,6 +286,24 @@ export function useRagRerankedWorkflow(): { state: RagRerankedState; actions: Ra
         : `All ${documents.length} document(s) selected by default.`,
     )
   }, [selectedProjectId, documents, documentsQuery.isFetching])
+
+  useEffect(() => {
+    if (selectedProjectId.trim().length === 0 || documentsQuery.isFetching || selectedDocumentIds.length === 0) {
+      return
+    }
+
+    const validDocumentIds = resolveValidDocumentIds(selectedDocumentIds, documents)
+    if (sameIdOrder(validDocumentIds, selectedDocumentIds)) {
+      return
+    }
+
+    setSelectedDocumentIds(validDocumentIds)
+    setStatusMessage(
+      validDocumentIds.length === 0
+        ? "Saved document filters were stale. Using full project scope."
+        : "Saved document filters were refreshed to valid project documents.",
+    )
+  }, [selectedProjectId, documentsQuery.isFetching, documents, selectedDocumentIds])
 
   const state: RagRerankedState = useMemo(
     () => ({
@@ -422,14 +458,23 @@ export function useRagRerankedWorkflow(): { state: RagRerankedState; actions: Ra
       setErrorMessage("Select a project to create a session.")
       return
     }
+    if (documentsQuery.isFetching) {
+      setErrorMessage("Project documents are still loading. Wait a moment and try again.")
+      return
+    }
 
     setIsManagingSessions(true)
     setErrorMessage("")
 
     try {
+      const validDocumentIds = resolveValidDocumentIds(selectedDocumentIds, documents)
+      if (!sameIdOrder(validDocumentIds, selectedDocumentIds)) {
+        setSelectedDocumentIds(validDocumentIds)
+      }
+
       const record = await createRagSession({
         project_id: resolvedProjectId,
-        selected_document_ids: selectedDocumentIds.length > 0 ? selectedDocumentIds : undefined,
+        selected_document_ids: validDocumentIds.length > 0 ? validDocumentIds : undefined,
       })
 
       await sessionsQuery.refetch()
@@ -528,6 +573,10 @@ export function useRagRerankedWorkflow(): { state: RagRerankedState; actions: Ra
       setErrorMessage("Select a project before sending a RAG query.")
       return
     }
+    if (documentsQuery.isFetching) {
+      setErrorMessage("Project documents are still loading. Wait a moment and retry.")
+      return
+    }
 
     if (isRequesting || isStreaming || isManagingSessions) {
       return
@@ -565,10 +614,15 @@ export function useRagRerankedWorkflow(): { state: RagRerankedState; actions: Ra
     setIsRequesting(true)
 
     try {
+      const requestDocumentIds = resolveValidDocumentIds(selectedDocumentIds, documents)
+      if (!sameIdOrder(requestDocumentIds, selectedDocumentIds)) {
+        setSelectedDocumentIds(requestDocumentIds)
+      }
+
       const sharedPayload = {
         project_id: selectedProjectId,
         message: question,
-        document_ids: selectedDocumentIds.length > 0 ? selectedDocumentIds : undefined,
+        document_ids: requestDocumentIds.length > 0 ? requestDocumentIds : undefined,
         top_k: topK,
         dense_top_k: denseTopK,
         sparse_top_k: sparseTopK,
@@ -587,7 +641,7 @@ export function useRagRerankedWorkflow(): { state: RagRerankedState; actions: Ra
       if (chatMode === "session" && resolvedSessionId.length === 0) {
         const created = await createRagSession({
           project_id: selectedProjectId,
-          selected_document_ids: selectedDocumentIds.length > 0 ? selectedDocumentIds : undefined,
+          selected_document_ids: requestDocumentIds.length > 0 ? requestDocumentIds : undefined,
         })
         resolvedSessionId = created.id
         setSessionId(created.id)
@@ -670,7 +724,7 @@ export function useRagRerankedWorkflow(): { state: RagRerankedState; actions: Ra
         await updateRagSession(resolvedSessionId, {
           messages: finalMessages.map(toStoredMessage),
           selected_source_id: nextSelectedSourceId,
-          selected_document_ids: selectedDocumentIds,
+          selected_document_ids: requestDocumentIds,
           latest_response: response,
         })
         await sessionsQuery.refetch()
