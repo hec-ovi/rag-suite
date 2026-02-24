@@ -56,6 +56,7 @@ services:
     environment:
       OLLAMA_URL: http://ollama:11434
       OLLAMA_TIMEOUT_SECONDS: ${OLLAMA_TIMEOUT_SECONDS:-300}
+      OLLAMA_KEEP_ALIVE: ${OLLAMA_KEEP_ALIVE:-0s}
       RERANKER_API_URL: http://backend-reranker:8030/v1
       RERANKER_TIMEOUT_SECONDS: ${RERANKER_TIMEOUT_SECONDS:-300}
     depends_on:
@@ -97,6 +98,7 @@ services:
       RERANK_MAX_LENGTH: ${RERANK_MAX_LENGTH:-1024}
       RERANK_BATCH_SIZE: ${RERANK_BATCH_SIZE:-16}
       RERANK_USE_FP16: ${RERANK_USE_FP16:-true}
+      RERANK_UNLOAD_AFTER_REQUEST: ${RERANK_UNLOAD_AFTER_REQUEST:-true}
       HF_HOME: /cache/huggingface
     volumes:
       - ${RERANKER_CACHE_DIR:-./data/reranker_cache}:/cache/huggingface

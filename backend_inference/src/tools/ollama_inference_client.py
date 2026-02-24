@@ -16,9 +16,11 @@ from src.models.runtime.inference import (
 class OllamaInferenceClient:
     """Raw Ollama adapter for OpenAI-compatible inference routes."""
 
-    def __init__(self, base_url: str, timeout_seconds: float) -> None:
+    def __init__(self, base_url: str, timeout_seconds: float, keep_alive: str = "0s") -> None:
         self._base_url = base_url.rstrip("/")
         self._timeout_seconds = timeout_seconds
+        keep_alive_clean = keep_alive.strip()
+        self._keep_alive = keep_alive_clean or "0s"
 
     async def chat(
         self,
@@ -38,6 +40,7 @@ class OllamaInferenceClient:
             "stream": False,
             "messages": messages,
             "options": options,
+            "keep_alive": self._keep_alive,
         }
 
         async with httpx.AsyncClient(timeout=self._timeout_seconds) as client:
@@ -98,6 +101,7 @@ class OllamaInferenceClient:
             "stream": True,
             "messages": messages,
             "options": options,
+            "keep_alive": self._keep_alive,
         }
 
         try:
@@ -121,6 +125,7 @@ class OllamaInferenceClient:
         payload = {
             "model": model,
             "input": texts,
+            "keep_alive": self._keep_alive,
         }
 
         async with httpx.AsyncClient(timeout=self._timeout_seconds) as client:

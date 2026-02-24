@@ -13,6 +13,7 @@ def build_inference_service(settings: Settings) -> InferenceService:
         ollama_client=OllamaInferenceClient(
             base_url=settings.ollama_url,
             timeout_seconds=settings.ollama_timeout_seconds,
+            keep_alive=settings.ollama_keep_alive,
         ),
         reranker_client=RerankerApiClient(
             base_url=settings.reranker_api_url,

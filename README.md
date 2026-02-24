@@ -298,6 +298,8 @@ If Ollama logs include messages like `Memory access fault by GPU` or the desktop
 
 - Keep `OLLAMA_NUM_PARALLEL=1`.
 - Keep `OLLAMA_MAX_LOADED_MODELS=1`.
+- Keep `OLLAMA_KEEP_ALIVE=0s` to force per-request unload.
+- Keep `RERANK_UNLOAD_AFTER_REQUEST=true` to release cross-encoder GPU memory after each rerank call.
 - Keep `OLLAMA_CONTEXT_LENGTH=8192` (or lower for extra stability).
 - Keep `OLLAMA_TIMEOUT_SECONDS=300` and `INFERENCE_TIMEOUT_SECONDS=300` for long agentic operations.
 - Use `Interrupt` in chunk/context steps to stop in-flight LLM work.

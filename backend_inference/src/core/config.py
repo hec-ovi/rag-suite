@@ -13,6 +13,7 @@ class Settings(BaseSettings):
 
     ollama_url: str = Field(default="http://ollama:11434")
     ollama_timeout_seconds: float = Field(default=300.0)
+    ollama_keep_alive: str = Field(default="0s")
     reranker_api_url: str = Field(default="http://backend-reranker:8030/v1")
     reranker_timeout_seconds: float = Field(default=300.0)
 

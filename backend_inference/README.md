@@ -13,6 +13,7 @@ Scope:
 This service is the only component that talks directly to Ollama for chat/completions/embeddings.
 `POST /v1/chat/completions` supports OpenAI-style SSE when `stream=true`.
 `POST /v1/rerank` proxies a dedicated reranker backend (`backend_reranker`) and keeps the same OpenAI-style schema.
+By default, it forwards `keep_alive=0s` to Ollama requests to avoid model residency overlap on ROCm.
 
 ## Run (local)
 

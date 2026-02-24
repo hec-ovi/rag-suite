@@ -52,3 +52,44 @@ def test_cross_encoder_tool_tracks_loaded_models() -> None:
     )
 
     assert tool.loaded_models() == []
+
+
+def test_cross_encoder_tool_unloads_after_request_by_default() -> None:
+    tool = CrossEncoderReranker(
+        default_model="BAAI/bge-reranker-v2-m3",
+        configured_device="cpu",
+        max_length=512,
+        batch_size=8,
+        use_fp16=False,
+        model_loader=_fake_loader,
+    )
+
+    tool.rerank(
+        model="BAAI/bge-reranker-v2-m3",
+        query="gift",
+        documents=["doc a", "doc b"],
+        top_n=1,
+    )
+
+    assert tool.loaded_models() == []
+
+
+def test_cross_encoder_tool_can_keep_model_loaded_when_configured() -> None:
+    tool = CrossEncoderReranker(
+        default_model="BAAI/bge-reranker-v2-m3",
+        configured_device="cpu",
+        max_length=512,
+        batch_size=8,
+        use_fp16=False,
+        unload_after_request=False,
+        model_loader=_fake_loader,
+    )
+
+    tool.rerank(
+        model="BAAI/bge-reranker-v2-m3",
+        query="gift",
+        documents=["doc a", "doc b"],
+        top_n=1,
+    )
+
+    assert tool.loaded_models() == ["BAAI/bge-reranker-v2-m3"]

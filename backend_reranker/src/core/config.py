@@ -16,6 +16,7 @@ class Settings(BaseSettings):
     rerank_max_length: int = Field(default=1024)
     rerank_batch_size: int = Field(default=16)
     rerank_use_fp16: bool = Field(default=True)
+    rerank_unload_after_request: bool = Field(default=True)
 
     model_config = SettingsConfigDict(
         env_file=".env",
