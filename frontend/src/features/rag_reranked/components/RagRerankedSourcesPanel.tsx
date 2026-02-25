@@ -20,8 +20,7 @@ interface AfterRerankRow {
   key: string
   sourceLabel: string
   originalRank: number
-  finalRank: number | null
-  percentage: number
+  percentage: number | null
   kept: boolean
   sourceId: string | null
 }
@@ -228,7 +227,6 @@ export function RagRerankedSourcesPanel({
       key: source.chunk_key,
       sourceLabel: compactSourceLabel(source.source_id, source.rank),
       originalRank: source.original_rank,
-      finalRank: source.rank,
       percentage: normalizedScoreMap[source.source_id]?.rerank ?? 0,
       kept: true,
       sourceId: source.source_id,
@@ -240,8 +238,7 @@ export function RagRerankedSourcesPanel({
         key: candidate.chunk_key,
         sourceLabel: compactSourceLabel(candidate.source_id, candidate.rank),
         originalRank: candidate.rank,
-        finalRank: null,
-        percentage: normalizedHybridCandidateMap[candidate.chunk_key] ?? 0,
+        percentage: null,
         kept: false,
         sourceId: null,
       }))
@@ -297,7 +294,7 @@ export function RagRerankedSourcesPanel({
               </p>
               <div className="grid gap-2 md:grid-cols-2 md:items-stretch">
                 <div className="grid min-h-[14rem] gap-1">
-                  <p className="font-mono text-[10px] uppercase tracking-wide text-muted">Before Rerank</p>
+                  <p className="font-mono text-[10px] uppercase tracking-wide text-muted">Before Rerank (Hybrid %)</p>
                   <ul className="chat-scrollbar h-[14rem] space-y-1 overflow-y-auto pr-1">
                     {response.hybrid_candidates.map((candidate) => {
                       const sourceLabel = compactSourceLabel(candidate.source_id, candidate.rank)
@@ -324,7 +321,7 @@ export function RagRerankedSourcesPanel({
                 </div>
 
                 <div className="grid min-h-[14rem] gap-1">
-                  <p className="font-mono text-[10px] uppercase tracking-wide text-muted">After Rerank</p>
+                  <p className="font-mono text-[10px] uppercase tracking-wide text-muted">After Rerank (Rerank %)</p>
                   <ul className="chat-scrollbar h-[14rem] space-y-1 overflow-y-auto pr-1">
                     {afterRerankRows.map((row) => {
                       return (
@@ -351,14 +348,14 @@ export function RagRerankedSourcesPanel({
                             <span className="flex min-w-0 items-center gap-2 text-sm font-medium text-foreground">
                               <span className="shrink-0">{row.sourceLabel}</span>
                               <span className="truncate text-xs text-muted">
-                                H{row.originalRank} -&gt; {row.finalRank === null ? "Removed" : `R${row.finalRank}`}
+                                H{row.originalRank} {row.kept ? "" : "- Removed"}
                               </span>
                             </span>
                             <span
-                              style={{ color: colorByPercentage(row.percentage) }}
+                              style={{ color: row.percentage === null ? undefined : colorByPercentage(row.percentage) }}
                               className={`text-xs font-semibold ${row.kept ? "" : "text-muted"}`}
                             >
-                              {row.percentage.toFixed(0)}%
+                              {row.percentage === null ? "--" : `${row.percentage.toFixed(0)}%`}
                             </span>
                           </button>
                         </li>
