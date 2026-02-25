@@ -9,6 +9,40 @@
 
 Production-focused RAG platform with a quality-first ingestion + retrieval pipeline.
 
+## Highlights
+
+Built for teams that need production-grade RAG quality, not a toy demo.
+
+- 4 isolated backends (`inference`, `ingestion`, `rag`, `reranker`) with clean contracts.
+- OpenAI-style inference gateway (`/v1/chat/completions`, `/v1/completions`, `/v1/embeddings`, `/v1/rerank`) for local, cloud, or hybrid model routing.
+- Plug-and-play ingestion as a dedicated system: HITL mode for precision workflows + automated mode for full-speed batch pipelines.
+- Two retrieval modes implemented end-to-end:
+  - Hybrid RAG (`dense + sparse/BM25`)
+  - Hybrid + Re-ranked RAG (candidate pool -> cross-encoder rerank -> grounded generation)
+- Every backend ships with its own OpenAPI + ReDoc surface for independent integration.
+
+## Product Snapshots
+
+`Hybrid vs Re-rank` source ordering and score behavior:
+
+![Hybrid vs Re-rank](screenshots/rerank.jpg)
+
+`Re-rank` source inspection popup (rerank/dense/sparse/hybrid signals):
+
+![Re-rank Source Details](screenshots/rerank_popup.jpg)
+
+Contextual retrieval stage with chunk-by-chunk navigation and control:
+
+![Contextual Retrieval](screenshots/context_retrieval.jpg)
+
+Per-service ReDoc documentation:
+
+![ReDoc](screenshots/redocs.jpg)
+
+Per-service OpenAPI documentation:
+
+![OpenAPI](screenshots/openapi.jpg)
+
 ## Current Scope
 
 Stage 0 data preparation control plane (complete):
