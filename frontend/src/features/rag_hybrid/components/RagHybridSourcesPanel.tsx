@@ -163,12 +163,12 @@ export function RagHybridSourcesPanel({
       : response.sources.find((source) => source.source_id === detailSourceId) ?? null
 
   return (
-    <aside className="flex h-full min-h-0 w-[25rem] flex-col border-l border-border bg-surface">
-      <header className="border-b border-border bg-background px-4 py-3">
+    <aside className="h-full w-[25rem] border-l border-border bg-surface/90 p-3">
+      <header className="mb-3 flex items-center gap-2 border-b border-border bg-background px-2 py-2">
         <h2 className="font-display text-lg font-semibold text-foreground">Sources</h2>
       </header>
 
-      <div className="chat-scrollbar min-h-0 flex-1 overflow-y-auto px-4 pb-4">
+      <div className="chat-scrollbar h-[calc(100%-4.25rem)] overflow-y-auto pr-1">
         {response === null ? (
           <div className="grid h-full place-items-center py-6">
             {isLoading ? (
@@ -182,7 +182,7 @@ export function RagHybridSourcesPanel({
             )}
           </div>
         ) : (
-          <div className="grid gap-3 pt-3">
+          <div className="grid gap-3">
             <section className="grid grid-cols-2 gap-2 bg-background p-3">
               <div className="bg-surface px-2 py-2">
                 <p className="font-mono text-[10px] uppercase tracking-wide text-muted">Mode</p>
