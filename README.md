@@ -35,14 +35,6 @@ Contextual retrieval stage with chunk-by-chunk navigation and control:
 
 ![Contextual Retrieval](screenshots/context_retrieval.jpg)
 
-Per-service ReDoc documentation:
-
-![ReDoc](screenshots/redocs.jpg)
-
-Per-service OpenAPI documentation:
-
-![OpenAPI](screenshots/openapi.jpg)
-
 ## Current Scope
 
 Stage 0 data preparation control plane (complete):
@@ -325,6 +317,16 @@ UV_CACHE_DIR=/tmp/uv-cache uv run --directory backend_inference pytest -q tests
 UV_CACHE_DIR=/tmp/uv-cache uv run --directory backend_reranker pytest -q tests
 UV_CACHE_DIR=/tmp/uv-cache uv run --directory backend_rag pytest -q tests
 ```
+
+## Documentation Snapshots
+
+Per-service ReDoc documentation:
+
+![ReDoc](screenshots/redocs.jpg)
+
+Per-service OpenAPI documentation:
+
+![OpenAPI](screenshots/openapi.jpg)
 
 ## ROCm Stability Notes
 
