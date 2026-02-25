@@ -164,7 +164,7 @@ export function RagHybridSourcesPanel({
 
   return (
     <aside className="h-full w-[25rem] border-l border-border bg-surface/90 p-3">
-      <header className="mb-3 flex items-center gap-2 border-b border-border bg-background px-2 py-2">
+      <header className="mb-3 flex items-center justify-between gap-2 border-b border-border pb-3">
         <h2 className="font-display text-lg font-semibold text-foreground">Sources</h2>
       </header>
 
