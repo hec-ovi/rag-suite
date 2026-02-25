@@ -15,6 +15,13 @@ interface NormalizedSourceScores {
   sparse: number
 }
 
+function compactSourceLabel(sourceId: string | undefined, fallbackRank: number): string {
+  if (typeof sourceId === "string" && /^S\d+$/i.test(sourceId.trim())) {
+    return sourceId.trim().toUpperCase()
+  }
+  return `S${fallbackRank}`
+}
+
 function clampPercentage(value: number): number {
   if (!Number.isFinite(value)) {
     return 0
@@ -230,12 +237,11 @@ export function RagRerankedSourcesPanel({
                   <ul className="space-y-1">
                     {response.hybrid_candidates.map((candidate) => {
                       const kept = keptChunkKeys.has(candidate.chunk_key)
+                      const sourceLabel = compactSourceLabel(candidate.source_id, candidate.rank)
                       return (
                         <li key={`hybrid-${candidate.chunk_key}`} className="bg-surface px-2 py-2 text-xs text-foreground">
                           <div className="flex items-center justify-between gap-2">
-                            <span className="truncate">
-                              H{candidate.rank} - {candidate.document_name}
-                            </span>
+                            <span className="font-semibold">{sourceLabel}</span>
                             <span className={kept ? "text-primary" : "text-danger"}>{kept ? "Kept" : "Removed"}</span>
                           </div>
                         </li>
@@ -249,6 +255,7 @@ export function RagRerankedSourcesPanel({
                   <ul className="space-y-1">
                     {response.sources.map((source) => {
                       const normalized = normalizedScoreMap[source.source_id] ?? { rerank: 0, hybrid: 0, dense: 0, sparse: 0 }
+                      const sourceLabel = compactSourceLabel(source.source_id, source.rank)
                       return (
                         <li key={source.source_id}>
                           <button
@@ -262,10 +269,11 @@ export function RagRerankedSourcesPanel({
                             }`}
                           >
                             <span className="h-2.5 w-2.5 !rounded-full bg-primary" />
-                            <span className="truncate text-sm font-medium text-foreground">
-                              {source.source_id} - H{source.original_rank}
-                              {" -> "}
-                              R{source.rank}
+                            <span className="flex min-w-0 items-center gap-2 text-sm font-medium text-foreground">
+                              <span className="shrink-0">{sourceLabel}</span>
+                              <span className="truncate text-xs text-muted">
+                                H{source.original_rank} -&gt; R{source.rank}
+                              </span>
                             </span>
                             <span style={{ color: colorByPercentage(normalized.rerank) }} className="text-xs font-semibold">
                               {normalized.rerank.toFixed(0)}%
