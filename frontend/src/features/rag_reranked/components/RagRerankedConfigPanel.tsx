@@ -254,6 +254,7 @@ export function RagRerankedConfigPanel({
                       disabled={disabled}
                       className="border border-border bg-background px-3 py-2 text-foreground"
                     />
+                    <span className="text-xs text-muted">For stricter filtering, keep this higher than Top K.</span>
                   </label>
 
                   <label className="grid gap-1 text-sm text-muted">

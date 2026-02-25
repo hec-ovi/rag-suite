@@ -4,6 +4,7 @@ import type { RagChatResponse, RagSourceChunk } from "../types/rag"
 
 interface RagHybridSourcesPanelProps {
   response: RagChatResponse | null
+  isLoading: boolean
   selectedSourceId: string | null
   onSourceSelect: (sourceId: string) => void
 }
@@ -149,6 +150,7 @@ function SourceDetailModal({
 
 export function RagHybridSourcesPanel({
   response,
+  isLoading,
   selectedSourceId,
   onSourceSelect,
 }: RagHybridSourcesPanelProps) {
@@ -162,18 +164,22 @@ export function RagHybridSourcesPanel({
 
   return (
     <aside className="flex h-full min-h-0 w-[25rem] flex-col border-l border-border bg-surface">
-      <header className="bg-background px-4 py-3">
+      <header className="border-b border-border bg-background px-4 py-3">
         <h2 className="font-display text-lg font-semibold text-foreground">Sources</h2>
       </header>
 
       <div className="chat-scrollbar min-h-0 flex-1 overflow-y-auto px-4 pb-4">
         {response === null ? (
           <div className="grid h-full place-items-center py-6">
-            <div className="flex items-center gap-1.5 text-muted">
-              <span className="h-2 w-2 animate-pulse bg-muted [animation-delay:0ms]" />
-              <span className="h-2 w-2 animate-pulse bg-muted [animation-delay:120ms]" />
-              <span className="h-2 w-2 animate-pulse bg-muted [animation-delay:240ms]" />
-            </div>
+            {isLoading ? (
+              <div className="flex items-center gap-1.5 text-muted">
+                <span className="h-2 w-2 animate-pulse bg-muted [animation-delay:0ms]" />
+                <span className="h-2 w-2 animate-pulse bg-muted [animation-delay:120ms]" />
+                <span className="h-2 w-2 animate-pulse bg-muted [animation-delay:240ms]" />
+              </div>
+            ) : (
+              <p className="text-sm text-muted">No sources yet. Run a query to populate this panel.</p>
+            )}
           </div>
         ) : (
           <div className="grid gap-3 pt-3">
@@ -199,7 +205,9 @@ export function RagHybridSourcesPanel({
             </section>
 
             <section className="bg-background p-3">
-              <p className="mb-2 font-mono text-xs uppercase tracking-wide text-muted">Citations - Ranked Sources</p>
+              <p className="mb-2 bg-surface px-2 py-2 font-mono text-xs uppercase tracking-wide text-muted">
+                Citations - Ranked Sources
+              </p>
               <ul className="space-y-1">
                 {response.sources.map((source) => {
                   const normalized = normalizedScoreMap[source.source_id] ?? { hybrid: 0, dense: 0, sparse: 0 }

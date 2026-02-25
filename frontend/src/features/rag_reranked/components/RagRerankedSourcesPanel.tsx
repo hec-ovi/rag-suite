@@ -4,6 +4,7 @@ import type { RagChatResponse, RagSourceChunk } from "../types/rag"
 
 interface RagRerankedSourcesPanelProps {
   response: RagChatResponse | null
+  isLoading: boolean
   selectedSourceId: string | null
   onSourceSelect: (sourceId: string) => void
 }
@@ -13,6 +14,16 @@ interface NormalizedSourceScores {
   hybrid: number
   dense: number
   sparse: number
+}
+
+interface AfterRerankRow {
+  key: string
+  sourceLabel: string
+  originalRank: number
+  finalRank: number | null
+  percentage: number
+  kept: boolean
+  sourceId: string | null
 }
 
 function compactSourceLabel(sourceId: string | undefined, fallbackRank: number): string {
@@ -70,6 +81,21 @@ function buildNormalizedScoreMap(response: RagChatResponse | null): Record<strin
       dense: normalizeValue(source.dense_score, denseMin, denseMax),
       sparse: normalizeValue(source.sparse_score, sparseMin, sparseMax),
     }
+    return accumulator
+  }, {})
+}
+
+function buildNormalizedHybridCandidateMap(response: RagChatResponse | null): Record<string, number> {
+  if (response === null || response.hybrid_candidates.length === 0) {
+    return {}
+  }
+
+  const hybridValues = response.hybrid_candidates.map((candidate) => candidate.hybrid_score)
+  const hybridMin = Math.min(...hybridValues)
+  const hybridMax = Math.max(...hybridValues)
+
+  return response.hybrid_candidates.reduce<Record<string, number>>((accumulator, candidate) => {
+    accumulator[candidate.chunk_key] = normalizeValue(candidate.hybrid_score, hybridMin, hybridMax)
     return accumulator
   }, {})
 }
@@ -168,12 +194,14 @@ function SourceDetailModal({
 
 export function RagRerankedSourcesPanel({
   response,
+  isLoading,
   selectedSourceId,
   onSourceSelect,
 }: RagRerankedSourcesPanelProps) {
   const [detailSourceId, setDetailSourceId] = useState<string | null>(null)
 
   const normalizedScoreMap = useMemo(() => buildNormalizedScoreMap(response), [response])
+  const normalizedHybridCandidateMap = useMemo(() => buildNormalizedHybridCandidateMap(response), [response])
   const detailSource =
     detailSourceId === null || response === null
       ? null
@@ -191,20 +219,54 @@ export function RagRerankedSourcesPanel({
       ? 0
       : response.hybrid_candidates.filter((candidate) => !keptChunkKeys.has(candidate.chunk_key)).length
 
+  const afterRerankRows = useMemo<AfterRerankRow[]>(() => {
+    if (response === null) {
+      return []
+    }
+
+    const keptRows: AfterRerankRow[] = response.sources.map((source) => ({
+      key: source.chunk_key,
+      sourceLabel: compactSourceLabel(source.source_id, source.rank),
+      originalRank: source.original_rank,
+      finalRank: source.rank,
+      percentage: normalizedScoreMap[source.source_id]?.rerank ?? 0,
+      kept: true,
+      sourceId: source.source_id,
+    }))
+
+    const removedRows: AfterRerankRow[] = response.hybrid_candidates
+      .filter((candidate) => !keptChunkKeys.has(candidate.chunk_key))
+      .map((candidate) => ({
+        key: candidate.chunk_key,
+        sourceLabel: compactSourceLabel(candidate.source_id, candidate.rank),
+        originalRank: candidate.rank,
+        finalRank: null,
+        percentage: normalizedHybridCandidateMap[candidate.chunk_key] ?? 0,
+        kept: false,
+        sourceId: null,
+      }))
+
+    return [...keptRows, ...removedRows]
+  }, [response, normalizedScoreMap, keptChunkKeys, normalizedHybridCandidateMap])
+
   return (
     <aside className="flex h-full min-h-0 w-[26rem] flex-col border-l border-border bg-surface">
-      <header className="bg-background px-4 py-3">
+      <header className="border-b border-border bg-background px-4 py-3">
         <h2 className="font-display text-lg font-semibold text-foreground">Sources</h2>
       </header>
 
       <div className="chat-scrollbar min-h-0 flex-1 overflow-y-auto px-4 pb-4">
         {response === null ? (
           <div className="grid h-full place-items-center py-6">
-            <div className="flex items-center gap-1.5 text-muted">
-              <span className="h-2 w-2 animate-pulse bg-muted [animation-delay:0ms]" />
-              <span className="h-2 w-2 animate-pulse bg-muted [animation-delay:120ms]" />
-              <span className="h-2 w-2 animate-pulse bg-muted [animation-delay:240ms]" />
-            </div>
+            {isLoading ? (
+              <div className="flex items-center gap-1.5 text-muted">
+                <span className="h-2 w-2 animate-pulse bg-muted [animation-delay:0ms]" />
+                <span className="h-2 w-2 animate-pulse bg-muted [animation-delay:120ms]" />
+                <span className="h-2 w-2 animate-pulse bg-muted [animation-delay:240ms]" />
+              </div>
+            ) : (
+              <p className="text-sm text-muted">No sources yet. Run a query to populate this panel.</p>
+            )}
           </div>
         ) : (
           <div className="grid gap-3 pt-3">
@@ -230,19 +292,30 @@ export function RagRerankedSourcesPanel({
             </section>
 
             <section className="bg-background p-3">
-              <p className="mb-2 font-mono text-xs uppercase tracking-wide text-muted">Citations - Ranked Sources</p>
-              <div className="grid gap-2 md:grid-cols-2">
-                <div className="grid gap-1">
+              <p className="mb-2 bg-surface px-2 py-2 font-mono text-xs uppercase tracking-wide text-muted">
+                Citations - Ranked Sources
+              </p>
+              <div className="grid gap-2 md:grid-cols-2 md:items-stretch">
+                <div className="grid min-h-[14rem] gap-1">
                   <p className="font-mono text-[10px] uppercase tracking-wide text-muted">Before Rerank</p>
-                  <ul className="space-y-1">
+                  <ul className="chat-scrollbar h-[14rem] space-y-1 overflow-y-auto pr-1">
                     {response.hybrid_candidates.map((candidate) => {
-                      const kept = keptChunkKeys.has(candidate.chunk_key)
                       const sourceLabel = compactSourceLabel(candidate.source_id, candidate.rank)
+                      const hybridPercentage = normalizedHybridCandidateMap[candidate.chunk_key] ?? 0
                       return (
-                        <li key={`hybrid-${candidate.chunk_key}`} className="bg-surface px-2 py-2 text-xs text-foreground">
-                          <div className="flex items-center justify-between gap-2">
-                            <span className="font-semibold">{sourceLabel}</span>
-                            <span className={kept ? "text-primary" : "text-danger"}>{kept ? "Kept" : "Removed"}</span>
+                        <li key={`hybrid-${candidate.chunk_key}`}>
+                          <div className="grid w-full grid-cols-[auto_1fr_auto] items-center gap-2 bg-surface px-2 py-2">
+                            <span className="h-2.5 w-2.5 !rounded-full bg-primary" />
+                            <span className="flex min-w-0 items-center gap-2 text-sm font-medium text-foreground">
+                              <span className="shrink-0">{sourceLabel}</span>
+                              <span className="truncate text-xs text-muted">H{candidate.rank}</span>
+                            </span>
+                            <span
+                              style={{ color: colorByPercentage(hybridPercentage) }}
+                              className="text-xs font-semibold"
+                            >
+                              {hybridPercentage.toFixed(0)}%
+                            </span>
                           </div>
                         </li>
                       )
@@ -250,33 +323,42 @@ export function RagRerankedSourcesPanel({
                   </ul>
                 </div>
 
-                <div className="grid gap-1">
+                <div className="grid min-h-[14rem] gap-1">
                   <p className="font-mono text-[10px] uppercase tracking-wide text-muted">After Rerank</p>
-                  <ul className="space-y-1">
-                    {response.sources.map((source) => {
-                      const normalized = normalizedScoreMap[source.source_id] ?? { rerank: 0, hybrid: 0, dense: 0, sparse: 0 }
-                      const sourceLabel = compactSourceLabel(source.source_id, source.rank)
+                  <ul className="chat-scrollbar h-[14rem] space-y-1 overflow-y-auto pr-1">
+                    {afterRerankRows.map((row) => {
                       return (
-                        <li key={source.source_id}>
+                        <li key={`rerank-${row.key}`}>
                           <button
                             type="button"
+                            disabled={!row.kept}
                             onClick={() => {
-                              onSourceSelect(source.source_id)
-                              setDetailSourceId(source.source_id)
+                              if (row.sourceId === null) {
+                                return
+                              }
+                              onSourceSelect(row.sourceId)
+                              setDetailSourceId(row.sourceId)
                             }}
                             className={`grid w-full grid-cols-[auto_1fr_auto] items-center gap-2 px-2 py-2 text-left ${
-                              selectedSourceId === source.source_id ? "bg-primary/10" : "bg-surface"
+                              row.kept
+                                ? selectedSourceId === row.sourceId
+                                  ? "bg-primary/10"
+                                  : "bg-surface"
+                                : "bg-surface opacity-40"
                             }`}
                           >
-                            <span className="h-2.5 w-2.5 !rounded-full bg-primary" />
+                            <span className={`h-2.5 w-2.5 !rounded-full ${row.kept ? "bg-primary" : "bg-muted"}`} />
                             <span className="flex min-w-0 items-center gap-2 text-sm font-medium text-foreground">
-                              <span className="shrink-0">{sourceLabel}</span>
+                              <span className="shrink-0">{row.sourceLabel}</span>
                               <span className="truncate text-xs text-muted">
-                                H{source.original_rank} -&gt; R{source.rank}
+                                H{row.originalRank} -&gt; {row.finalRank === null ? "Removed" : `R${row.finalRank}`}
                               </span>
                             </span>
-                            <span style={{ color: colorByPercentage(normalized.rerank) }} className="text-xs font-semibold">
-                              {normalized.rerank.toFixed(0)}%
+                            <span
+                              style={{ color: colorByPercentage(row.percentage) }}
+                              className={`text-xs font-semibold ${row.kept ? "" : "text-muted"}`}
+                            >
+                              {row.percentage.toFixed(0)}%
                             </span>
                           </button>
                         </li>

@@ -62,6 +62,7 @@ export function RagRerankedWorkbench({ state, actions }: RagRerankedWorkbenchPro
 
           <RagRerankedSourcesPanel
             response={state.latestResponse}
+            isLoading={state.isRequesting || state.isStreaming}
             selectedSourceId={state.selectedSourceId}
             onSourceSelect={actions.selectSource}
           />

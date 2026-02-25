@@ -189,11 +189,11 @@ export function useRagRerankedWorkflow(): { state: RagRerankedState; actions: Ra
   const [chatMode, setChatMode] = useState<RagChatMode>("session")
   const [sessionId, setSessionId] = useState("")
 
-  const [topK, setTopK] = useState(6)
+  const [topK, setTopK] = useState(4)
   const [denseTopK, setDenseTopK] = useState(24)
   const [sparseTopK, setSparseTopK] = useState(24)
   const [denseWeight, setDenseWeight] = useState(0.65)
-  const [rerankCandidateCount, setRerankCandidateCount] = useState(16)
+  const [rerankCandidateCount, setRerankCandidateCount] = useState(20)
   const [historyWindowMessages, setHistoryWindowMessages] = useState(8)
 
   const [chatModelOverride, setChatModelOverride] = useState("")
@@ -550,16 +550,24 @@ export function useRagRerankedWorkflow(): { state: RagRerankedState; actions: Ra
   }, [chatMode, sessionId, sessionEntries, isManagingSessions, isRequesting, isStreaming])
 
   function applyAdvancedSettings(settings: RagAdvancedSettingsInput): void {
-    setTopK(clampInteger(settings.topK, 1, 50))
+    const nextTopK = clampInteger(settings.topK, 1, 50)
+    const requestedCandidates = clampInteger(settings.rerankCandidateCount, 1, 100)
+    const nextRerankCandidates = Math.max(requestedCandidates, nextTopK + 2)
+
+    setTopK(nextTopK)
     setDenseTopK(clampInteger(settings.denseTopK, 1, 100))
     setSparseTopK(clampInteger(settings.sparseTopK, 1, 100))
     setDenseWeight(clampFloat(settings.denseWeight, 0, 1))
-    setRerankCandidateCount(clampInteger(settings.rerankCandidateCount, 1, 100))
+    setRerankCandidateCount(nextRerankCandidates)
     setHistoryWindowMessages(clampInteger(settings.historyWindowMessages, 0, 40))
     setChatModelOverride(settings.chatModelOverride)
     setEmbeddingModelOverride(settings.embeddingModelOverride)
     setRerankModelOverride(settings.rerankModelOverride)
-    setStatusMessage("Advanced settings applied.")
+    setStatusMessage(
+      nextRerankCandidates > requestedCandidates
+        ? `Advanced settings applied. Rerank candidates auto-raised to ${nextRerankCandidates} (Top K + 2).`
+        : "Advanced settings applied.",
+    )
   }
 
   async function sendMessage(): Promise<void> {
@@ -627,7 +635,7 @@ export function useRagRerankedWorkflow(): { state: RagRerankedState; actions: Ra
         dense_top_k: denseTopK,
         sparse_top_k: sparseTopK,
         dense_weight: denseWeight,
-        rerank_candidate_count: rerankCandidateCount,
+        rerank_candidate_count: Math.max(rerankCandidateCount, topK + 2),
         embedding_model: embeddingModelOverride.trim().length > 0 ? embeddingModelOverride.trim() : undefined,
         rerank_model: rerankModelOverride.trim().length > 0 ? rerankModelOverride.trim() : undefined,
         chat_model: chatModelOverride.trim().length > 0 ? chatModelOverride.trim() : undefined,

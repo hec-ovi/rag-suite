@@ -62,6 +62,7 @@ export function RagHybridWorkbench({ state, actions }: RagHybridWorkbenchProps) 
 
           <RagHybridSourcesPanel
             response={state.latestResponse}
+            isLoading={state.isRequesting || state.isStreaming}
             selectedSourceId={state.selectedSourceId}
             onSourceSelect={actions.selectSource}
           />
