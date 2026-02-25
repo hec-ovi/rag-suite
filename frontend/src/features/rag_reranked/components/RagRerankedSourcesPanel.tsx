@@ -25,6 +25,12 @@ interface AfterRerankRow {
   sourceId: string | null
 }
 
+interface DetailModalState {
+  source: RagSourceChunk
+  normalizedScores: NormalizedSourceScores
+  showRerank: boolean
+}
+
 function compactSourceLabel(sourceId: string | undefined, fallbackRank: number): string {
   if (typeof sourceId === "string" && /^S\d+$/i.test(sourceId.trim())) {
     return sourceId.trim().toUpperCase()
@@ -84,17 +90,27 @@ function buildNormalizedScoreMap(response: RagChatResponse | null): Record<strin
   }, {})
 }
 
-function buildNormalizedHybridCandidateMap(response: RagChatResponse | null): Record<string, number> {
+function buildNormalizedHybridCandidateMap(response: RagChatResponse | null): Record<string, Omit<NormalizedSourceScores, "rerank">> {
   if (response === null || response.hybrid_candidates.length === 0) {
     return {}
   }
 
   const hybridValues = response.hybrid_candidates.map((candidate) => candidate.hybrid_score)
+  const denseValues = response.hybrid_candidates.map((candidate) => candidate.dense_score)
+  const sparseValues = response.hybrid_candidates.map((candidate) => candidate.sparse_score)
   const hybridMin = Math.min(...hybridValues)
   const hybridMax = Math.max(...hybridValues)
+  const denseMin = Math.min(...denseValues)
+  const denseMax = Math.max(...denseValues)
+  const sparseMin = Math.min(...sparseValues)
+  const sparseMax = Math.max(...sparseValues)
 
-  return response.hybrid_candidates.reduce<Record<string, number>>((accumulator, candidate) => {
-    accumulator[candidate.chunk_key] = normalizeValue(candidate.hybrid_score, hybridMin, hybridMax)
+  return response.hybrid_candidates.reduce<Record<string, Omit<NormalizedSourceScores, "rerank">>>((accumulator, candidate) => {
+    accumulator[candidate.chunk_key] = {
+      hybrid: normalizeValue(candidate.hybrid_score, hybridMin, hybridMax),
+      dense: normalizeValue(candidate.dense_score, denseMin, denseMax),
+      sparse: normalizeValue(candidate.sparse_score, sparseMin, sparseMax),
+    }
     return accumulator
   }, {})
 }
@@ -122,10 +138,12 @@ function GaugeRow({ label, percentage }: { label: string; percentage: number }) 
 function SourceDetailModal({
   source,
   normalizedScores,
+  showRerank,
   onClose,
 }: {
   source: RagSourceChunk
   normalizedScores: NormalizedSourceScores
+  showRerank: boolean
   onClose: () => void
 }) {
   return (
@@ -145,7 +163,7 @@ function SourceDetailModal({
 
         <div className="grid gap-3 p-4">
           <section className="grid gap-2 bg-background p-3">
-            <GaugeRow label="Rerank" percentage={normalizedScores.rerank} />
+            {showRerank ? <GaugeRow label="Rerank" percentage={normalizedScores.rerank} /> : null}
             <GaugeRow label="Hybrid" percentage={normalizedScores.hybrid} />
             <GaugeRow label="Dense" percentage={normalizedScores.dense} />
             <GaugeRow label="Sparse" percentage={normalizedScores.sparse} />
@@ -161,15 +179,25 @@ function SourceDetailModal({
             <p>
               <span className="font-mono text-xs uppercase tracking-wide text-muted">Chunk Key:</span> {source.chunk_key}
             </p>
-            <p>
-              <span className="font-mono text-xs uppercase tracking-wide text-muted">Final Rank:</span> {source.rank}
-            </p>
-            <p>
-              <span className="font-mono text-xs uppercase tracking-wide text-muted">Original Hybrid Rank:</span> {source.original_rank}
-            </p>
-            <p>
-              <span className="font-mono text-xs uppercase tracking-wide text-muted">Rerank Score:</span> {source.rerank_score.toFixed(4)}
-            </p>
+            {showRerank ? (
+              <>
+                <p>
+                  <span className="font-mono text-xs uppercase tracking-wide text-muted">Final Rank:</span> {source.rank}
+                </p>
+                <p>
+                  <span className="font-mono text-xs uppercase tracking-wide text-muted">Original Hybrid Rank:</span>{" "}
+                  {source.original_rank}
+                </p>
+                <p>
+                  <span className="font-mono text-xs uppercase tracking-wide text-muted">Rerank Score:</span>{" "}
+                  {source.rerank_score.toFixed(4)}
+                </p>
+              </>
+            ) : (
+              <p>
+                <span className="font-mono text-xs uppercase tracking-wide text-muted">Hybrid Rank:</span> {source.rank}
+              </p>
+            )}
           </section>
 
           <section className="bg-background p-3">
@@ -179,7 +207,7 @@ function SourceDetailModal({
                 {source.context_header}
               </p>
             ) : null}
-            <div className="max-h-[36vh] overflow-y-auto bg-surface p-2">
+            <div className="max-h-[24vh] overflow-y-auto bg-surface p-2">
               <p className="whitespace-pre-wrap break-words text-sm text-foreground">{source.text}</p>
             </div>
           </section>
@@ -197,14 +225,19 @@ export function RagRerankedSourcesPanel({
   selectedSourceId,
   onSourceSelect,
 }: RagRerankedSourcesPanelProps) {
-  const [detailSourceId, setDetailSourceId] = useState<string | null>(null)
+  const [detailModalState, setDetailModalState] = useState<DetailModalState | null>(null)
 
   const normalizedScoreMap = useMemo(() => buildNormalizedScoreMap(response), [response])
   const normalizedHybridCandidateMap = useMemo(() => buildNormalizedHybridCandidateMap(response), [response])
-  const detailSource =
-    detailSourceId === null || response === null
-      ? null
-      : response.sources.find((source) => source.source_id === detailSourceId) ?? null
+  const sourceById = useMemo(() => {
+    if (response === null) {
+      return {}
+    }
+    return response.sources.reduce<Record<string, RagSourceChunk>>((accumulator, source) => {
+      accumulator[source.source_id] = source
+      return accumulator
+    }, {})
+  }, [response])
 
   const keptChunkKeys = useMemo(() => {
     if (response === null) {
@@ -245,6 +278,53 @@ export function RagRerankedSourcesPanel({
 
     return [...keptRows, ...removedRows]
   }, [response, normalizedScoreMap, keptChunkKeys, normalizedHybridCandidateMap])
+
+  function openRerankSource(sourceId: string): void {
+    const source = sourceById[sourceId]
+    if (source === undefined) {
+      return
+    }
+    onSourceSelect(source.source_id)
+    setDetailModalState({
+      source,
+      normalizedScores: normalizedScoreMap[source.source_id] ?? { rerank: 0, hybrid: 0, dense: 0, sparse: 0 },
+      showRerank: true,
+    })
+  }
+
+  function openHybridCandidate(candidate: RagChatResponse["hybrid_candidates"][number]): void {
+    if (response === null) {
+      return
+    }
+
+    const keptSource = response.sources.find((source) => source.chunk_key === candidate.chunk_key)
+    if (keptSource !== undefined) {
+      openRerankSource(keptSource.source_id)
+      return
+    }
+
+    const fallbackSource: RagSourceChunk = {
+      rank: candidate.rank,
+      source_id: compactSourceLabel(candidate.source_id, candidate.rank),
+      chunk_key: candidate.chunk_key,
+      document_id: candidate.document_id,
+      document_name: candidate.document_name,
+      chunk_index: candidate.chunk_index,
+      context_header: candidate.context_header,
+      text: candidate.text,
+      dense_score: candidate.dense_score,
+      sparse_score: candidate.sparse_score,
+      hybrid_score: candidate.hybrid_score,
+      original_rank: candidate.rank,
+      rerank_score: 0,
+    }
+    const normalizedHybrid = normalizedHybridCandidateMap[candidate.chunk_key] ?? { hybrid: 0, dense: 0, sparse: 0 }
+    setDetailModalState({
+      source: fallbackSource,
+      normalizedScores: { rerank: 0, ...normalizedHybrid },
+      showRerank: false,
+    })
+  }
 
   return (
     <aside className="flex h-full min-h-0 w-[26rem] flex-col border-l border-border bg-surface">
@@ -294,14 +374,18 @@ export function RagRerankedSourcesPanel({
               </p>
               <div className="grid gap-2 md:grid-cols-2 md:items-stretch">
                 <div className="grid min-h-[14rem] gap-1">
-                  <p className="font-mono text-[10px] uppercase tracking-wide text-muted">Before Rerank (Hybrid %)</p>
+                  <p className="font-mono text-[10px] uppercase tracking-wide text-muted">HYBRID</p>
                   <ul className="chat-scrollbar h-[14rem] space-y-1 overflow-y-auto pr-1">
                     {response.hybrid_candidates.map((candidate) => {
                       const sourceLabel = compactSourceLabel(candidate.source_id, candidate.rank)
-                      const hybridPercentage = normalizedHybridCandidateMap[candidate.chunk_key] ?? 0
+                      const hybridPercentage = normalizedHybridCandidateMap[candidate.chunk_key]?.hybrid ?? 0
                       return (
                         <li key={`hybrid-${candidate.chunk_key}`}>
-                          <div className="grid w-full grid-cols-[auto_1fr_auto] items-center gap-2 bg-surface px-2 py-2">
+                          <button
+                            type="button"
+                            onClick={() => openHybridCandidate(candidate)}
+                            className="grid w-full grid-cols-[auto_1fr_auto] items-center gap-2 bg-surface px-2 py-2 text-left"
+                          >
                             <span className="h-2.5 w-2.5 !rounded-full bg-primary" />
                             <span className="flex min-w-0 items-center gap-2 text-sm font-medium text-foreground">
                               <span className="shrink-0">{sourceLabel}</span>
@@ -313,7 +397,7 @@ export function RagRerankedSourcesPanel({
                             >
                               {hybridPercentage.toFixed(0)}%
                             </span>
-                          </div>
+                          </button>
                         </li>
                       )
                     })}
@@ -321,7 +405,7 @@ export function RagRerankedSourcesPanel({
                 </div>
 
                 <div className="grid min-h-[14rem] gap-1">
-                  <p className="font-mono text-[10px] uppercase tracking-wide text-muted">After Rerank (Rerank %)</p>
+                  <p className="font-mono text-[10px] uppercase tracking-wide text-muted">RERANK</p>
                   <ul className="chat-scrollbar h-[14rem] space-y-1 overflow-y-auto pr-1">
                     {afterRerankRows.map((row) => {
                       return (
@@ -333,8 +417,7 @@ export function RagRerankedSourcesPanel({
                               if (row.sourceId === null) {
                                 return
                               }
-                              onSourceSelect(row.sourceId)
-                              setDetailSourceId(row.sourceId)
+                              openRerankSource(row.sourceId)
                             }}
                             className={`grid w-full grid-cols-[auto_1fr_auto] items-center gap-2 px-2 py-2 text-left ${
                               row.kept
@@ -369,11 +452,12 @@ export function RagRerankedSourcesPanel({
         )}
       </div>
 
-      {detailSource !== null ? (
+      {detailModalState !== null ? (
         <SourceDetailModal
-          source={detailSource}
-          normalizedScores={normalizedScoreMap[detailSource.source_id] ?? { rerank: 0, hybrid: 0, dense: 0, sparse: 0 }}
-          onClose={() => setDetailSourceId(null)}
+          source={detailModalState.source}
+          normalizedScores={detailModalState.normalizedScores}
+          showRerank={detailModalState.showRerank}
+          onClose={() => setDetailModalState(null)}
         />
       ) : null}
     </aside>
