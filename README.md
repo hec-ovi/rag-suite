@@ -1,13 +1,19 @@
-# RAG Suite
+<h1 align="center">rag-suite</h1>
 
-![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)
-![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688?logo=fastapi&logoColor=white)
-![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=111111)
-![Qdrant](https://img.shields.io/badge/Qdrant-Vector%20DB-DC244C)
-![Ollama](https://img.shields.io/badge/Ollama-Local%20Inference-111111)
-![Docker Compose](https://img.shields.io/badge/Docker%20Compose-Stack-2496ED?logo=docker&logoColor=white)
+<p align="center">
+  <strong>Production-focused RAG platform: 4 isolated backends (inference, ingestion, RAG, reranker), hybrid (dense + BM25) and reranked retrieval, all runnable locally.</strong>
+</p>
 
-Production-focused RAG platform with a quality-first ingestion + retrieval pipeline.
+<p align="center">
+  <img src="https://img.shields.io/badge/Status-Working-brightgreen" alt="Status" />
+  <img src="https://img.shields.io/badge/FastAPI-0.115-009688?logo=fastapi&logoColor=white" alt="FastAPI" />
+  <img src="https://img.shields.io/badge/Qdrant-Vector_DB-DC244C" alt="Qdrant" />
+  <img src="https://img.shields.io/badge/Ollama-Local-111111?logo=ollama&logoColor=white" alt="Ollama" />
+  <img src="https://img.shields.io/badge/AMD-ROCm-ED1C24?logo=amd&logoColor=white" alt="ROCm" />
+  <img src="https://img.shields.io/badge/License-MIT-blue" alt="License" />
+</p>
+
+---
 
 ## Highlights
 
@@ -340,3 +346,9 @@ If Ollama logs include messages like `Memory access fault by GPU` or the desktop
 - Keep `OLLAMA_TIMEOUT_SECONDS=300` and `INFERENCE_TIMEOUT_SECONDS=300` for long agentic operations.
 - Use `Interrupt` in chunk/context steps to stop in-flight LLM work.
 - If failures persist, test a smaller chat model for chunk/context operations.
+
+---
+
+## License
+
+[MIT](LICENSE) for original code in this repository (the four FastAPI backends, the React frontend, scripts, and Compose configs). Third-party services and models pulled at runtime (Qdrant, Ollama, Hugging Face cross-encoder reranker model) retain their own upstream licenses; this repository does not redistribute them.

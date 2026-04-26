@@ -1,0 +1,42 @@
+MIT License
+
+Copyright (c) 2026 Hector Oviedo
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+---
+
+This license applies to the original code authored in this repository (the
+four FastAPI backends under backend_inference/, backend_ingestion/,
+backend_rag/, and backend_reranker/, the React ingestion UI under frontend/,
+helper scripts, and Compose configuration).
+
+Third-party services and models pulled at runtime retain their own upstream
+licenses, including:
+  - Qdrant (Apache 2.0)
+  - Ollama (MIT) and any models pulled through it (per-model terms)
+  - Hugging Face cross-encoder reranker models (per-model card terms)
+  - sentence-transformers, transformers, accelerate (Apache 2.0)
+  - PyTorch ROCm (BSD-3-Clause)
+  - sample documents under samples/ (each retains its own copyright; included
+    only as small extracts for testing extraction paths)
+
+This repository does not redistribute model weights or third-party services.
+Users are responsible for complying with each upstream license when running
+the stack.
